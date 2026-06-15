@@ -2,6 +2,7 @@ import Foundation
 
 public protocol AnyActiveTraceRun: Sendable {
     func recordAny(_ payload: Any, engineName: String?)
+    func flush() async throws
 }
 
 public enum TraceContext {
@@ -32,14 +33,16 @@ public enum DProvenanceKit<T: TraceableEvent> {
                 payload: payload,
                 timestamp: Date()
             )
-            Task {
-                try? await store.append(traceEvent)
-            }
+            store.record(traceEvent)
         }
         
         public func recordAny(_ payload: Any, engineName: String?) {
             guard let typedPayload = payload as? T else { return }
             self.record(typedPayload, engineName: engineName)
+        }
+        
+        public func flush() async throws {
+            try await store.flush()
         }
     }
 
@@ -93,5 +96,10 @@ public enum DProvenanceKit<T: TraceableEvent> {
             return
         }
         run.recordAny(payload, engineName: TraceContext.engineStack.last)
+    }
+    
+    public static func flush() async throws {
+        guard let run = TraceContext.currentRun else { return }
+        try await run.flush()
     }
 }

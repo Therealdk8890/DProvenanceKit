@@ -2,7 +2,8 @@ import Foundation
 
 public protocol TraceStore<T>: Sendable {
     associatedtype T: TraceableEvent
-    func append(_ record: TraceEvent<T>) async throws
+    func record(_ event: TraceEvent<T>)
+    func flush() async throws
     func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]
 }
 
@@ -20,7 +21,13 @@ public actor InMemoryTraceStore<T: TraceableEvent>: TraceStore {
         self.liveEngine = liveEngine
     }
     
-    public func append(_ record: TraceEvent<T>) async throws {
+    nonisolated public func record(_ record: TraceEvent<T>) {
+        Task {
+            await self._append(record)
+        }
+    }
+    
+    private func _append(_ record: TraceEvent<T>) async {
         eventsByRunID[record.runID, default: []].append(record)
         
         runByContextID[record.contextID, default: []].insert(record.runID)
@@ -32,6 +39,10 @@ public actor InMemoryTraceStore<T: TraceableEvent>: TraceStore {
         if let run = getRun(id: record.runID) {
             await liveEngine?.process(event: record, run: run)
         }
+    }
+    
+    public func flush() async throws {
+        // No-op for in-memory
     }
     
     public func getRun(id: UUID) -> TraceRun<T>? {
