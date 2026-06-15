@@ -96,10 +96,12 @@ enum MyAIDecision: TraceableEvent {
 ```
 
 ### 2. Set up a Store
-Initialize a store to hold the traces. `FileTraceStore` automatically writes events to the Application Support directory as JSONL files.
+
+Initialize a store to hold the traces. `SQLiteTraceStore` writes events asynchronously to a lock-free SQLite backend, supporting extremely high throughput without blocking execution.
 
 ```swift
-let store = FileTraceStore<MyAIDecision>()
+let storeURL = URL(fileURLWithPath: "/path/to/traces.sqlite")
+let store = try SQLiteTraceStore<MyAIDecision>(fileURL: storeURL)
 ```
 
 ### 3. Record Execution Runs
@@ -136,9 +138,8 @@ DProvenanceKit
    ↓
 TraceEvent Stream
    ↓
-FileTraceStore (durable log)
-   ↓
-InMemoryTraceStore (query index)
+1. **SQLiteTraceStore (lock-free SQL engine)**: Asynchronously persists events via an actor-isolated buffer and WAL-mode SQLite database.
+2. **InMemoryTraceStore (query index)**: For fast, localized execution.
    ↓
 Query Engine + Planner
    ↓
