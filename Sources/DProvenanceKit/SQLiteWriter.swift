@@ -116,8 +116,8 @@ public actor SQLiteWriter {
     
     private func insert(_ events: [TraceEventRow]) throws {
         let insertSQL = """
-        INSERT INTO trace_events (id, run_id, context_id, priority, sequence, engine, type, payload, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO trace_events (id, run_id, context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         let stmt = try db.prepare(insertSQL)
         
@@ -132,9 +132,19 @@ public actor SQLiteWriter {
             } else {
                 try stmt.bindNull(at: 6)
             }
-            try stmt.bind(event.type, at: 7)
-            try stmt.bind(event.payload, at: 8)
-            try stmt.bind(event.timestamp, at: 9)
+            if let spanID = event.spanID {
+                try stmt.bind(spanID, at: 7)
+            } else {
+                try stmt.bindNull(at: 7)
+            }
+            if let parentSpanID = event.parentSpanID {
+                try stmt.bind(parentSpanID, at: 8)
+            } else {
+                try stmt.bindNull(at: 8)
+            }
+            try stmt.bind(event.type, at: 9)
+            try stmt.bind(event.payload, at: 10)
+            try stmt.bind(event.timestamp, at: 11)
             
             _ = try stmt.step()
             stmt.reset()

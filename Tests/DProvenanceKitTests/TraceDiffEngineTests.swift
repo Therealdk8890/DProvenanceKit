@@ -37,6 +37,8 @@ final class TraceDiffEngineTests: XCTestCase {
                 engineName: engine,
                 schemaVersion: 1,
                 sequence: seq,
+                spanID: nil,
+                parentSpanID: nil,
                 payload: payload,
                 timestamp: Date()
             )

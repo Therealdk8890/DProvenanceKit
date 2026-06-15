@@ -35,11 +35,17 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 priority INTEGER NOT NULL,
                 sequence INTEGER NOT NULL,
                 engine TEXT,
+                span_id TEXT,
+                parent_span_id TEXT,
                 type TEXT NOT NULL,
                 payload BLOB NOT NULL,
                 timestamp INTEGER NOT NULL
             );
             """)
+            
+            // Backwards compatibility for existing databases
+            try? database.execute("ALTER TABLE trace_events ADD COLUMN span_id TEXT;")
+            try? database.execute("ALTER TABLE trace_events ADD COLUMN parent_span_id TEXT;")
             
             // Critical indices
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_id ON trace_events(run_id);")
@@ -85,6 +91,8 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             priority: event.payload.priority.rawValue,
             sequence: Int64(event.sequence),
             engine: event.engineName,
+            spanID: event.spanID,
+            parentSpanID: event.parentSpanID,
             type: event.payload.typeIdentifier,
             payload: payloadData,
             timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000)
@@ -128,7 +136,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     private func fetchRun(id: UUID) async throws -> TraceRun<T>? {
-        let sql = "SELECT engine, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
+        let sql = "SELECT engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
         let stmt = try db.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
@@ -144,20 +152,24 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         
         while try stmt.step() {
             let engine = stmt.columnString(at: 0)
-            _ = stmt.columnString(at: 1) // type
-            let payloadData = stmt.columnData(at: 2)
-            let timestampMs = stmt.columnInt64(at: 3)
-            let sequence = UInt64(stmt.columnInt64(at: 4))
+            let spanID = stmt.columnString(at: 1)
+            let parentSpanID = stmt.columnString(at: 2)
+            _ = stmt.columnString(at: 3) // type
+            let payloadData = stmt.columnData(at: 4)
+            let timestampMs = stmt.columnInt64(at: 5)
+            let sequence = UInt64(stmt.columnInt64(at: 6))
             
             if let payload = try? decoder.decode(T.self, from: payloadData) {
                 let event = TraceEvent(
                     runID: id,
                     contextID: contextID,
                     engineName: engine ?? "Unknown",
-                    schemaVersion: 1, // Store schema version if needed, defaulting to 1
+                    schemaVersion: 1,
                     sequence: sequence,
+                    spanID: spanID,
+                    parentSpanID: parentSpanID,
                     payload: payload,
-                    timestamp: Date(timeIntervalSince1970: TimeInterval(timestampMs) / 1_000_000.0)
+                    timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
                 )
                 events.append(event)
             }

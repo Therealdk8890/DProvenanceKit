@@ -8,6 +8,8 @@ public protocol AnyActiveTraceRun: Sendable {
 public enum TraceContext {
     @TaskLocal public static var currentRun: AnyActiveTraceRun?
     @TaskLocal public static var engineStack: [String] = []
+    @TaskLocal public static var currentSpanID: String?
+    @TaskLocal public static var parentSpanID: String?
 }
 
 public enum DProvenanceKit<T: TraceableEvent> {
@@ -38,6 +40,8 @@ public enum DProvenanceKit<T: TraceableEvent> {
                 engineName: engineName ?? "Unknown",
                 schemaVersion: schemaVersion,
                 sequence: seq,
+                spanID: TraceContext.currentSpanID,
+                parentSpanID: TraceContext.parentSpanID,
                 payload: payload,
                 timestamp: Date()
             )
@@ -95,6 +99,30 @@ public enum DProvenanceKit<T: TraceableEvent> {
         let newStack = TraceContext.engineStack + [name]
         return try TraceContext.$engineStack.withValue(newStack) {
             try block()
+        }
+    }
+
+    public static func withSpan<R>(
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let newSpanID = UUID().uuidString
+        let parent = TraceContext.currentSpanID
+        return try await TraceContext.$currentSpanID.withValue(newSpanID) {
+            try await TraceContext.$parentSpanID.withValue(parent) {
+                try await block()
+            }
+        }
+    }
+
+    public static func withSpanSync<R>(
+        _ block: () throws -> R
+    ) rethrows -> R {
+        let newSpanID = UUID().uuidString
+        let parent = TraceContext.currentSpanID
+        return try TraceContext.$currentSpanID.withValue(newSpanID) {
+            try TraceContext.$parentSpanID.withValue(parent) {
+                try block()
+            }
         }
     }
 
