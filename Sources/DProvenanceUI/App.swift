@@ -1,15 +1,17 @@
 import SwiftUI
 import AppKit
 
-@main
-struct DProvenanceUIApp: App {
-    @StateObject private var storeManager = StoreManager()
-    
-    init() {
-        // Force SPM executable to behave like a regular macOS GUI app
-        NSApplication.shared.setActivationPolicy(.regular)
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
     }
+}
+
+@main
+struct DProvenanceUIApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var storeManager = StoreManager()
     
     var body: some Scene {
         WindowGroup {
