@@ -32,6 +32,8 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 id TEXT PRIMARY KEY,
                 run_id TEXT NOT NULL,
                 context_id TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                sequence INTEGER NOT NULL,
                 engine TEXT,
                 type TEXT NOT NULL,
                 payload BLOB NOT NULL,
@@ -44,6 +46,8 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             try database.execute("CREATE INDEX IF NOT EXISTS idx_type ON trace_events(type);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_type ON trace_events(run_id, type);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON trace_events(timestamp);")
+            try database.execute("CREATE INDEX IF NOT EXISTS idx_run_sequence ON trace_events(run_id, sequence);")
+            try database.execute("CREATE INDEX IF NOT EXISTS idx_priority ON trace_events(priority);")
             
             // Write-behind reconciliation
             // Ensure any runs interrupted during a crash are rebuilt from trace_events
@@ -79,6 +83,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             runID: event.runID.uuidString,
             contextID: event.contextID,
             priority: event.payload.priority.rawValue,
+            sequence: Int64(event.sequence),
             engine: event.engineName,
             type: event.payload.typeIdentifier,
             payload: payloadData,
@@ -123,7 +128,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     private func fetchRun(id: UUID) async throws -> TraceRun<T>? {
-        let sql = "SELECT engine, type, payload, timestamp FROM trace_events WHERE run_id = ? ORDER BY timestamp ASC"
+        let sql = "SELECT engine, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
         let stmt = try db.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
@@ -142,6 +147,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             _ = stmt.columnString(at: 1) // type
             let payloadData = stmt.columnData(at: 2)
             let timestampMs = stmt.columnInt64(at: 3)
+            let sequence = UInt64(stmt.columnInt64(at: 4))
             
             if let payload = try? decoder.decode(T.self, from: payloadData) {
                 let event = TraceEvent(
@@ -149,6 +155,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     contextID: contextID,
                     engineName: engine ?? "Unknown",
                     schemaVersion: 1, // Store schema version if needed, defaulting to 1
+                    sequence: sequence,
                     payload: payload,
                     timestamp: Date(timeIntervalSince1970: TimeInterval(timestampMs) / 1_000_000.0)
                 )

@@ -11,11 +11,13 @@ public enum TraceContext {
 }
 
 public enum DProvenanceKit<T: TraceableEvent> {
-    public final class ActiveTraceRun: Sendable, AnyActiveTraceRun {
+    public final class ActiveTraceRun: @unchecked Sendable, AnyActiveTraceRun {
         public let runID: UUID
         public let contextID: String
         private let store: any TraceStore<T>
         private let schemaVersion: Int
+        private let sequenceLock = NSLock()
+        private var sequenceCounter: UInt64 = 0
 
         public init(contextID: String, store: any TraceStore<T>, schemaVersion: Int = 1) {
             self.runID = UUID()
@@ -25,11 +27,17 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
 
         public func record(_ payload: T, engineName: String?) {
+            sequenceLock.lock()
+            let seq = sequenceCounter
+            sequenceCounter += 1
+            sequenceLock.unlock()
+            
             let traceEvent = TraceEvent(
                 runID: runID,
                 contextID: contextID,
                 engineName: engineName ?? "Unknown",
                 schemaVersion: schemaVersion,
+                sequence: seq,
                 payload: payload,
                 timestamp: Date()
             )

@@ -22,7 +22,7 @@ public actor TraceWriteBuffer {
     /// Enqueues an event using intelligent congestion control.
     public func enqueue(_ event: TraceEventRow) {
         let runDepth = queueDepthByRun[event.runID, default: 0]
-        let priority = TracePriority(rawValue: event.priority) ?? .verbose
+        let priority = TracePriority(rawValue: event.priority) ?? .telemetry
         
         // 1. Soft per-run limits
         if runDepth >= maxPerRunBuffer {
@@ -36,7 +36,7 @@ public actor TraceWriteBuffer {
         // 2. Global capacity limits
         if queue.count >= maxGlobalBuffer {
             // Find a victim to drop from the global buffer
-            if let victimIdx = queue.firstIndex(where: { $0.priority == TracePriority.verbose.rawValue }) {
+            if let victimIdx = queue.firstIndex(where: { $0.priority == TracePriority.telemetry.rawValue }) {
                 let victim = queue.remove(at: victimIdx)
                 decrementRunDepth(victim.runID)
             } else if let victimIdx = queue.firstIndex(where: { $0.priority == TracePriority.diagnostic.rawValue }) {

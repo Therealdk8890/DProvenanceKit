@@ -22,7 +22,7 @@ enum TestEvent: TraceableEvent {
         switch self {
         case .processStarted, .processFinished: return .critical
         case .errorDetected: return .structural
-        case .stepCompleted: return .verbose
+        case .stepCompleted: return .telemetry
         }
     }
 }
@@ -111,11 +111,11 @@ final class SQLiteStressTests: XCTestCase {
         let burstURL = tempDir.appendingPathComponent(UUID().uuidString + "_burst.sqlite")
         let smallStore = try SQLiteTraceStore<TestEvent>(fileURL: burstURL, maxGlobalBuffer: 100, maxPerRunBuffer: 50)
         
-        // Run a task that floods the buffer with 200 verbose events and 10 critical events
+        // Run a task that floods the buffer with 200 telemetry events and 10 critical events
         await DProvenanceKit<TestEvent>.run(contextID: "rogue_agent", store: smallStore) {
             DProvenanceKit<TestEvent>.record(.processStarted) // Priority: critical (should survive)
             for j in 0..<200 {
-                DProvenanceKit<TestEvent>.record(.stepCompleted(j)) // Priority: verbose (should drop)
+                DProvenanceKit<TestEvent>.record(.stepCompleted(j)) // Priority: telemetry (should drop)
             }
             DProvenanceKit<TestEvent>.record(.processFinished) // Priority: critical (should survive)
         }
@@ -135,7 +135,7 @@ final class SQLiteStressTests: XCTestCase {
         
         XCTAssertTrue(hasStart, "Critical event 'processStarted' should survive the burst drop")
         XCTAssertTrue(hasEnd, "Critical event 'processFinished' should survive the burst drop")
-        XCTAssertLessThan(events.count, 202, "Verbose events should have been dropped")
+        XCTAssertLessThan(events.count, 202, "Telemetry events should have been dropped")
         
         try FileManager.default.removeItem(at: burstURL)
     }
