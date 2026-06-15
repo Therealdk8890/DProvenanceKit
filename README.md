@@ -1,20 +1,161 @@
-# DProvenanceKit
+# 🚀 DProvenanceKit
+> “Every AI decision should be replayable, inspectable, and debuggable.”
 
-**DProvenanceKit** is a lightweight, strictly-typed Swift package for **reasoning observability and regression testing in AI systems**. 
+**DProvenanceKit turns execution into a queryable provenance graph.**
 
-When building complex, multi-agent AI systems, understanding *how* a model arrived at a conclusion is just as important as the conclusion itself. DProvenanceKit allows you to passively instrument your AI engines, record granular decision-making steps, and write temporal queries to detect anomalous behavior or regressions in real-time.
+It lets you:
+- record every step an AI system takes
+- replay reasoning deterministically
+- query execution like a database
+- diff runs to see exactly what changed
+- detect behavioral drift automatically
 
-## Features
+If your system makes decisions you can’t explain later, this is for you.
 
-- **Generic Trace Payloads**: Define your own strongly-typed events via the `TraceableEvent` protocol.
-- **Structured Concurrency**: Uses Swift `@TaskLocal` variables to implicitly route events to the correct execution run without passing a logger instance around your entire codebase.
-- **Durable Storage**: Ships with `InMemoryTraceStore` and `FileTraceStore` (JSONL) for persisting AI reasoning traces.
-- **Trace Query DSL**: A declarative, temporal query language to evaluate the sequence and presence of specific reasoning steps within a run (e.g., "Step A must be followed by Step B, but Step C must be missing").
-- **Live Query Engine**: Subscribe to reasoning queries and detect matches in real-time as your AI generates output.
-- **Anomaly Detection**: Build regression test suites that define "Invalid Sequences" or "Anomalous Behaviors" to automatically flag when your AI deviates from expected logic flows.
+---
 
-## Installation
+## 🧠 Why this exists
 
+Modern AI systems fail in a specific way:
+**They don’t crash. They just behave differently.**
+
+One day your agent:
+- extracts correct data
+- follows the right reasoning path
+- passes all tests
+
+The next day:
+- it silently skips a step
+- changes ordering
+- loses intermediate logic
+- produces a “plausible but wrong” answer
+
+And you have no idea why.
+
+Logs don’t help. Observability tools don’t go deep enough. Prompts don’t explain themselves.
+
+### DProvenanceKit fixes that
+It turns execution into a structured, queryable timeline of decisions.
+
+Not logs.
+Not traces.
+**A reasoning graph.**
+
+---
+
+## ⚙️ Core Concepts
+
+### 1. Trace Events (not logs)
+Every meaningful decision becomes a structured event:
+```swift
+DProvenanceKit.record(.evaluatedDocumentCount(2))
+DProvenanceKit.record(.detectedConflict(type: "date_mismatch"))
+```
+
+### 2. Runs (execution units)
+Every execution is a deterministic, replayable run:
+```swift
+try await DProvenanceKit.run(contextID: "case_123", store: store) {
+    // your system executes here
+}
+```
+
+### 3. Queryable execution history
+You can ask questions like:
+*“Show me runs where comparison was skipped but conflict was detected”*
+or
+*“Find cases where heuristic order changed”*
+
+### 4. Run Diffing (the killer feature)
+Compare two executions:
+- what steps disappeared
+- what changed order
+- what logic shifted
+- what confidence drift occurred
+
+This turns debugging into: **git diff — but for reasoning**
+
+### 5. Live anomaly detection
+Catch regressions as they happen:
+- missing decision steps
+- altered execution flow
+- confidence drift
+- inconsistent reasoning paths
+
+---
+
+## 🔥 What makes this different
+
+Most systems give you: logs, traces, dashboards, metrics.
+
+DProvenanceKit gives you: **a semantic execution model of your system.**
+
+You don’t just see what happened.
+**You can query why it happened.**
+
+---
+
+## ⚡ Key Features
+- Event-sourced execution model
+- Queryable reasoning traces (DSL)
+- Cost-optimized query planner
+- Live streaming anomaly detection
+- Deterministic run replay
+- JSONL durable persistence
+- Run diff engine *(coming soon)*
+
+---
+
+## 🧭 Architecture (high level)
+```
+DProvenanceKit
+   ↓
+TraceEvent Stream
+   ↓
+FileTraceStore (durable log)
+   ↓
+InMemoryTraceStore (query index)
+   ↓
+Query Engine + Planner
+   ↓
+Live Anomaly Detection
+   ↓
+Diff + Analytics
+```
+
+---
+
+## 🚀 Why developers use it
+- “Why did my AI behave differently today?”
+- “What step disappeared in production?”
+- “Can I diff two agent runs like git?”
+- “Can I detect reasoning regressions in CI?”
+
+If yes → this is for you.
+
+---
+
+## 🧪 Status
+**Experimental.** Core engine complete. Actively evolving.
+
+Designed for:
+- AI agents
+- reasoning systems
+- workflow engines
+- deterministic pipelines
+- tool-using LLM systems
+
+---
+
+## 🧠 Philosophy
+If a system makes decisions, those decisions should be:
+**observable, queryable, and comparable over time.**
+
+---
+
+## 📦 Getting Started
+
+### Installation
 Add DProvenanceKit to your `Package.swift` dependencies:
 
 ```swift
@@ -22,8 +163,6 @@ dependencies: [
     .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", branch: "main")
 ]
 ```
-
-## How It Works
 
 ### 1. Define your Events
 Adopt the `TraceableEvent` protocol to define the types of decisions your AI makes.
@@ -110,7 +249,7 @@ for anomaly in anomalies {
 }
 ```
 
-You can also use the `LiveTraceQueryEngine` to evaluate these anomaly rules in real-time as events stream in!
+---
 
 ## License
 MIT License
