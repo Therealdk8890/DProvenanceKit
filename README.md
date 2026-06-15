@@ -46,9 +46,9 @@ let suspiciousRuns = try await store.queryRuns(
 **3. Diff runs (like git for logic)**
 ```swift
 // "Diff run A vs B"
-let diff = runA.diff(against: runB)
-print(diff.missingSteps)
-print(diff.orderChanges)
+let engine = TraceDiffEngine<MyAIDecision>()
+let diff = engine.diff(base: runA, comparison: runB)
+print(diff.changes)
 ```
 
 **4. Catch regressions automatically**
@@ -90,6 +90,14 @@ enum MyAIDecision: TraceableEvent {
         case .documentEvaluated: return "documentEvaluated"
         case .conflictDetected: return "conflictDetected"
         case .finalDecisionMade: return "finalDecisionMade"
+        }
+    }
+    
+    var priority: TracePriority {
+        switch self {
+        case .promptGenerated, .documentEvaluated: return .telemetry
+        case .conflictDetected: return .diagnostic
+        case .finalDecisionMade: return .critical
         }
     }
 }
@@ -136,16 +144,16 @@ try await DProvenanceKit.run(contextID: "Case-12345", store: store) {
 
 AI reasoning often bursts with highly variable loads. DProvenanceKit treats tracing like network traffic, implementing **priority-aware congestion control**. 
 
-Your event types must adopt the `priority` property. In the event of a burst anomaly (e.g. an agent gets stuck in a loop generating 100k events in a millisecond), the `SQLiteWriter` will intelligently throttle and drop `verbose` and `diagnostic` events from the offending run to protect global buffer health, while **always preserving** `structural` and `critical` boundary events so reasoning logic diffs remain accurate.
+Your event types must adopt the `priority` property. In the event of a burst anomaly (e.g. an agent gets stuck in a loop generating 100k events in a millisecond), the `SQLiteWriter` will intelligently throttle and drop `telemetry` and `diagnostic` events from the offending run to protect global buffer health, while **always preserving** `structural` and `critical` boundary events so reasoning logic diffs remain accurate.
 
 ```swift
 enum MyAIDecision: TraceableEvent {
-    case documentEvaluated(String) // Priority: verbose
+    case documentEvaluated(String) // Priority: telemetry
     case reasoningApplied(String)  // Priority: structural
     
     var priority: TracePriority {
         switch self {
-        case .documentEvaluated: return .verbose
+        case .documentEvaluated: return .telemetry
         case .reasoningApplied: return .structural
         }
     }
