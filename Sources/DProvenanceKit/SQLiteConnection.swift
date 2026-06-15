@@ -24,8 +24,8 @@ public final class SQLiteConnection: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.dprovenancekit.sqlite", attributes: .concurrent)
 
     public init(fileURL: URL) throws {
-        // Use SQLITE_OPEN_NOMUTEX because we manage concurrency via actor or queue
-        let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX
+        // Use SQLITE_OPEN_FULLMUTEX because we share the connection pointer across threads
+        let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
         var tempDB: OpaquePointer?
         let result = sqlite3_open_v2(fileURL.path, &tempDB, flags, nil)
         guard result == SQLITE_OK else {
