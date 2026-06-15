@@ -5,15 +5,17 @@ public struct TraceEventRow: Sendable {
     public let id: String
     public let runID: String
     public let contextID: String
+    public let priority: Int
     public let engine: String?
     public let type: String
     public let payload: Data
     public let timestamp: Int64
     
-    public init(id: String, runID: String, contextID: String, engine: String?, type: String, payload: Data, timestamp: Int64) {
+    public init(id: String, runID: String, contextID: String, priority: Int, engine: String?, type: String, payload: Data, timestamp: Int64) {
         self.id = id
         self.runID = runID
         self.contextID = contextID
+        self.priority = priority
         self.engine = engine
         self.type = type
         self.payload = payload

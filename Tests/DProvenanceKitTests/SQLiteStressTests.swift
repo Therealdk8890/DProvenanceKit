@@ -17,6 +17,14 @@ enum TestEvent: TraceableEvent {
         case .processFinished: return "processFinished"
         }
     }
+    
+    var priority: TracePriority {
+        switch self {
+        case .processStarted, .processFinished: return .critical
+        case .errorDetected: return .structural
+        case .stepCompleted: return .verbose
+        }
+    }
 }
 
 final class SQLiteStressTests: XCTestCase {
@@ -26,7 +34,7 @@ final class SQLiteStressTests: XCTestCase {
     override func setUp() async throws {
         let tempDir = FileManager.default.temporaryDirectory
         storeURL = tempDir.appendingPathComponent(UUID().uuidString + ".sqlite")
-        store = try SQLiteTraceStore(fileURL: storeURL, maxBufferSize: 10_000)
+        store = try SQLiteTraceStore(fileURL: storeURL, maxGlobalBuffer: 10_000, maxPerRunBuffer: 1000)
     }
     
     override func tearDown() async throws {
@@ -95,5 +103,40 @@ final class SQLiteStressTests: XCTestCase {
             
         let seqRuns = try await store.queryRuns(seqQuery)
         XCTAssertEqual(seqRuns.count, 1)
+    }
+    
+    func testBurstIngestionCollapse() async throws {
+        // We set up a store with a very small global buffer to force dropping
+        let tempDir = FileManager.default.temporaryDirectory
+        let burstURL = tempDir.appendingPathComponent(UUID().uuidString + "_burst.sqlite")
+        let smallStore = try SQLiteTraceStore<TestEvent>(fileURL: burstURL, maxGlobalBuffer: 100, maxPerRunBuffer: 50)
+        
+        // Run a task that floods the buffer with 200 verbose events and 10 critical events
+        await DProvenanceKit<TestEvent>.run(contextID: "rogue_agent", store: smallStore) {
+            DProvenanceKit<TestEvent>.record(.processStarted) // Priority: critical (should survive)
+            for j in 0..<200 {
+                DProvenanceKit<TestEvent>.record(.stepCompleted(j)) // Priority: verbose (should drop)
+            }
+            DProvenanceKit<TestEvent>.record(.processFinished) // Priority: critical (should survive)
+        }
+        
+        try await smallStore.flush()
+        
+        let query = TraceQueryDSL<TestEvent>().requiring(step: "processStarted")
+        let runs = try await smallStore.queryRuns(query)
+        
+        XCTAssertEqual(runs.count, 1)
+        let events = runs.first!.events
+        
+        // The total events should be heavily truncated down to maxPerRunBuffer (50) or maxGlobalBuffer
+        // But the critical events MUST still be there
+        let hasStart = events.contains(where: { $0.payload.typeIdentifier == "processStarted" })
+        let hasEnd = events.contains(where: { $0.payload.typeIdentifier == "processFinished" })
+        
+        XCTAssertTrue(hasStart, "Critical event 'processStarted' should survive the burst drop")
+        XCTAssertTrue(hasEnd, "Critical event 'processFinished' should survive the burst drop")
+        XCTAssertLessThan(events.count, 202, "Verbose events should have been dropped")
+        
+        try FileManager.default.removeItem(at: burstURL)
     }
 }

@@ -5,9 +5,9 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     private let buffer: TraceWriteBuffer
     private let writer: SQLiteWriter
     
-    public init(fileURL: URL, maxBufferSize: Int = 10_000) throws {
+    public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
-        let buf = TraceWriteBuffer(maxBufferSize: maxBufferSize)
+        let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
         let wr = SQLiteWriter(db: database, buffer: buf)
         
         self.db = database
@@ -31,6 +31,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             CREATE TABLE IF NOT EXISTS trace_events (
                 id TEXT PRIMARY KEY,
                 run_id TEXT NOT NULL,
+                context_id TEXT NOT NULL,
                 engine TEXT,
                 type TEXT NOT NULL,
                 payload BLOB NOT NULL,
@@ -43,6 +44,26 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             try database.execute("CREATE INDEX IF NOT EXISTS idx_type ON trace_events(type);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_type ON trace_events(run_id, type);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON trace_events(timestamp);")
+            
+            // Write-behind reconciliation
+            // Ensure any runs interrupted during a crash are rebuilt from trace_events
+            let reconcileSQL = """
+            INSERT INTO runs (run_id, context_id, start_time, end_time, event_count, fingerprint)
+            SELECT 
+                run_id,
+                MAX(context_id),
+                MIN(timestamp),
+                MAX(timestamp),
+                COUNT(*),
+                ''
+            FROM trace_events
+            GROUP BY run_id
+            HAVING COUNT(*) > (SELECT COALESCE(MAX(event_count), 0) FROM runs WHERE runs.run_id = trace_events.run_id)
+            ON CONFLICT(run_id) DO UPDATE SET
+                end_time = excluded.end_time,
+                event_count = excluded.event_count;
+            """
+            try database.execute(reconcileSQL)
         }
         
         Task {
@@ -57,6 +78,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             id: UUID().uuidString,
             runID: event.runID.uuidString,
             contextID: event.contextID,
+            priority: event.payload.priority.rawValue,
             engine: event.engineName,
             type: event.payload.typeIdentifier,
             payload: payloadData,

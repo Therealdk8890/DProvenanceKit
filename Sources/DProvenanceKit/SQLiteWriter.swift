@@ -8,14 +8,20 @@ public actor SQLiteWriter {
     private var writeTask: Task<Void, Never>?
     private var isShuttingDown = false
     
+    // EMA smoothing state
+    private var smoothedLoad: Double = 0
+    private let alpha: Double = 0.2 // Smoothing factor
+    
+    private var lastRunFlushTime: TimeInterval = Date().timeIntervalSince1970
+    
     // Incremental run state cache to throttle UPSERTs to the `runs` table
     private struct RunState {
         var contextID: String
         var startTime: Int64
         var latestTime: Int64
         var eventCount: Int
-        var fingerprintHash: Insecure.SHA1 // Using SHA1 for fast incremental hashing (non-cryptographic use-case)
-        var uncommittedEvents: Int
+        var fingerprintHash: Insecure.SHA1
+        var isDirty: Bool
     }
     
     private var activeRuns: [String: RunState] = [:]
@@ -33,30 +39,75 @@ public actor SQLiteWriter {
                 let isShuttingDown = await self.isShuttingDown
                 if isShuttingDown { break }
                 
-                await self.processBatch()
-                try? await Task.sleep(nanoseconds: 50_000_000) // 50ms batching
+                await self.tick()
             }
         }
     }
     
     public func flush() async throws {
         await processBatch(drainAll: true)
+        try db.transaction {
+            try flushRunsTable(force: true)
+        }
     }
     
     public func shutdown() async {
         isShuttingDown = true
         await writeTask?.value
         await processBatch(drainAll: true)
+        try? db.transaction {
+            try flushRunsTable(force: true)
+        }
     }
     
-    private func processBatch(drainAll: Bool = false) async {
-        let batch = drainAll ? await buffer.flushAll() : await buffer.drain(max: 1000)
+    private func tick() async {
+        let depth = await buffer.currentDepth
+        smoothedLoad = (alpha * Double(depth)) + ((1.0 - alpha) * smoothedLoad)
+        
+        let batchSize: Int
+        let sleepMs: UInt64
+        
+        if smoothedLoad > 5_000 {
+            // High load
+            batchSize = 5_000
+            sleepMs = UInt64.random(in: 0...5)
+        } else if smoothedLoad > 500 {
+            // Medium load
+            batchSize = 1_000
+            sleepMs = UInt64.random(in: 10...20)
+        } else {
+            // Idle
+            batchSize = 500
+            sleepMs = 50
+        }
+        
+        await processBatch(maxBatch: batchSize)
+        
+        // Throttled UPSERTs (every 1s)
+        let now = Date().timeIntervalSince1970
+        if now - lastRunFlushTime > 1.0 {
+            do {
+                try db.transaction {
+                    try flushRunsTable()
+                }
+                lastRunFlushTime = now
+            } catch {
+                print("🚨 [DProvenanceKit] SQLiteWriter failed to flush runs: \(error)")
+            }
+        }
+        
+        if sleepMs > 0 {
+            try? await Task.sleep(nanoseconds: sleepMs * 1_000_000)
+        }
+    }
+    
+    private func processBatch(drainAll: Bool = false, maxBatch: Int = 1000) async {
+        let batch = drainAll ? await buffer.flushAll() : await buffer.drain(max: maxBatch)
         guard !batch.isEmpty else { return }
         
         do {
             try db.transaction {
                 try insert(batch)
-                try flushRunsTable(force: drainAll)
             }
         } catch {
             print("🚨 [DProvenanceKit] SQLiteWriter failed to insert batch: \(error)")
@@ -65,22 +116,23 @@ public actor SQLiteWriter {
     
     private func insert(_ events: [TraceEventRow]) throws {
         let insertSQL = """
-        INSERT INTO trace_events (id, run_id, engine, type, payload, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?);
+        INSERT INTO trace_events (id, run_id, context_id, engine, type, payload, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
         """
         let stmt = try db.prepare(insertSQL)
         
         for event in events {
             try stmt.bind(event.id, at: 1)
             try stmt.bind(event.runID, at: 2)
+            try stmt.bind(event.contextID, at: 3)
             if let engine = event.engine {
-                try stmt.bind(engine, at: 3)
+                try stmt.bind(engine, at: 4)
             } else {
-                try stmt.bindNull(at: 3)
+                try stmt.bindNull(at: 4)
             }
-            try stmt.bind(event.type, at: 4)
-            try stmt.bind(event.payload, at: 5)
-            try stmt.bind(event.timestamp, at: 6)
+            try stmt.bind(event.type, at: 5)
+            try stmt.bind(event.payload, at: 6)
+            try stmt.bind(event.timestamp, at: 7)
             
             _ = try stmt.step()
             stmt.reset()
@@ -97,14 +149,14 @@ public actor SQLiteWriter {
             latestTime: event.timestamp,
             eventCount: 0,
             fingerprintHash: Insecure.SHA1(),
-            uncommittedEvents: 0
+            isDirty: false
         )
         
         state.latestTime = event.timestamp
         state.eventCount += 1
-        state.uncommittedEvents += 1
+        state.isDirty = true
         
-        // Incremental fingerprinting: hash(type + engine)
+        // Incremental fingerprinting
         let signature = "\(event.type):\(event.engine ?? "")|"
         if let data = signature.data(using: .utf8) {
             state.fingerprintHash.update(data: data)
@@ -126,9 +178,7 @@ public actor SQLiteWriter {
         let stmt = try db.prepare(upsertSQL)
         
         for (runID, state) in activeRuns {
-            // Throttling: only update if we have a significant number of new events,
-            // or if we are forced to flush (e.g., shutdown or explicit flush)
-            if state.uncommittedEvents >= 50 || (force && state.uncommittedEvents > 0) {
+            if state.isDirty || force {
                 let digest = state.fingerprintHash.finalize()
                 let fingerprintString = digest.map { String(format: "%02x", $0) }.joined()
                 
@@ -142,13 +192,8 @@ public actor SQLiteWriter {
                 _ = try stmt.step()
                 stmt.reset()
                 
-                // Reset uncommitted tracker
-                activeRuns[runID]?.uncommittedEvents = 0
+                activeRuns[runID]?.isDirty = false
             }
         }
-        
-        // Cleanup old runs from memory cache?
-        // In a real system, we'd evict runs that haven't been updated in e.g., 5 minutes.
-        // For now, they live in memory during the execution lifetime.
     }
 }
