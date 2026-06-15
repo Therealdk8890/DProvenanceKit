@@ -132,7 +132,28 @@ try await DProvenanceKit.run(contextID: "Case-12345", store: store) {
 
 ---
 
-## 🧭 Architecture (high level)
+### 4. Trace Priorities (Congestion Control)
+
+AI reasoning often bursts with highly variable loads. DProvenanceKit treats tracing like network traffic, implementing **priority-aware congestion control**. 
+
+Your event types must adopt the `priority` property. In the event of a burst anomaly (e.g. an agent gets stuck in a loop generating 100k events in a millisecond), the `SQLiteWriter` will intelligently throttle and drop `verbose` and `diagnostic` events from the offending run to protect global buffer health, while **always preserving** `structural` and `critical` boundary events so reasoning logic diffs remain accurate.
+
+```swift
+enum MyAIDecision: TraceableEvent {
+    case documentEvaluated(String) // Priority: verbose
+    case reasoningApplied(String)  // Priority: structural
+    
+    var priority: TracePriority {
+        switch self {
+        case .documentEvaluated: return .verbose
+        case .reasoningApplied: return .structural
+        }
+    }
+    // ...
+}
+```
+
+## Architecture (high level)
 ```
 DProvenanceKit
    ↓
