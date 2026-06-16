@@ -105,6 +105,35 @@ final class SQLiteStressTests: XCTestCase {
         XCTAssertEqual(seqRuns.count, 1)
     }
     
+    func testFlushIsBarrierAndPreservesRecordOrder() async throws {
+        // After a run completes, an immediate flush + query must see EVERY recorded
+        // event, in record order. With synchronous enqueue this is a structural
+        // guarantee rather than a timing accident: `record` returns only once the
+        // event is in the buffer, so `flush` cannot drain a partial run.
+        let n = 500 // well under maxPerRunBuffer (1000) so nothing is legitimately dropped
+        await DProvenanceKit<TestEvent>.run(contextID: "barrier", store: store) {
+            DProvenanceKit<TestEvent>.record(.processStarted)
+            for j in 0..<(n - 2) {
+                DProvenanceKit<TestEvent>.record(.stepCompleted(j))
+            }
+            DProvenanceKit<TestEvent>.record(.processFinished)
+        }
+
+        try await store.flush()
+
+        let runs = try await store.queryRuns(
+            TraceQueryDSL<TestEvent>().filter(contextID: "barrier")
+        )
+        XCTAssertEqual(runs.count, 1)
+
+        let events = runs.first!.events
+        XCTAssertEqual(events.count, n, "Every recorded event must survive the flush barrier")
+
+        // Sequence numbers must be contiguous 0..<n with no gaps or reordering.
+        let sequences = events.map { $0.sequence }
+        XCTAssertEqual(sequences, Array(0..<UInt64(n)), "Events must be contiguous and in record order")
+    }
+
     func testBurstIngestionCollapse() async throws {
         // We set up a store with a very small global buffer to force dropping
         let tempDir = FileManager.default.temporaryDirectory

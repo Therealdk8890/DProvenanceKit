@@ -61,7 +61,7 @@ public actor SQLiteWriter {
     }
     
     private func tick() async {
-        let depth = await buffer.currentDepth
+        let depth = buffer.currentDepth
         smoothedLoad = (alpha * Double(depth)) + ((1.0 - alpha) * smoothedLoad)
         
         let batchSize: Int
@@ -102,7 +102,7 @@ public actor SQLiteWriter {
     }
     
     private func processBatch(drainAll: Bool = false, maxBatch: Int = 1000) async {
-        let batch = drainAll ? await buffer.flushAll() : await buffer.drain(max: maxBatch)
+        let batch = drainAll ? buffer.flushAll() : buffer.drain(max: maxBatch)
         guard !batch.isEmpty else { return }
         
         do {

@@ -97,10 +97,11 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             payload: payloadData,
             timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000)
         )
-        
-        Task {
-            await buffer.enqueue(row)
-        }
+
+        // Synchronous, ordered enqueue. The event is in the buffer before `record`
+        // returns, so a subsequent `flush()` is a true barrier and record order is
+        // preserved under concurrency.
+        buffer.enqueue(row)
     }
     
     public func flush() async throws {
