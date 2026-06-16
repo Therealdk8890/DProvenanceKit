@@ -15,7 +15,7 @@ They don’t crash. They just behave differently.
 
 - AI agents silently skip steps
 - reasoning order changes between runs
-- outputs drift with no visible code change
+- the same input quietly takes a different path
 - logs don’t explain why
 
 **This library makes those changes visible and queryable.**
@@ -50,6 +50,8 @@ let engine = TraceDiffEngine<MyAIDecision>()
 let diff = engine.diff(base: runA, comparison: runB)
 print(diff.changes)
 ```
+
+> Diffs compare **structural signatures** — which decision types fired, in which engine, and in what order. Payload values aren't compared yet, so two runs that take the same path with different numbers (e.g. a score of `0.95` vs `0.10`) diff as identical.
 
 **4. Catch regressions automatically**
 ```swift
@@ -105,7 +107,7 @@ enum MyAIDecision: TraceableEvent {
 
 ### 2. Set up a Store
 
-Initialize a store to hold the traces. `SQLiteTraceStore` writes events asynchronously to a lock-free SQLite backend, supporting extremely high throughput without blocking execution.
+Initialize a store to hold the traces. `SQLiteTraceStore` buffers events in memory and writes them asynchronously on a background actor, so `record` never blocks on disk I/O — even under high-throughput bursts. Persistence uses a WAL-mode SQLite database.
 
 ```swift
 let storeURL = URL(fileURLWithPath: "/path/to/traces.sqlite")
@@ -144,7 +146,7 @@ try await DProvenanceKit.run(contextID: "Case-12345", store: store) {
 
 AI reasoning often bursts with highly variable loads. DProvenanceKit treats tracing like network traffic, implementing **priority-aware congestion control**. 
 
-Your event types must adopt the `priority` property. In the event of a burst anomaly (e.g. an agent gets stuck in a loop generating 100k events in a millisecond), the `SQLiteWriter` will intelligently throttle and drop `telemetry` and `diagnostic` events from the offending run to protect global buffer health, while **always preserving** `structural` and `critical` boundary events so reasoning logic diffs remain accurate.
+Your event types must adopt the `priority` property. In the event of a burst anomaly (e.g. an agent gets stuck in a loop generating 100k events in a millisecond), the in-memory buffer sheds `telemetry` and `diagnostic` events from the offending run to protect global buffer health, while **always preserving** `structural` and `critical` boundary events so reasoning logic diffs remain accurate. Shedding is O(1) per event — the buffer keeps one FIFO per priority tier, so it never scans the backlog even at capacity.
 
 ```swift
 enum MyAIDecision: TraceableEvent {
@@ -167,7 +169,7 @@ DProvenanceKit
    ↓
 TraceEvent Stream
    ↓
-1. **SQLiteTraceStore (lock-free SQL engine)**: Asynchronously persists events via an actor-isolated buffer and WAL-mode SQLite database.
+1. **SQLiteTraceStore (non-blocking writes)**: `record` enqueues into an in-memory buffer synchronously; a background actor batches inserts into a WAL-mode SQLite database.
 2. **InMemoryTraceStore (query index)**: For fast, localized execution.
    ↓
 Query Engine + Planner
