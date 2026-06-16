@@ -198,4 +198,4 @@ If a system makes decisions, those decisions should be:
 ---
 
 ## License
-MIT License
+Business Source License 1.1 (BSL 1.1)
