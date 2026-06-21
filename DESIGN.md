@@ -168,25 +168,31 @@ that is confidently, silently wrong, where the wrongness is invisible and non-
 deterministic. That is the precise opposite of the one thing the tool is supposed to
 sell: a trustworthy answer to "did this change?"
 
-**How it was caught: a differential parity test** (`QueryParityTests`). The test feeds
-*identical* data into both backends, deliberately constructs one run with a timestamp
-inversion and one with a microsecond tie, runs the same temporal queries against both,
-and asserts two things per query: (a) the backends agree, and (b) they agree with the
-*causally correct* answer. (Agreement alone isn't enough — two backends could agree on a
-wrong answer.) A non-temporal control query (`contains`) is included; it agrees on both
-backends regardless, which isolates the divergence to temporal ordering specifically.
+**How it was caught: a differential parity test** (`QueryParityTests`). It records the
+*same* scenario into a fresh in-memory store and a fresh SQLite store, runs each query
+against both, and asserts they return the same runs. The sharpest case it pins is
+`.before` over `[errorDetected, stepCompleted, errorDetected]`: `stepCompleted` sits
+*between* the two `errorDetected` events, so it does not precede the *first* one — both
+backends must report no match. The old timestamp-ordered SQL matched it anyway (via the
+second `errorDetected`), diverging from the in-memory evaluator. A second case drives
+`.sequence` through a tight burst where events can share a timestamp, and an
+operator-parity matrix runs every operator over one shared scenario as a broad guard
+against drift. Agreement alone isn't enough — two backends can agree on a wrong answer —
+so the pointed cases also pin the causally-correct result, not just backend equality.
 
-I verified the test is real by running it against the old compiler: it fails exactly on
-the inverted and tied runs (in-memory finds them, SQL does not), and passes once the
-ordering authority is unified. A regression test that you have watched fail is worth ten
-that you have only watched pass.
+These tests fail on the old timestamp-ordered compiler and pass once the ordering
+authority is unified. A regression test that you have watched fail is worth ten that you
+have only watched pass.
 
 **The fix.** Make `sequence` the single ordering authority everywhere. The compiler now
-emits `e2.sequence > e1.sequence` (and the analogous forms for `before` and the
-`sequence` chain). Because `sequence` is unique and monotonic within a run, there are no
-ties and no inversions: the two backends are now provably evaluating the same order, and
-`timestamp` is relegated to what it's actually good for — display and coarse range
-filtering, never adjudicating causal order.
+orders every temporal operator by `sequence` instead of `timestamp`: `after` and
+`before` anchor to the *first* occurrence of `step` via `MIN(sequence)` — mirroring the
+in-memory evaluator's `firstIndex(of:)` — and `sequence` chains its self-joins on
+strictly increasing `sequence`. Because `sequence` is unique and monotonic within a run,
+there are no ties, no inversions, and no ambiguity about *which* occurrence anchors the
+comparison: the two backends now provably evaluate the same order. `timestamp` is
+relegated to what it's actually good for — display and coarse range filtering, never
+adjudicating causal order.
 
 **The transferable lesson.** When one specification has two implementations, two things
 are non-negotiable: a differential test that pins them to each other, and a single

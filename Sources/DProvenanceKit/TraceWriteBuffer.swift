@@ -52,6 +52,11 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     private var totalCount: Int = 0
     private var enqueueCounter: UInt64 = 0
 
+    /// Lifetime count of events shed under congestion, indexed by `TracePriority`
+    /// rawValue. Covers both incoming events refused at the door and buffered events
+    /// later evicted to admit something more important — every silent loss lands here.
+    private var droppedByTier: [UInt64] = [0, 0, 0, 0]
+
     // Tracking for per-run degradation
     private var queueDepthByRun: [String: Int] = [:]
 
@@ -68,6 +73,22 @@ public final class TraceWriteBuffer: @unchecked Sendable {
         lock.withLock { totalCount }
     }
 
+    /// A by-tier tally of every event shed since this buffer was created.
+    ///
+    /// Exposed so a consumer can answer "can I trust this run's diff?" without
+    /// guessing: `dropStats.preservedIntegrity` is `true` exactly when no structural
+    /// or critical event was lost.
+    public var dropStats: TraceDropStats {
+        lock.withLock {
+            TraceDropStats(
+                telemetry: droppedByTier[TracePriority.telemetry.rawValue],
+                diagnostic: droppedByTier[TracePriority.diagnostic.rawValue],
+                structural: droppedByTier[TracePriority.structural.rawValue],
+                critical: droppedByTier[TracePriority.critical.rawValue]
+            )
+        }
+    }
+
     /// Enqueues an event using intelligent congestion control.
     ///
     /// Synchronous and ordered: the event is appended (or deliberately dropped under
@@ -81,6 +102,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
             // 1. Soft per-run limit: shed verbose/diagnostic for a bursting run, but
             //    keep its structural and critical events even while it bursts.
             if runDepth >= maxPerRunBuffer, priority <= .diagnostic {
+                droppedByTier[priority.rawValue] &+= 1
                 return
             }
 
@@ -88,6 +110,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
             if totalCount >= maxGlobalBuffer, !evictOneLocked(incoming: priority) {
                 // Backlog is entirely higher-or-equal priority and the incoming event
                 // is not important enough to displace it — drop the incoming event.
+                droppedByTier[priority.rawValue] &+= 1
                 return
             }
 
@@ -116,10 +139,13 @@ public final class TraceWriteBuffer: @unchecked Sendable {
         return false
     }
 
-    /// Pops and discards the oldest event of `tier`. Callers must hold `lock`.
+    /// Pops and permanently discards the oldest event of `tier` to free a slot.
+    /// This is a real loss, so it is counted. Callers must hold `lock`.
+    /// (The drain path pops tiers directly and is NOT a drop — only eviction is.)
     private func popVictimLocked(tier: TracePriority) -> Bool {
         guard let victim = tiers[tier.rawValue].popFirst() else { return false }
         totalCount -= 1
+        droppedByTier[tier.rawValue] &+= 1
         decrementRunDepth(victim.row.runID)
         return true
     }
