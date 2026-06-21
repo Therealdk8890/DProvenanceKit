@@ -1,17 +1,19 @@
 import SwiftUI
 import DProvenanceKit
 
-struct ContentView: View {
-    @EnvironmentObject var storeManager: StoreManager
+public struct TraceViewer: View {
+    @EnvironmentObject public var storeManager: StoreManager
     @State private var selectedRunID: UUID?
     
-    var body: some View {
+    public init() {}
+    
+    public var body: some View {
         NavigationSplitView {
             RunListView(selectedRunID: $selectedRunID)
                 .navigationTitle("Traces")
         } detail: {
             if let selectedRunID = selectedRunID,
-               let run = storeManager.runs.first(where: { $0.id == selectedRunID }) {
+               let run = storeManager.runs.first(where: { $0.runID == selectedRunID }) {
                 RunDetailView(run: run)
             } else {
                 VStack(spacing: 16) {

@@ -4,11 +4,13 @@ import AppKit
 import DProvenanceKit
 
 @MainActor
-final class StoreManager: ObservableObject {
-    @Published var store: RawTraceStore?
-    @Published var runs: [RawTraceRun] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+public final class StoreManager: ObservableObject {
+    @Published public var store: RawTraceStore?
+    @Published public var runs: [TraceRun<AnyTraceableEvent>] = []
+    @Published public var isLoading = false
+    @Published public var errorMessage: String?
+    
+    public init() {}
     
     func openDatabase() {
         let panel = NSOpenPanel()
@@ -30,10 +32,18 @@ final class StoreManager: ObservableObject {
         Task {
             do {
                 let newStore = try RawTraceStore(fileURL: url)
-                let fetchedRuns = try await newStore.fetchAllRuns()
+                let fetchedRawRuns = try await newStore.fetchAllRuns()
+                
+                let mappedRuns = fetchedRawRuns.map { rawRun in
+                    TraceRun<AnyTraceableEvent>(
+                        runID: rawRun.runID,
+                        contextID: rawRun.contextID,
+                        events: rawRun.events.map { $0.toTraceEvent() }
+                    )
+                }
                 
                 self.store = newStore
-                self.runs = fetchedRuns
+                self.runs = mappedRuns
                 self.isLoading = false
             } catch {
                 self.errorMessage = "Failed to load database: \(error.localizedDescription)"

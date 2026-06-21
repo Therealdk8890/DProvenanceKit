@@ -5,6 +5,7 @@ public protocol TraceStore<T>: Sendable {
     func record(_ event: TraceEvent<T>)
     func flush() async throws
     func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]
+    func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>]
 
     /// A by-tier tally of events shed under congestion, for callers that need to
     /// know whether a run's data is complete enough to trust a diff over it.
@@ -14,6 +15,11 @@ public protocol TraceStore<T>: Sendable {
 public extension TraceStore {
     /// Stores that cannot shed (e.g. the unbounded in-memory store) report no drops.
     var dropStats: TraceDropStats { .zero }
+    
+    /// Default implementation for stores that do not quarantine events (e.g., local stores).
+    func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
+        return []
+    }
 }
 
 /// An in-memory trace store for fast, localized execution and querying.

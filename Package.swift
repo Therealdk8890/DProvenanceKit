@@ -15,9 +15,13 @@ let package = Package(
             name: "DProvenanceKit",
             targets: ["DProvenanceKit"]
         ),
-        .executable(
+        .library(
             name: "DProvenanceUI",
             targets: ["DProvenanceUI"]
+        ),
+        .executable(
+            name: "GenerateSample",
+            targets: ["GenerateSample"]
         )
     ],
     targets: [
@@ -26,13 +30,19 @@ let package = Package(
         .target(
             name: "DProvenanceKit"
         ),
-        .executableTarget(
+        .target(
             name: "DProvenanceUI",
             dependencies: ["DProvenanceKit"]
         ),
+        .executableTarget(
+            name: "GenerateSample",
+            dependencies: ["DProvenanceKit"],
+            path: "scratch",
+            sources: ["GenerateSample.swift"]
+        ),
         .testTarget(
             name: "DProvenanceKitTests",
-            dependencies: ["DProvenanceKit"]
+            dependencies: ["DProvenanceKit", "DProvenanceUI"]
         ),
     ],
     swiftLanguageModes: [.v6]

@@ -130,13 +130,15 @@ The surface API is small on purpose; the engineering is in keeping it correct an
 
 **Recording never blocks execution.** `record(...)` is synchronous and touches only an in-memory buffer — it never waits on disk. A background writer drains the buffer in batches into WAL-mode SQLite, adapting batch size and cadence to load. Because the in-memory commit is synchronous, an event is queryable the instant `record` returns, and `flush()` is a true barrier rather than a best-effort hint.
 
-**Backpressure is priority-aware and O(1).** Reasoning systems can emit enormous bursts. Each event declares a priority — `critical`, `structural`, `diagnostic`, `telemetry` — and the write buffer holds one FIFO per tier. Both ingestion and load-shedding stay constant-time even at the moment a burst pins the buffer at capacity: there's no scan of the backlog. Under pressure, `telemetry` and `diagnostic` are shed first; `structural` and `critical` are preserved. Diffs are floored at `structural` by default, so shedding low-priority events never changes a diff result.
+**Backpressure is priority-aware and O(1).** Reasoning systems can emit enormous bursts. Each event declares a priority — `critical`, `structural`, `diagnostic`, `telemetry` — and the write buffer holds one FIFO per tier. Both ingestion and load-shedding stay constant-time even at the moment a burst pins the buffer at capacity: there's no scan of the backlog. Under pressure, `telemetry` and `diagnostic` are shed first; `structural` and `critical` are preserved. Diffs are floored at `structural` by default, so shedding low-priority events never changes a diff result. And shedding is never silent: every dropped event is tallied by tier, so `store.dropStats.preservedIntegrity` answers *"did this run lose anything a diff depends on?"* — and a payload that fails to encode is counted the same way, not dropped quietly.
 
 **Durable and crash-safe.** Writes land in WAL-mode SQLite with sensible pragmas and a covering set of indices. If a process dies mid-run, the `runs` table is reconciled from the persisted events on next open, so an interrupted run is rebuilt rather than lost. Each run also carries an incrementally computed structural fingerprint for fast "did this run's shape change?" checks.
 
 **Ambient context, no plumbing.** Run, engine, and span context propagate through Swift's `@TaskLocal` storage, so nested `withEngine` / `withSpan` scopes attribute events correctly across `async` boundaries without threading a logger through every call.
 
 **One query language, two backends, kept honest.** `TraceQueryDSL` compiles to an in-memory AST evaluator (for `InMemoryTraceStore`) and to SQL (for `SQLiteTraceStore`). Those are two independent implementations of the same semantics, so they're held in lockstep by a parity test suite that runs identical scenarios through both stores and asserts identical results — temporal operators included. A query means the same thing wherever it runs.
+
+The full rationale — the concurrency tradeoff, the query-parity bug that drove the two-backend parity suite, and the known limitations — lives in **[DESIGN.md](DESIGN.md)**.
 
 ---
 
@@ -231,9 +233,9 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 **Experimental — core engine complete, actively evolving.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, rule-based anomaly and regression detection, both stores at parity.
+**Working today:** recording, querying (including temporal and sequence operators), structural diffing, rule-based anomaly and regression detection, both stores at parity, and by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent.
 
-**Planned:** payload-aware diffs, per-run dropped-event accounting, richer visualization, distributed trace federation.
+**Planned:** payload-aware diffs, counting events lost to a failed batch insert, richer visualization, distributed trace federation.
 
 **Scope:** Apple platforms (macOS / iOS). The library depends on system SQLite and CryptoKit, so it targets Apple OSes rather than Linux — by design, since the goal is reasoning observability for Swift and on-device AI.
 

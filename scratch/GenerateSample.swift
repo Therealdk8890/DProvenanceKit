@@ -39,21 +39,21 @@ struct GenerateSample {
         
         let store = try SQLiteTraceStore<SampleDecision>(fileURL: url)
         
-        await DProvenanceKit<SampleDecision>.run(contextID: "user_request_123", store: store) {
+        await DProvenanceKit<SampleDecision>.run(contextID: "user_request_123", store: store) { @Sendable in
             DProvenanceKit<SampleDecision>.record(.initialization)
             
-            await DProvenanceKit<SampleDecision>.withEngine(name: "DataFetcher") {
-                await DProvenanceKit<SampleDecision>.withSpan {
+            await DProvenanceKit<SampleDecision>.withEngine(name: "DataFetcher") { @Sendable in
+                await DProvenanceKit<SampleDecision>.withSpan { @Sendable in
                     DProvenanceKit<SampleDecision>.record(.queryDB(query: "SELECT * FROM users"))
                     DProvenanceKit<SampleDecision>.record(.fetchedRecords(count: 42))
                 }
             }
             
-            await DProvenanceKit<SampleDecision>.withEngine(name: "LLM_Agent") {
-                await DProvenanceKit<SampleDecision>.withSpan {
+            await DProvenanceKit<SampleDecision>.withEngine(name: "LLM_Agent") { @Sendable in
+                await DProvenanceKit<SampleDecision>.withSpan { @Sendable in
                     DProvenanceKit<SampleDecision>.record(.llmPrompt(prompt: "Summarize 42 users"))
                     
-                    await DProvenanceKit<SampleDecision>.withSpan {
+                    await DProvenanceKit<SampleDecision>.withSpan { @Sendable in
                         DProvenanceKit<SampleDecision>.record(.llmResponse(response: "Here is the summary..."))
                     }
                 }

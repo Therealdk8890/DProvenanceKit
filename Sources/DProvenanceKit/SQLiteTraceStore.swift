@@ -4,7 +4,14 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     private let db: SQLiteConnection
     private let buffer: TraceWriteBuffer
     private let writer: SQLiteWriter
-    
+
+    /// Events that could not be JSON-encoded and therefore could not be persisted.
+    /// Counted by tier rather than dropped silently, so an encode failure on a
+    /// `structural`/`critical` event surfaces in `dropStats.preservedIntegrity` exactly
+    /// like a congestion drop. Guarded by its own lock; `record` runs concurrently.
+    private let encodeDropLock = NSLock()
+    private var encodeDroppedByTier: [UInt64] = [0, 0, 0, 0]
+
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
         let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
@@ -82,7 +89,14 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     public func record(_ event: TraceEvent<T>) {
-        guard let payloadData = try? JSONEncoder().encode(event.payload) else { return }
+        guard let payloadData = try? JSONEncoder().encode(event.payload) else {
+            // An unencodable payload can't be persisted — but it must not vanish
+            // silently. Count it in its own tier so the loss shows up in dropStats.
+            encodeDropLock.withLock {
+                encodeDroppedByTier[event.payload.priority.rawValue] &+= 1
+            }
+            return
+        }
         
         let row = TraceEventRow(
             id: UUID().uuidString,
@@ -108,10 +122,21 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         try await writer.flush()
     }
 
-    /// Events shed by the write buffer under congestion, by priority tier.
-    /// `dropStats.preservedIntegrity` is `true` when no structural or critical
-    /// event was lost, i.e. when diffs over these runs are fully trustworthy.
-    public var dropStats: TraceDropStats { buffer.dropStats }
+    /// Every event this store failed to retain, by priority tier: the write buffer's
+    /// congestion drops plus payloads that could not be encoded. `preservedIntegrity`
+    /// is `true` when no `structural` or `critical` event was lost by either path, i.e.
+    /// when diffs over these runs are fully trustworthy.
+    public var dropStats: TraceDropStats {
+        let encodeDrops = encodeDropLock.withLock {
+            TraceDropStats(
+                telemetry: encodeDroppedByTier[TracePriority.telemetry.rawValue],
+                diagnostic: encodeDroppedByTier[TracePriority.diagnostic.rawValue],
+                structural: encodeDroppedByTier[TracePriority.structural.rawValue],
+                critical: encodeDroppedByTier[TracePriority.critical.rawValue]
+            )
+        }
+        return buffer.dropStats + encodeDrops
+    }
     
     public func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>] {
         // Ensure all pending events are flushed before querying so results are accurate

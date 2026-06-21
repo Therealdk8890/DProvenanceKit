@@ -79,6 +79,8 @@ public indirect enum TraceQueryNode<T: TraceableEvent>: Sendable {
 }
 
 public struct TraceQueryDSL<T: TraceableEvent>: Sendable {
+    public static var schemaVersion: String { "1.0" }
+    
     private var rootNode: TraceQueryNode<T>
     
     public init() {
@@ -129,5 +131,56 @@ public struct TraceQueryDSL<T: TraceableEvent>: Sendable {
         } else {
             return TraceQueryDSL(rootNode: .and([rootNode, node]))
         }
+    }
+}
+
+extension TraceQueryNode: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case type, nodes, node, id, name, step, steps, followedBy, precededBy
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .and(let nodes):
+            try container.encode("and", forKey: .type)
+            try container.encode(nodes, forKey: .nodes)
+        case .or(let nodes):
+            try container.encode("or", forKey: .type)
+            try container.encode(nodes, forKey: .nodes)
+        case .not(let node):
+            try container.encode("not", forKey: .type)
+            try container.encode(node, forKey: .node)
+        case .contextIDEquals(let id):
+            try container.encode("contextIDEquals", forKey: .type)
+            try container.encode(id, forKey: .id)
+        case .engineNameEquals(let name):
+            try container.encode("engineNameEquals", forKey: .type)
+            try container.encode(name, forKey: .name)
+        case .containsStep(let step):
+            try container.encode("containsStep", forKey: .type)
+            try container.encode(step, forKey: .step)
+        case .missingStep(let step):
+            try container.encode("missingStep", forKey: .type)
+            try container.encode(step, forKey: .step)
+        case .sequence(let steps):
+            try container.encode("sequence", forKey: .type)
+            try container.encode(steps, forKey: .steps)
+        case .after(let step, let followedBy):
+            try container.encode("after", forKey: .type)
+            try container.encode(step, forKey: .step)
+            try container.encode(followedBy, forKey: .followedBy)
+        case .before(let step, let precededBy):
+            try container.encode("before", forKey: .type)
+            try container.encode(step, forKey: .step)
+            try container.encode(precededBy, forKey: .precededBy)
+        }
+    }
+}
+
+extension TraceQueryDSL: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rootNode)
     }
 }

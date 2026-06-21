@@ -73,14 +73,14 @@ public struct TraceDiffEngine<T: TraceableEvent>: Sendable {
         var mappedChanges: [TraceDiffResult.Change] = []
         for change in difference {
             switch change {
-            case .insert(let offset, let element, _):
+            case .insert(_, let element, _):
                 mappedChanges.append(.init(
                     kind: .added, 
                     originalSequence: element.sequence, 
                     typeIdentifier: element.typeIdentifier,
                     engineName: element.engineName
                 ))
-            case .remove(let offset, let element, _):
+            case .remove(_, let element, _):
                 mappedChanges.append(.init(
                     kind: .removed, 
                     originalSequence: element.sequence, 

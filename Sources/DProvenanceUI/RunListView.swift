@@ -1,11 +1,15 @@
 import SwiftUI
 import DProvenanceKit
 
-struct RunListView: View {
-    @EnvironmentObject var storeManager: StoreManager
-    @Binding var selectedRunID: UUID?
+public struct RunListView: View {
+    @EnvironmentObject public var storeManager: StoreManager
+    @Binding public var selectedRunID: UUID?
     
-    var body: some View {
+    public init(selectedRunID: Binding<UUID?>) {
+        self._selectedRunID = selectedRunID
+    }
+    
+    public var body: some View {
         if storeManager.isLoading {
             ProgressView("Loading Database...")
         } else if let error = storeManager.errorMessage {
@@ -13,20 +17,19 @@ struct RunListView: View {
                 .foregroundColor(.red)
                 .padding()
         } else {
-            List(storeManager.runs, selection: $selectedRunID) { run in
+            List(storeManager.runs, id: \.runID, selection: $selectedRunID) { run in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(run.contextID)
                         .font(.headline)
                     
                     HStack {
-                        Text("\(run.eventCount) events")
+                        Text("\(run.events.count) events")
                         Spacer()
-                        Text(run.startTime.formatted(date: .abbreviated, time: .shortened))
                     }
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                .tag(run.id)
+                .tag(run.runID)
             }
         }
     }
