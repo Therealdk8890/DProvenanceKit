@@ -1,268 +1,190 @@
 # DProvenanceKit — Design Notes
 
-This document explains *why* the library is built the way it is. The README tells you
-what it does; this tells you the judgment calls behind it, because those are the part
-worth reviewing. Every claim below names the file, symbol, or test that backs it, so
-you can check the work rather than take my word for it.
-
-The whole library is organized around one stance:
-
-> **Causal order is the source of truth; wall-clock time is a lossy approximation of it.**
-
-A trace exists to answer "what did this system decide, in what order, and how does that
-differ from last time." Those are questions about *causal* order — the order operations
-actually happened in — not about wall-clock timestamps, which tie at microsecond
-resolution and can even run backwards under clock adjustment. Most of the interesting
-design decisions fall out of taking that stance seriously and refusing to let wall-clock
-time sneak back in as the authority.
-
-A second, quieter stance runs underneath: **integrity has to be observable, not
-asserted.** A diff tool that says "these two runs are identical" is only useful if you
-can trust that it actually saw everything. So wherever the system can lose data — under
-load, across a backend boundary — it is built to either not lose it, or to tell you
-exactly what it lost.
+This document explains *why* DProvenanceKit is built the way it is. The public README covers what it does and how to use it; this is the layer underneath — the decisions, the tradeoffs they cost, and the failure modes the architecture has to defend against. It's written for anyone evaluating the library's internals, contributing to it, or deciding whether its guarantees are trustworthy enough to build on.
 
 ---
 
-## 1. Synchronous recording, over an actor
+## 1. Goals and non-goals
 
-**The decision.** `record()` is synchronous and lock-backed, not an `async` call into
-an actor.
+The system optimizes for four things, in priority order:
 
-**The obvious alternative.** In Swift concurrency, the textbook way to build a
-concurrent write buffer is an `actor`. It gives you data-race safety for free. But it
-forces a choice at the call site, and both options are bad:
+1. **Non-intrusiveness.** Recording a reasoning event must never block, slow, or alter the execution being observed. Observability that changes the thing it observes is worse than none.
+2. **Correctness under burst.** Reasoning systems emit events in spikes, not steady streams. The design has to stay correct and bounded at the exact moment a burst pins every buffer at capacity.
+3. **Reproducible queries.** A query must mean the same thing regardless of which store answers it. A diff or regression check that depends on the storage backend is not a diff; it's a coin flip.
+4. **Swift-native, on-device.** No external service, no network hop, nothing leaving the device. The trace lives where the reasoning lives.
 
-- Make `record()` `async`. Now every place that records a reasoning step has to be in
-  an async context and `await` it. Tracing has colonized your call graph, and you can't
-  trace inside synchronous reasoning code at all.
-- Fire-and-forget into the actor from a detached `Task`. Now `record()` returns before
-  the event is committed, so you have lost ordering (two records can land in either
-  order depending on scheduling) and you have lost any happens-before relationship
-  between recording and flushing.
-
-**What synchronous recording buys.** `TraceWriteBuffer.enqueue` and
-`InMemoryTraceStore.record` are guarded by an `NSLock`, and the event is committed
-*before the call returns* (`TraceWriteBuffer.swift`, `enqueue`). Three properties follow:
-
-1. **`flush()` is a true barrier.** Because every `record` that happened-before a
-   `flush` has already committed, `flush` cannot observe a half-written run. This is a
-   structural guarantee, not a timing accident. Proven by
-   `SQLiteStressTests.testFlushIsBarrierAndPreservesRecordOrder`: after a 500-event run,
-   an immediate flush + query sees all 500, with sequence numbers contiguous `0..<500`.
-
-2. **Order is deterministic.** Each event gets a monotonic `sequence` assigned under a
-   lock at the moment of recording (`DProvenanceKit.ActiveTraceRun.record`,
-   `sequenceLock`). Concurrent recorders are serialized at that point, so the sequence
-   is the real causal order. The buffer then preserves it on the way out (see §2).
-
-3. **No async coloring.** You can record from synchronous code. Tracing does not change
-   the shape of the code being traced.
-
-**The cost, stated honestly.** A lock sits on the hot path, so there is contention under
-extreme concurrency, and you cannot `await` while holding it. That second constraint is
-actually a design constraint that keeps the system honest: the critical section is pure
-O(1) bookkeeping. The expensive work is split out — payload encoding happens *before*
-the lock is taken (`SQLiteTraceStore.record`), and persistence happens *after*, on a
-background `SQLiteWriter` actor that batches inserts. So the split is the point:
-**a lock for ordering, an actor for I/O.** The fast thing is synchronous; the slow thing
-is asynchronous; neither borrows the other's weakness.
+Explicit **non-goals**: distributed collection across machines, payload-value diffing (planned, not present), and cross-language support. These aren't oversights — they're scope chosen to keep the guarantees above honest.
 
 ---
 
-## 2. O(1) load-shedding under burst
+## 2. The event model
 
-**The decision.** Congestion control is priority-bucketed: one FIFO per priority tier,
-so both admitting an event and shedding one are O(1) — with no scan of the backlog,
-ever.
+An event is anything conforming to `TraceableEvent` (`Codable & Sendable & Equatable`), exposing two things: a `typeIdentifier` and a `priority`.
 
-**The obvious alternative, and why it's pathological.** Put everything in one queue.
-When you're over capacity and need to drop the least important event, scan the queue for
-the lowest-priority victim. That's O(n) per drop — and you pay it precisely when `n` is
-at its maximum and you are already failing to keep up. The cost of shedding load grows
-with the load you're shedding. Under a real burst that is a feedback loop into collapse.
+```swift
+public protocol TraceableEvent: Codable, Sendable, Equatable {
+    var typeIdentifier: String { get }  // stable across schema versions
+    var priority: TracePriority { get }
+}
+```
 
-**The structure** (`TraceWriteBuffer`, `TracePriority`):
+The `typeIdentifier` is the stable key that diffing and querying are defined over. It must survive payload refactors and schema bumps, because every structural comparison in the system is expressed in terms of it. Payloads can evolve; identifiers cannot.
 
-- Four FIFOs, one per tier (`telemetry`, `diagnostic`, `structural`, `critical`).
-- **Admit** = append to that tier's FIFO. O(1).
-- **Shed** = pop the head of the lowest non-empty tier. O(1) (`evictOneLocked` →
-  `popVictimLocked`). No search.
-- **Drain** for persistence = a k-way merge across the four tier-heads by insertion
-  stamp (`drainLocked`). k is a constant (4), so this is still linear in the events
-  drained, and it hands events to the writer in **global insertion order** — which is
-  what keeps the writer's streaming run-fingerprint computed in record order.
-- The FIFO itself is amortized O(1): a plain array with a moving head cursor that only
-  compacts when the dead prefix dominates (`FIFOQueue`). No per-pop shifting.
+Internally an event travels as a generic envelope, `TraceEvent<T>`, carrying the run, context, engine, monotonic `sequence`, optional span lineage, payload, and timestamp. At the storage boundary it is flattened to a type-erased `TraceEventRow` (payload as JSON `Data`). This split is deliberate: the rich generic form gives type-safe construction and querying, while the erased row lets the storage and buffering layers move events around without dragging the generic parameter through every type.
 
-**The shedding policy is the integrity invariant.** Tiers are defined so that telemetry
-and diagnostic events *can never change a structural diff* (`TracePriority` doc
-comments). Eviction always sheds those first and preserves `structural`/`critical`. The
-only time a critical event is displaced is when the buffer is *entirely* critical and a
-newer critical arrives — saturation of last resort, where keeping the newest is the
-least-bad option.
-
-**Why you can trust that invariant: the drop counter (`TraceDropStats`).** This is the
-difference between "impressive" and "trustworthy." Shedding silently would be a
-correctness hole disguised as a performance feature: you compare two runs, see no
-difference, and conclude they're identical — when in fact the distinguishing event was
-quietly dropped under load. So every drop, at all three drop sites (incoming refused by
-the per-run cap; incoming refused by the global cap; a buffered event evicted to make
-room), is counted by tier. A consumer asks one question —
-`store.dropStats.preservedIntegrity` — and gets back whether anything that could change
-a diff was lost.
-
-Proven by:
-- `TraceWriteBufferTests.testGlobalEvictionIsCounted` and
-  `testPerRunSoftCapKeepsCriticalEvents`: a conservation law holds —
-  `admitted + dropped == enqueued`, so nothing vanishes unaccounted for — and every drop
-  is telemetry, never structural/critical.
-- `SQLiteStressTests.testBurstIngestionCollapse`: under a burst that overflows a small
-  buffer, the critical events survive, `dropStats.telemetry > 0`, and
-  `dropStats.preservedIntegrity` is `true`. That last assertion is the load-bearing one.
+A note on the clocks. Every event carries both a wall-clock `timestamp` and a monotonic per-run `sequence`. **`sequence` is authoritative**; `timestamp` is for display and coarse range filtering only. The reason is in §9 — it's the crux of the worked case study.
 
 ---
 
-## 3. Two backends, one truth — a parity bug worth studying
+## 3. Ambient context via `@TaskLocal`
 
-This is the sharpest example of the library's central stance, because it's where I got
-it wrong first and the test caught it.
+Recording uses no logger handle and no explicit context threading. The current run, engine stack, and span lineage live in task-local storage:
 
-**The shape.** There is one query language — an AST (`TraceQueryNode`) built by a fluent
-DSL (`TraceQueryDSL`) — and two backends that must answer identically:
+```swift
+public enum TraceContext {
+    @TaskLocal public static var currentRun: AnyActiveTraceRun?
+    @TaskLocal public static var engineStack: [String]
+    @TaskLocal public static var currentSpanID: String?
+    @TaskLocal public static var parentSpanID: String?
+}
+```
 
-- **In-memory** interprets the AST by walking a run's events
-  (`TraceQueryNode.evaluate`).
-- **SQLite** compiles the AST to SQL and lets the database answer
-  (`TraceQueryCompiler`).
+`@TaskLocal` was chosen because it propagates correctly across `async` boundaries and structured-concurrency child tasks without the caller doing anything. A `withEngine` or `withSpan` scope nested deep inside an async call tree attributes its events correctly, with no parameter passing. The cost is that recording outside a `run` scope has nowhere to go; the design treats that as a **soft no-op** rather than a crash, so instrumentation left in code that runs outside a traced context degrades silently instead of breaking production.
 
-Two implementations of one specification. The standard risk with that arrangement is
-that they drift. They did.
-
-**The bug.** The temporal operators — `after`, `before`, `sequence` — need an *ordering
-authority*: when is event B "after" event A? The two backends disagreed on the answer:
-
-- The in-memory backend ordered events by **`sequence`**, the monotonic causal clock.
-  (`InMemoryTraceStore.makeRunLocked` sorts by `sequence`, with a comment noting wall-
-  clock timestamps "can tie at microsecond resolution.")
-- The SQL compiler ordered them by **`timestamp`** — wall-clock —
-  `WHERE e2.timestamp > e1.timestamp`.
-
-Same AST. Two different definitions of "after."
-
-**When it bites.** Timestamps are `Date()` captured at microsecond resolution. Under the
-exact bursts this library is built to survive:
-
-- two events land in the **same microsecond** (a tie), or
-- a clock adjustment puts a causally-later event at an **earlier** wall-clock time (an
-  inversion).
-
-In both cases the SQL comparison `e2.timestamp > e1.timestamp` disagrees with the
-in-memory sequence comparison. **The same query returns different runs depending on which
-backend you happen to be using** — and which answer is "right" depends on invisible
-sub-microsecond timing.
-
-**Why this is worse than an ordinary bug.** The product *is* a query-and-diff tool. Two
-backends that disagree on the same question aren't "mostly correct" — they're a tool
-that is confidently, silently wrong, where the wrongness is invisible and non-
-deterministic. That is the precise opposite of the one thing the tool is supposed to
-sell: a trustworthy answer to "did this change?"
-
-**How it was caught: a differential parity test** (`QueryParityTests`). It records the
-*same* scenario into a fresh in-memory store and a fresh SQLite store, runs each query
-against both, and asserts they return the same runs. The sharpest case it pins is
-`.before` over `[errorDetected, stepCompleted, errorDetected]`: `stepCompleted` sits
-*between* the two `errorDetected` events, so it does not precede the *first* one — both
-backends must report no match. The old timestamp-ordered SQL matched it anyway (via the
-second `errorDetected`), diverging from the in-memory evaluator. A second case drives
-`.sequence` through a tight burst where events can share a timestamp, and an
-operator-parity matrix runs every operator over one shared scenario as a broad guard
-against drift. Agreement alone isn't enough — two backends can agree on a wrong answer —
-so the pointed cases also pin the causally-correct result, not just backend equality.
-
-These tests fail on the old timestamp-ordered compiler and pass once the ordering
-authority is unified. A regression test that you have watched fail is worth ten that you
-have only watched pass.
-
-**The fix.** Make `sequence` the single ordering authority everywhere. The compiler now
-orders every temporal operator by `sequence` instead of `timestamp`: `after` and
-`before` anchor to the *first* occurrence of `step` via `MIN(sequence)` — mirroring the
-in-memory evaluator's `firstIndex(of:)` — and `sequence` chains its self-joins on
-strictly increasing `sequence`. Because `sequence` is unique and monotonic within a run,
-there are no ties, no inversions, and no ambiguity about *which* occurrence anchors the
-comparison: the two backends now provably evaluate the same order. `timestamp` is
-relegated to what it's actually good for — display and coarse range filtering, never
-adjudicating causal order.
-
-**The transferable lesson.** When one specification has two implementations, two things
-are non-negotiable: a differential test that pins them to each other, and a single
-source of truth for *every* semantic dimension. Ordering is such a dimension. The bug
-was having two sources of truth for it; the fix was having one; the test is what makes
-"one" enforceable going forward.
+The run handle is type-erased (`AnyActiveTraceRun`) so the task-local can be non-generic while the recording path stays typed — the erasure is re-narrowed at the record call via a checked cast.
 
 ---
 
-## Integrity guarantees, and what proves each
+## 4. The concurrency model — the central tradeoff
 
-| Guarantee | Mechanism | Proof |
-|---|---|---|
-| A flush sees every event recorded before it | synchronous `record` + lock | `testFlushIsBarrierAndPreservesRecordOrder` |
-| Recorded order is preserved end to end | per-record `sequence` + k-way merge drain | `testDrainPreservesGlobalInsertionOrder` |
-| Both query backends answer identically | unified `sequence` ordering authority | `QueryParityTests` (verified failing pre-fix) |
-| Load-shedding never drops what a diff needs | priority tiers + eviction policy | `testBurstIngestionCollapse`, `testHeavyBurstShedsTelemetryButKeepsCritical` |
-| No event is ever lost silently | `TraceDropStats` at all 3 drop sites | `testGlobalEvictionIsCounted`, `testPerRunSoftCapKeepsCriticalEvents` |
+This is the decision everything else hangs on.
 
----
+The obvious modern-Swift choice for the active run and the stores is an `actor`. We deliberately did **not** use one. The stores and the active run are `final class … @unchecked Sendable`, guarding their mutable state with an `NSLock`.
 
-## Scope: what this is, and what it is not
+The reason is the non-intrusiveness goal. With an actor, `record(...)` would be `async`: callers would `await` it, the call would hop to the actor's executor, and — critically — an event would only be *durably enqueued* at some later scheduling point. That breaks two properties we want:
 
-**What it is.** A small, embeddable Swift library for recording, querying, and diffing
-the *reasoning steps* of AI systems — designed to run on-device, with no server, no
-network, and no daemon. The persistent store is a single WAL-mode SQLite file. You can
-read the whole codebase in a sitting, audit exactly what it records, and embed it
-without taking on a platform dependency.
+- **Immediate queryability.** With the lock-based design, once `record` returns, the event is committed to the in-memory structure and visible to the next query. There is no scheduling gap between "recorded" and "queryable."
+- **`flush()` as a true barrier.** Because enqueue is synchronous and ordered, `flush()` is a real happens-before barrier — everything recorded before it is guaranteed persisted after it. With an async enqueue, `flush` could only ever be best-effort.
 
-**What it is not, and what to use instead.** This is not a distributed tracing system or
-an APM, and it is not trying to be.
+It also keeps the instrumentation call cheap and non-suspending, so dropping a `record(...)` into hot reasoning code doesn't introduce an `await` or an executor hop into the path being measured.
 
-- If you need cross-service spans, fleet-scale sampling, and an ecosystem of exporters —
-  that's **OpenTelemetry**. It traces requests across a distributed system. DProvenanceKit
-  traces reasoning within one process.
-- If you want a hosted product with a web UI, dashboards, and team features for LLM
-  observability — that's **LangSmith** or similar. DProvenanceKit has no backend to host;
-  the data stays on the device.
-
-The earlier framing of this project argued *against* OpenTelemetry rhetorically. That was
-a mistake: it invites a comparison on OTel's home turf (scale, ecosystem) that a small
-library will always lose, and it obscures where this design actually wins.
-
-**The lane, claimed plainly.** On-device and embedded AI — a Swift app running a model
-locally, an agent inside a macOS/iOS application — where you want a queryable, diffable,
-causally-ordered record of what the model decided, and you want that record to stay on
-the device. In that lane, smallness is the feature, not an apology: no infra to stand up,
-nothing to trust but a file you can read, and a diff you can rely on because the
-integrity is observable.
+**What it costs.** `@unchecked Sendable` moves the correctness burden from the compiler to us. The lock discipline is now a property we have to maintain by hand and prove by test, rather than one Swift verifies. The `sequence` counter, the per-run event maps, and the buffer tiers are all hand-synchronized. This is a real, ongoing tax, and it's the first thing a reviewer should scrutinize. We accepted it because the alternative — an async, best-effort recording path — would compromise the system's primary goal. The lock-held critical sections are deliberately tiny and never span an `await`, which is what keeps the tradeoff sound.
 
 ---
 
-## Known limitations
+## 5. The write path — priority-aware backpressure
 
-These are real and worth knowing before you adopt it.
+A reasoning run can emit tens of thousands of events in a burst. The write buffer has to absorb that without unbounded memory growth and without ever paying more than O(1) per event — including when it's full and has to start dropping.
 
-- **Diffs are structural, not value-aware.** `TraceDiffEngine` compares event type,
-  engine, and causal order. Two runs that take the same steps with different *payload
-  values* currently diff as identical. Payload-aware diffing is the main planned
-  extension.
-- **Payload encoding must produce a JSON object.** `SQLiteTraceStore.record` encodes
-  payloads with `JSONEncoder` and currently drops an event whose payload fails to encode.
-  A `String`-raw-value enum encodes as a top-level JSON *fragment*, which fails — so such
-  an event type would silently vanish from the SQLite store while still working in the
-  in-memory store. Use a struct or an enum with associated values (encodes as an object).
-  This is a known sharp edge; closing it (count or surface these as drops, rather than
-  swallowing them) is the obvious next integrity item.
-- **Single process, single file.** No federation, no multi-writer coordination beyond
-  one process's buffer + writer.
-- **`structural`/`critical` can still be shed at true saturation.** The per-run and
-  global caps preserve them as long as anything cheaper exists to drop. If a buffer is
-  *entirely* critical and overflowing, the oldest critical is displaced — and counted, so
-  you will see it in `dropStats`.
+Every event declares one of four priority tiers:
+
+```swift
+public enum TracePriority: Int { case telemetry=0, diagnostic=1, structural=2, critical=3 }
+```
+
+The buffer holds **one FIFO per tier**. That single structural choice is what makes both ingestion and shedding constant-time: there is never a scan of the backlog to decide what to drop, because the cheapest-to-drop events are already grouped.
+
+- **Enqueue** appends to the tier's FIFO — O(1).
+- **Shedding** under global pressure pops the oldest event of the lowest non-empty tier — O(1). The eviction order is `telemetry → diagnostic`, and only if those are exhausted will an incoming `critical` displace the oldest `structural` (or, in extremis, the oldest `critical`). A `structural`/`critical` backlog is never sacrificed to admit a lower-priority event.
+- **Per-run softening.** A single run that bursts past its per-run cap sheds *its own* `telemetry`/`diagnostic` first, so one noisy run can't evict the structural events of every other run.
+
+The tier FIFOs are an amortized-O(1) array with a moving head cursor, compacting the dead prefix only once it dominates — so a long run of pops doesn't degrade to O(n) shifts.
+
+Draining for persistence does a **k-way merge across the tiers by insertion stamp**, so even though events were bucketed by priority, they reach the writer in true global insertion order. Bucketing is an internal optimization; it's invisible in the output.
+
+**The contract that makes this safe for analysis:** `telemetry` and `diagnostic` are defined as never affecting diff results, and diffs are floored at `structural` by default (§8). So shedding under load can drop high-volume noise without ever changing a structural diff or a regression verdict. Load-shedding and diff-correctness are decoupled by construction.
+
+---
+
+## 6. The background writer and durability
+
+A single background actor (`SQLiteWriter`) drains the buffer into SQLite. It is the one place async is welcome, because it's off the recording path.
+
+It **adapts to load** using an exponentially-weighted moving average of buffer depth: under high load it drains in large batches with near-zero sleep; when idle it drains small batches slowly. This keeps latency low under pressure without spinning hot when there's nothing to do.
+
+Persistence is WAL-mode SQLite (`synchronous=NORMAL`, `temp_store=MEMORY`) with a covering set of indices, including the composite `(run_id, sequence)` index that the temporal queries depend on. Run metadata is UPSERTed on a throttle (≈1s) rather than per-event, to avoid write amplification on the `runs` table.
+
+Two durability details worth calling out:
+
+- **Crash reconciliation.** On open, the `runs` table is rebuilt from the persisted `trace_events` for any run whose recorded event count exceeds its last-known metadata — so a process that died mid-run leaves a recoverable trace, not a corrupt one.
+- **Structural fingerprint.** Each run carries an incrementally-updated SHA-1 over its `type:engine` signature stream, giving an O(1) "did this run's shape change?" check without re-reading its events.
+
+---
+
+## 7. The query language and its two backends
+
+Queries are built with a fluent DSL that lowers to an AST (`TraceQueryNode`): boolean composition (`and`/`or`/`not`), membership (`containsStep`/`missingStep`), subsequence (`sequence`), and temporal (`after`/`before`).
+
+That one AST is evaluated **two completely different ways**:
+
+- **In memory** (`InMemoryTraceStore`): the AST is interpreted directly over the run's `sequence`-ordered event list. Queries first narrow candidates through inverted indices (by context, engine, and event type), then run the full predicate only on survivors.
+- **On disk** (`SQLiteTraceStore`): the AST is compiled to SQL, with boolean composition expressed as `INTERSECT`/`UNION`/`EXCEPT` over per-clause `SELECT run_id` subqueries.
+
+Two implementations of one language is a powerful pattern — and a dangerous one. It is the single largest correctness risk in the system, and §9 is about the time it bit us.
+
+---
+
+## 8. The diff engine
+
+Diffing reduces each run to a sequence of **structural signatures** — `typeIdentifier::engineName` — filtered to a minimum priority (default `.structural`), then runs the standard-library `CollectionDifference` (a Myers diff) over the two signature streams. Reordered, inserted, and removed reasoning steps fall out as `added`/`removed` changes carrying their original `sequence` for traceability.
+
+The deliberate limitation: signatures are **structure only**. Two runs that took the same step types in the same order diff as identical even if their payload *values* differ wildly. Payload-aware diffing is planned; until it lands, the diff answers "did the reasoning *path* change?", not "did the reasoning *content* change?". The README states this at the point of use so no one is surprised.
+
+---
+
+## 9. Case study — the query-backend parity bug
+
+This is the most instructive bug in the project's history, because it's the canonical failure mode of the two-backend design in §7, and because catching it well says more about the engineering discipline than any green test suite.
+
+**The setup.** The in-memory evaluator and the SQL compiler are independent implementations of the same query language. For them to be trustworthy, they must agree on every input. They didn't.
+
+**The bug.** The temporal operators (`after`, `before`, `sequence`) were compiled to SQL that ordered events by `timestamp`:
+
+```sql
+-- old .sequence: chain by wall-clock time
+... WHERE e0.type=? AND e1.type=? AND e0.timestamp < e1.timestamp
+```
+
+But the in-memory evaluator orders by `sequence`, the monotonic causal counter. Mixing two ordering authorities produced two distinct divergences:
+
+1. **False negatives from timestamp ties.** Events recorded in a tight burst can share a wall-clock timestamp to the microsecond. A strict `timestamp < timestamp` chain then finds no increasing path and reports *no match*, while the in-memory evaluator — ordering by the always-distinct `sequence` — correctly finds the subsequence. Verified directly against SQLite: three back-to-back events with a tied timestamp made the SQL `.sequence` return nothing where the truth is a match.
+
+2. **False positives from "any" vs "first" occurrence.** The in-memory `.before(step, precededBy)` anchors to the *first* occurrence of `step` (`firstIndex(of:)`). The SQL matched "*any* `step` that has *some* earlier `precededBy`." On the trace `[errorDetected, stepCompleted, errorDetected]`, asking "did `stepCompleted` precede the first `errorDetected`?" the in-memory answer is **no** — but the old SQL said **yes**, via the second `errorDetected`. Two backends, opposite answers, same data.
+
+**The fix.** Two corrections, both small once the cause was named:
+
+- Order all temporal operators by `sequence`, not `timestamp`. `sequence` is strictly monotonic per run, so ties are impossible and the wall-clock divergence disappears. The `(run_id, sequence)` index already backed it.
+- Anchor `.after`/`.before` to `MIN(sequence)` of the step, mirroring the in-memory "first occurrence" semantics exactly:
+
+```sql
+-- new .before: precededBy strictly before the FIRST step occurrence
+SELECT DISTINCT e.run_id FROM trace_events e
+JOIN (SELECT run_id, MIN(sequence) AS anchor FROM trace_events WHERE type=? GROUP BY run_id) a
+  ON e.run_id = a.run_id
+WHERE e.type=? AND e.sequence < a.anchor
+```
+
+**The discipline that now prevents recurrence.** A fix isn't done when the bug is gone; it's done when the bug can't silently return. The real deliverable was a **parity test suite** that runs identical scenarios through *both* stores and asserts identical results:
+
+```swift
+let (memory, sqlite) = try await matches(scenario: …, query: …)
+XCTAssertEqual(memory, sqlite)  // a query means one thing, everywhere
+```
+
+The dedicated regression test fails on the old compiler and passes on the new one; a broader matrix runs every operator through both backends as a standing guard.
+
+**The general lesson, stated plainly:** when you maintain two implementations of one specification, (a) the specification must be pinned by a *differential* test that exercises both against each other, not two separate test suites that can drift; and (b) any ordering-dependent semantics must commit to a single authoritative clock. We had violated both. The architecture is sound — but soundness at the macro level doesn't exempt you from getting the semantics exactly right at the seams, and the seams are where two-backend designs fail.
+
+---
+
+## 10. Known limitations and open questions
+
+Stated plainly, because a design doc that only lists strengths isn't a design doc:
+
+- **Silent drops aren't yet accounted for.** Events can be shed under load, fail to encode, or be lost in a failed batch insert, and there is currently no per-run record of *how many* were dropped or why. For an observability tool this is the most important gap: a consumer can't yet distinguish "this reasoning step truly didn't happen" from "this step was shed." The priority contract makes this safe for `structural`-floored diffs, but a per-run dropped-event counter is the next correctness investment.
+- **`schemaVersion` isn't persisted.** It exists on the in-memory envelope but has no storage column and is hardcoded on read-back. The stable-`typeIdentifier` contract carries the cross-version story today, but the version metadata is lost at the disk boundary.
+- **Apple-only by dependency.** System SQLite and CryptoKit tie the library to Apple OSes. This is consistent with the on-device-AI goal, but it's a hard scope boundary, not an accident.
+- **The live engine's delivery stream is unbounded**, which sits in tension with the carefully bounded backpressure on the write path; a slow live consumer can grow memory.
+- **The lock-based concurrency model** (§4) is correct but compiler-unverified. An actor-based redesign would get checked guarantees at the cost of the synchronous-record property — a tradeoff worth revisiting if Swift's concurrency tools make a synchronous, ordered, actor-backed enqueue expressible.
+
+None of these are foundational. They're the difference between "well-architected experimental engine" and "load-bearing dependency," and they're the right next things to close.
