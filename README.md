@@ -2,17 +2,14 @@
 
 **DProvenanceKit lets you debug AI systems like you debug code.**
 
-It turns every execution into a queryable, replayable, diffable trace.
+A small, embeddable Swift library that records every on-device AI execution as a
+queryable, replayable, diffable trace — no server, no network, just a SQLite file.
 
 > Run → Record → Query → Diff → Detect Regressions
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](COMMERCIAL.md)
 [![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![Platform: iOS | macOS | visionOS](https://img.shields.io/badge/Platform-iOS%20%7C%20macOS%20%7C%20visionOS-lightgrey.svg)](https://swift.org)
-
----
-
-## AI Systems Don't Fail Like Traditional Software
 
 ---
 
@@ -54,36 +51,28 @@ You can inspect exactly what changed.
 
 ---
 
-## Isn't This Just OpenTelemetry?
+## Where DProvenanceKit Fits
 
-**No.**
+DProvenanceKit is deliberately small and single-purpose: a record of *what an AI
+decided, and in what order*, kept on the device and diffable against last time.
 
-OpenTelemetry answers:
+It is **not** a distributed tracing system or a hosted observability platform, and it
+doesn't try to be:
 
-> What happened?
+- Need cross-service spans, fleet-scale sampling, and an exporter ecosystem? Use
+  **OpenTelemetry**. It traces requests across a distributed system; DProvenanceKit
+  traces reasoning within a single process.
+- Want dashboards and team features for hosted LLM observability? Use **LangSmith** or
+  similar. DProvenanceKit has no backend to host — the data stays on the device.
 
-DProvenanceKit answers:
+Reach for DProvenanceKit when the model runs **on-device** and you want a queryable,
+causally-ordered, diffable record of its reasoning, with no infrastructure to stand up
+and nothing to trust but a file you can read.
 
-> Why did the AI reach this conclusion?
-
-### OpenTelemetry
-
-- Request tracing
-- Latency measurement
-- Service observability
-- Infrastructure monitoring
-
-### DProvenanceKit
-
-- Reasoning traceability
-- Decision lineage
-- Logic diffs
-- Regression detection
-- AI execution auditing
-
-OpenTelemetry traces requests.
-
-**DProvenanceKit traces reasoning.**
+> **Why it's built this way →** [DESIGN.md](DESIGN.md) covers the engineering judgment
+> behind it: synchronous recording over actors, O(1) priority-bucketed load-shedding,
+> and a worked case study of a query-parity bug between the two backends — how it was
+> caught with a differential test and fixed.
 
 ---
 
@@ -258,6 +247,11 @@ enum MyAIDecision: TraceableEvent {
 }
 ```
 
+> **Heads-up:** event payloads are persisted with `JSONEncoder`, so a payload must encode
+> as a JSON *object*. Use a struct or an enum with associated values (as above). A
+> raw-value enum such as `enum E: String` encodes as a top-level fragment and currently
+> fails to persist — see [DESIGN.md](DESIGN.md#known-limitations).
+
 ---
 
 ## 2. Configure a Store
@@ -400,6 +394,20 @@ Actively evolving.
 - Diffing
 - Regression detection
 - Anomaly detection
+
+### Integrity (and how it's proven)
+
+The properties a diff tool lives or dies by are guarantees here, each backed by a test:
+
+- Recording is **synchronous and ordered**, so a flush sees every event recorded before
+  it, in record order.
+- Under burst, load-shedding drops only low-priority telemetry and **counts every drop**
+  — `store.dropStats.preservedIntegrity` tells you whether anything that could change a
+  diff was lost.
+- The two query backends (in-memory and SQLite) are held to **identical results** by a
+  differential parity test.
+
+See [DESIGN.md](DESIGN.md) for the mechanisms and the tests behind each.
 
 ### Planned Expansion
 
