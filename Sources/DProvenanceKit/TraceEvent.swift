@@ -1,6 +1,7 @@
 import Foundation
 
 public struct TraceEvent<T: TraceableEvent>: Sendable, Codable, Equatable {
+    public let id: UUID
     public let runID: UUID
     public let contextID: String
     public let engineName: String
@@ -11,7 +12,8 @@ public struct TraceEvent<T: TraceableEvent>: Sendable, Codable, Equatable {
     public let payload: T
     public let timestamp: Date
     
-    public init(runID: UUID, contextID: String, engineName: String, schemaVersion: Int, sequence: UInt64, spanID: String?, parentSpanID: String?, payload: T, timestamp: Date = Date()) {
+    public init(id: UUID = UUID(), runID: UUID, contextID: String, engineName: String, schemaVersion: Int, sequence: UInt64, spanID: String?, parentSpanID: String?, payload: T, timestamp: Date = Date()) {
+        self.id = id
         self.runID = runID
         self.contextID = contextID
         self.engineName = engineName

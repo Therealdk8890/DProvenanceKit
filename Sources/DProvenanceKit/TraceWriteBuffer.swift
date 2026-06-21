@@ -43,6 +43,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     private struct Buffered {
         let stamp: UInt64
         let row: TraceEventRow
+        let bytes: Int
     }
 
     private let lock = NSLock()
@@ -50,6 +51,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     /// One FIFO per `TracePriority` tier, indexed by `rawValue` (0...3).
     private var tiers: [FIFOQueue<Buffered>]
     private var totalCount: Int = 0
+    private var totalBytes: Int = 0
     private var enqueueCounter: UInt64 = 0
 
     /// Lifetime count of events shed under congestion, indexed by `TracePriority`
@@ -60,11 +62,17 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     // Tracking for per-run degradation
     private var queueDepthByRun: [String: Int] = [:]
 
-    private let maxGlobalBuffer: Int
+    private let config: OfflineConfig
     private let maxPerRunBuffer: Int
 
-    public init(maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) {
-        self.maxGlobalBuffer = maxGlobalBuffer
+    public init(maxGlobalBuffer: Int, maxPerRunBuffer: Int = 5_000) {
+        self.config = OfflineConfig(capacity: BufferCapacity(maxItems: maxGlobalBuffer, maxBytes: Int.max, maxEventSizeBytes: Int.max), eviction: .dropOldest)
+        self.maxPerRunBuffer = maxPerRunBuffer
+        self.tiers = Array(repeating: FIFOQueue<Buffered>(), count: 4)
+    }
+
+    public init(config: OfflineConfig = OfflineConfig(), maxPerRunBuffer: Int = 5_000) {
+        self.config = config
         self.maxPerRunBuffer = maxPerRunBuffer
         self.tiers = Array(repeating: FIFOQueue<Buffered>(), count: 4)
     }
@@ -97,6 +105,13 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     public func enqueue(_ event: TraceEventRow) {
         lock.withLock {
             let priority = TracePriority(rawValue: event.priority) ?? .telemetry
+            let eventBytes = event.payload.count + 256
+            
+            if eventBytes > config.capacity.maxEventSizeBytes {
+                droppedByTier[priority.rawValue] &+= 1
+                return
+            }
+            
             let runDepth = queueDepthByRun[event.runID, default: 0]
 
             // 1. Soft per-run limit: shed verbose/diagnostic for a bursting run, but
@@ -107,17 +122,26 @@ public final class TraceWriteBuffer: @unchecked Sendable {
             }
 
             // 2. Global capacity: evict the lowest-priority, oldest victim to make room.
-            if totalCount >= maxGlobalBuffer, !evictOneLocked(incoming: priority) {
-                // Backlog is entirely higher-or-equal priority and the incoming event
-                // is not important enough to displace it — drop the incoming event.
-                droppedByTier[priority.rawValue] &+= 1
-                return
+            var overCapacity = (totalCount >= config.capacity.maxItems) || (totalBytes + eventBytes > config.capacity.maxBytes)
+            while overCapacity {
+                switch config.eviction {
+                case .dropOldest:
+                    if !evictOneLocked(incoming: priority) {
+                        droppedByTier[priority.rawValue] &+= 1
+                        return
+                    }
+                case .rejectNew:
+                    droppedByTier[priority.rawValue] &+= 1
+                    return
+                }
+                overCapacity = (totalCount >= config.capacity.maxItems) || (totalBytes + eventBytes > config.capacity.maxBytes)
             }
 
             let stamp = enqueueCounter
             enqueueCounter &+= 1
-            tiers[priority.rawValue].append(Buffered(stamp: stamp, row: event))
+            tiers[priority.rawValue].append(Buffered(stamp: stamp, row: event, bytes: eventBytes))
             totalCount += 1
+            totalBytes += eventBytes
             queueDepthByRun[event.runID, default: 0] += 1
         }
     }
@@ -145,6 +169,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     private func popVictimLocked(tier: TracePriority) -> Bool {
         guard let victim = tiers[tier.rawValue].popFirst() else { return false }
         totalCount -= 1
+        totalBytes -= victim.bytes
         droppedByTier[tier.rawValue] &+= 1
         decrementRunDepth(victim.row.runID)
         return true
@@ -189,6 +214,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
             let buffered = tiers[bestTier].popFirst()!
             result.append(buffered.row)
             totalCount -= 1
+            totalBytes -= buffered.bytes
             decrementRunDepth(buffered.row.runID)
         }
 

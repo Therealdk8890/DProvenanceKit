@@ -1,10 +1,55 @@
 import SwiftUI
 import DProvenanceKit
 
-struct RunDetailView: View {
-    let run: RawTraceRun
+public struct RunDetailView: View {
+    let run: TraceRun<AnyTraceableEvent>
     
-    var body: some View {
+    @State private var currentSequence: UInt64 = 0
+    @State private var comparisonSequence: UInt64 = 0
+    @State private var isComparisonMode: Bool = false
+    
+    // Engine and Snapshots
+    private var engine: TraceReplayEngine<AnyTraceableEvent> {
+        TraceReplayEngine(committed: run.events, quarantined: [])
+    }
+    
+    private var baseSnapshot: ReplaySnapshot<AnyTraceableEvent> {
+        engine.snapshot(at: currentSequence == 0 ? nil : currentSequence)
+    }
+    
+    private var comparisonSnapshot: ReplaySnapshot<AnyTraceableEvent>? {
+        guard isComparisonMode else { return nil }
+        return engine.snapshot(at: comparisonSequence == 0 ? nil : comparisonSequence)
+    }
+    
+    private var diffResult: SnapshotDiffResult<AnyTraceableEvent>? {
+        guard let comp = comparisonSnapshot else { return nil }
+        let diffEngine = SnapshotDiffEngine<AnyTraceableEvent>()
+        return diffEngine.diff(base: baseSnapshot, comparison: comp)
+    }
+    
+    // Tree Projections
+    private var projectedNodes: [FlattenedSpanNode<AnyTraceableEvent>] {
+        let hints = RenderHints(diffMode: isComparisonMode ? .comparison : .none)
+        
+        let targetSnapshot = isComparisonMode ? (comparisonSnapshot ?? baseSnapshot) : baseSnapshot
+        
+        // Convert SpanNodes to SpanViewModels
+        let snapshotID = isComparisonMode ? "diff_\(currentSequence)_\(comparisonSequence)" : "snap_\(currentSequence)"
+        let rootModels = targetSnapshot.roots.map { root in
+            SpanViewModel(
+                node: root,
+                snapshotID: snapshotID,
+                localPathHash: String("root->\(root.spanID ?? "anon")".hashValue),
+                depth: 0,
+                hints: hints
+            ) 
+        }
+        
+        return flattenSpanTree(roots: rootModels, dynamicCollapsed: [])
+    }
+    
+    public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack {
@@ -19,11 +64,8 @@ struct RunDetailView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing) {
-                    Text("\(run.eventCount) Events")
+                    Text("\(run.events.count) Events")
                         .font(.headline)
-                    Text("Duration: \(run.endTime.timeIntervalSince(run.startTime), specifier: "%.3f")s")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
             }
             .padding()
@@ -31,87 +73,27 @@ struct RunDetailView: View {
             
             Divider()
             
-            // Event List (Span Tree)
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(run.events) { event in
-                        EventRowView(event: event, run: run)
-                    }
-                }
-                .padding(.vertical)
-            }
-        }
-    }
-}
-
-struct EventRowView: View {
-    let event: RawTraceEvent
-    let run: RawTraceRun
-    
-    // Compute indentation level recursively
-    var indentLevel: Int {
-        var level = 0
-        var currentParentSpanID = event.parentSpanID
-        
-        while let pid = currentParentSpanID, 
-              let parentEvent = run.events.first(where: { $0.spanID == pid }) {
-            level += 1
-            currentParentSpanID = parentEvent.parentSpanID
-        }
-        return level
-    }
-    
-    var priorityColor: Color {
-        switch event.priority {
-        case 3: return .red      // Critical
-        case 2: return .orange   // Structural
-        case 1: return .blue     // Diagnostic
-        default: return .gray    // Telemetry
-        }
-    }
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            // Indentation
-            if indentLevel > 0 {
-                Rectangle()
-                    .fill(Color.clear)
-                    .frame(width: CGFloat(indentLevel * 20))
+            // Timeline Scrubber
+            TraceTimelineView(
+                engine: engine,
+                currentSequence: $currentSequence,
+                isComparisonMode: $isComparisonMode,
+                comparisonSequence: $comparisonSequence
+            )
+            
+            Divider()
+            
+            // Optional Diff Overlay
+            if let diff = diffResult {
+                DiffOverlayView(diffResult: diff)
+                    .padding()
             }
             
-            // Event Dot
-            Circle()
-                .fill(priorityColor)
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(event.typeIdentifier)
-                        .font(.system(.subheadline, design: .monospaced))
-                        .bold()
-                    
-                    Spacer()
-                    
-                    Text(event.engineName)
-                        .font(.caption)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.2))
-                        .cornerRadius(4)
-                }
-                
-                Text(event.payloadJSON)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.secondary)
-                    .lineLimit(4)
-            }
-            .padding(8)
-            .background(Color(NSColor.textBackgroundColor))
-            .cornerRadius(8)
-            .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+            // Tree Render
+            SpanTreeView(
+                nodes: projectedNodes,
+                diffResult: diffResult
+            )
         }
-        .padding(.horizontal)
-        .padding(.vertical, 4)
     }
 }

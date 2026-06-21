@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "runs": "2,847",
+    "regressionRisk": "Medium",
+    "changedLogicPaths": 14,
+    "structuralFingerprint": "8F2A...C91B"
+  },
+  "metrics": {
+    "driftScore": 23,
+    "addedNodes": 4,
+    "removedNodes": 2,
+    "changedPaths": 3,
+    "risk": "Medium"
+  },
+  "timeline": {
+    "runA": { "label": "Run A", "date": "Oct 12, 14:02" },
+    "runB": { "label": "Run B", "date": "Oct 12, 15:30" }
+  },
+  "tree": {
+    "id": "root",
+    "label": "Reasoning Engine",
+    "type": "unchanged",
+    "children": [
+      {
+        "id": "node-1",
+        "label": "Parse Documents",
+        "type": "unchanged",
+        "children": [
+          {
+            "id": "node-1a",
+            "label": "Extract Text",
+            "type": "unchanged"
+          },
+          {
+            "id": "node-1b",
+            "label": "Identify Entities",
+            "type": "added"
+          }
+        ]
+      },
+      {
+        "id": "node-2",
+        "label": "Apply Heuristic",
+        "type": "removed"
+      },
+      {
+        "id": "node-3",
+        "label": "Detect Conflict",
+        "type": "unchanged",
+        "children": [
+          {
+            "id": "node-3a",
+            "label": "Timeline Check",
+            "type": "unchanged"
+          },
+          {
+            "id": "node-3b",
+            "label": "Constraint Verification",
+            "type": "added"
+          }
+        ]
+      },
+      {
+        "id": "node-4",
+        "label": "Final Decision",
+        "type": "changed",
+        "details": {
+          "runA": "Approved",
+          "runB": "Denied"
+        }
+      }
+    ]
+  }
+}
