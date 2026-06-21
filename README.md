@@ -405,3 +405,6 @@ Actively evolving.
 # License
 
 Business Source License 1.1 (BSL 1.1)
+
+## Commercial Use
+For production or commercial deployments, see our [COMMERCIAL.md](COMMERCIAL.md) for licensing options and pricing.
