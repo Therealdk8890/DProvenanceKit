@@ -1,5 +1,13 @@
 import Foundation
 
+/// Raised by `CloudWriter.flush(timeout:)` when the backlog can't be delivered before
+/// the deadline — e.g. the endpoint is unreachable and the circuit breaker is holding
+/// requests off. The events remain buffered/inflight (not lost); the caller decides
+/// whether to retry. This is what keeps `flush` from blocking forever on an outage.
+public enum CloudWriterError: Error, Equatable {
+    case flushTimedOut(undelivered: Int)
+}
+
 public actor CloudWriter {
     private let endpoint: URL
     private let apiKey: String
@@ -36,13 +44,22 @@ public actor CloudWriter {
         }
     }
     
-    public func flush() async throws {
+    /// Drains the backlog to the server, bounded by `timeout`. Returns when everything
+    /// is delivered (or quarantined); throws `CloudWriterError.flushTimedOut` if the
+    /// deadline passes first — it never blocks indefinitely on an unreachable endpoint.
+    public func flush(timeout: TimeInterval = 30.0) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
         while buffer.currentDepth > 0 || inflightBatch != nil {
+            if Date() >= deadline {
+                throw CloudWriterError.flushTimedOut(undelivered: buffer.currentDepth + (inflightBatch?.count ?? 0))
+            }
             if isSending {
-                try await Task.sleep(nanoseconds: 10_000_000)
+                try await Task.sleep(nanoseconds: 20_000_000)
                 continue
             }
-            await processNextBatch(drainAll: true)
+            await processNextBatch(drainAll: true, deadline: deadline)
+            // Don't hot-spin while the circuit breaker is holding sends off.
+            try await Task.sleep(nanoseconds: 20_000_000)
         }
     }
     
@@ -62,16 +79,21 @@ public actor CloudWriter {
         try? await Task.sleep(nanoseconds: sleepMs * 1_000_000)
     }
     
-    private func processNextBatch(drainAll: Bool = false, maxBatch: Int = 1000) async {
+    private func processNextBatch(drainAll: Bool = false, maxBatch: Int = 1000, deadline: Date? = nil) async {
         guard !isSending else { return }
         isSending = true
         defer { isSending = false }
-        
+
         let waitTime = await circuitBreaker.timeUntilAllowed()
         if waitTime > 0 {
+            // Under a caller deadline (flush), don't block past it waiting for the
+            // breaker to reopen — return and let the caller decide to time out.
+            if let deadline, Date().addingTimeInterval(waitTime) >= deadline {
+                return
+            }
             try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
         }
-        
+
         guard await circuitBreaker.allowRequest() else { return }
         
         let batch: [TraceEventRow]
@@ -121,15 +143,21 @@ public actor CloudWriter {
                 guard await circuitBreaker.allowRequest() else {
                     return
                 }
-                
+
+                let backoff: Double
                 if attemptCount == 1 {
-                    let stagger = Double.random(in: 0.1...1.0)
-                    try? await Task.sleep(nanoseconds: UInt64(stagger * 1_000_000_000))
+                    backoff = Double.random(in: 0.1...1.0)
                 } else {
                     let cap = min(maxBackoff, baseBackoff * pow(2.0, Double(attemptCount)))
-                    let sleepTime = Double.random(in: 0...cap)
-                    try? await Task.sleep(nanoseconds: UInt64(sleepTime * 1_000_000_000))
+                    backoff = Double.random(in: 0...cap)
                 }
+
+                // Leave the batch inflight rather than sleep past a caller's deadline;
+                // the flush loop will re-check and time out cleanly.
+                if let deadline, Date().addingTimeInterval(backoff) >= deadline {
+                    return
+                }
+                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
             }
         }
     }

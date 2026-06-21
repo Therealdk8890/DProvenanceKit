@@ -52,7 +52,13 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     public func flush() async throws {
         try await writer.flush()
     }
-    
+
+    /// Bounded variant of `flush()`: throws `CloudWriterError.flushTimedOut` instead of
+    /// blocking indefinitely when the endpoint is unreachable.
+    public func flush(timeout: TimeInterval) async throws {
+        try await writer.flush(timeout: timeout)
+    }
+
     public var dropStats: TraceDropStats { buffer.dropStats }
     
     private struct QueryPayload: Encodable {
