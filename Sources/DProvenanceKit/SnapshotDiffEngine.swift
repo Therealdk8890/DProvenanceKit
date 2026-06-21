@@ -10,8 +10,8 @@ public struct SnapshotDiffEngine<T: TraceableEvent>: Sendable {
         let engineName: String
     }
     
-    private struct EventSignature: Hashable {
-        let payloadHash: Int
+    private struct EventSignature: Equatable {
+        let payload: T
         let source: ReplaySource
     }
     
@@ -24,8 +24,12 @@ public struct SnapshotDiffEngine<T: TraceableEvent>: Sendable {
     }
     
     private func signature(for e: ReplayEvent<T>) -> EventSignature {
-        let data = try? JSONEncoder().encode(e.event.payload)
-        return EventSignature(payloadHash: data?.hashValue ?? 0, source: e.source)
+        // Compare the payload *value* (T is Equatable), not a hash of its JSON
+        // encoding. The old hash-of-encoding was lossy: collisions — and every encode
+        // failure mapping to 0 — silently reported changed payloads as equal, exactly
+        // the false negative a diff tool must never produce. Comparing the value is
+        // exact, and skips re-encoding the payload on every comparison.
+        return EventSignature(payload: e.event.payload, source: e.source)
     }
     
     struct SpanInfo {

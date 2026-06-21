@@ -130,12 +130,6 @@ final class SnapshotDiffEngineTests: XCTestCase {
         
         let diff = SnapshotDiffEngine<MockEvent>().diff(base: baseSnapshot, comparison: compSnapshot)
         
-        print("BASE ROOTS: \(baseSnapshot.roots.map { $0.spanID })")
-        print("BASE CONTAM: \(baseSnapshot.roots.first?.containsQuarantinedEvents)")
-        print("COMP ROOTS: \(compSnapshot.roots.map { $0.spanID })")
-        print("COMP CONTAM: \(compSnapshot.roots.first?.containsQuarantinedEvents)")
-        print("SPAN CHANGES: \(diff.spanChanges)")
-        
         XCTAssertEqual(diff.summary.contaminatedSpans, 1)
         XCTAssertEqual(diff.summary.modifiedEvents, 1) // e2 source changed from committed to quarantined
     }
@@ -198,5 +192,69 @@ final class SnapshotDiffEngineTests: XCTestCase {
             XCTAssertEqual(divAB.leftEvent?.event.id, divBA.rightEvent?.event.id)
             XCTAssertEqual(divAB.rightEvent?.event.id, divBA.leftEvent?.event.id)
         }
+    }
+
+    func testDiffComparesPayloadValueNotEncodedHash() throws {
+        // Regression guard for the lossy-signature bug: the diff must reflect the
+        // payload *value*, not a hash of its JSON encoding. These two payloads differ
+        // only in a field that Codable drops, so they encode to identical bytes — a
+        // hash-of-encoding signature would call them equal and silently miss the change.
+        let runID = UUID()
+        let eventID = UUID()
+        let spanA = "spanA"
+
+        func event(_ payload: MaskedPayload) -> TraceEvent<MaskedPayload> {
+            TraceEvent(
+                id: eventID, runID: runID, contextID: "ctx", engineName: "engine",
+                schemaVersion: 1, sequence: 1, spanID: spanA, parentSpanID: nil, payload: payload
+            )
+        }
+
+        let a = MaskedPayload(label: "x", hiddenState: 1)
+        let b = MaskedPayload(label: "x", hiddenState: 2)
+
+        // Precondition: the two payloads really do encode to identical bytes...
+        let encoder = JSONEncoder()
+        XCTAssertEqual(try encoder.encode(a), try encoder.encode(b),
+                       "precondition: the excluded field must make the encodings identical")
+        // ...but they are not equal, so the diff must report a modification.
+        XCTAssertNotEqual(a, b)
+
+        let base = TraceReplayEngine(committed: [event(a)]).snapshot()
+        let comp = TraceReplayEngine(committed: [event(b)]).snapshot()
+        let diff = SnapshotDiffEngine<MaskedPayload>().diff(base: base, comparison: comp)
+
+        XCTAssertEqual(diff.summary.modifiedEvents, 1,
+                       "Equatable-distinct payloads must diff as modified even when their encodings collide")
+        XCTAssertEqual(diff.summary.divergencePoints, 1)
+    }
+}
+
+/// A payload whose Equatable identity includes a field that Codable drops. Two values
+/// differing only in `hiddenState` encode to identical JSON but are not `==` — the exact
+/// case a hash-of-encoding signature would silently miss.
+private struct MaskedPayload: TraceableEvent {
+    let label: String
+    let hiddenState: Int
+
+    var typeIdentifier: String { "masked" }
+    var priority: TracePriority { .structural }
+
+    enum CodingKeys: String, CodingKey { case label }
+
+    init(label: String, hiddenState: Int) {
+        self.label = label
+        self.hiddenState = hiddenState
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(label, forKey: .label)
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.label = try c.decode(String.self, forKey: .label)
+        self.hiddenState = 0
     }
 }
