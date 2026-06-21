@@ -55,4 +55,16 @@ public struct TraceDropStats: Sendable, Equatable {
         case .critical: return critical
         }
     }
+
+    /// Tier-wise sum, so drops counted in different places — the write buffer's
+    /// congestion shedding and a store's encode-failure path — combine into one
+    /// honest total. Saturating, mirroring the per-tier counters.
+    public static func + (lhs: TraceDropStats, rhs: TraceDropStats) -> TraceDropStats {
+        TraceDropStats(
+            telemetry: lhs.telemetry &+ rhs.telemetry,
+            diagnostic: lhs.diagnostic &+ rhs.diagnostic,
+            structural: lhs.structural &+ rhs.structural,
+            critical: lhs.critical &+ rhs.critical
+        )
+    }
 }
