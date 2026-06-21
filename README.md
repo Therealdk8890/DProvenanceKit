@@ -2,6 +2,9 @@
 
 **DProvenanceKit lets you debug AI systems like you debug code.**
 
+[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](COMMERCIAL.md)
+[![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+
 It turns every execution into a queryable, replayable, diffable trace.
 
 > Run → Record → Query → Diff → Detect Regressions
