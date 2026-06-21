@@ -407,7 +407,12 @@ Actively evolving.
 
 # License
 
-Business Source License 1.1 (BSL 1.1)
+DProvenanceKit is distributed under the **Business Source License 1.1 (BSL 1.1)**.
 
-## Commercial Use
-For production or commercial deployments, see our [COMMERCIAL.md](COMMERCIAL.md) for licensing options and pricing.
+- Free for development, testing, and non-production use.
+- Limited production use allowed under the Additional Use Grant.
+- Commercial / production use requires a paid license.
+
+**[View full commercial licensing options →](COMMERCIAL.md)**
+
+On June 16, 2030 the license automatically converts to Apache 2.0.
