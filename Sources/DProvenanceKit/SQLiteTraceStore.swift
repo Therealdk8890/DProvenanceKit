@@ -107,6 +107,11 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     public func flush() async throws {
         try await writer.flush()
     }
+
+    /// Events shed by the write buffer under congestion, by priority tier.
+    /// `dropStats.preservedIntegrity` is `true` when no structural or critical
+    /// event was lost, i.e. when diffs over these runs are fully trustworthy.
+    public var dropStats: TraceDropStats { buffer.dropStats }
     
     public func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>] {
         // Ensure all pending events are flushed before querying so results are accurate

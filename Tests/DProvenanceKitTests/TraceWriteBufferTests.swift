@@ -78,9 +78,46 @@ final class TraceWriteBufferTests: XCTestCase {
         }
         buffer.enqueue(makeRow(runID: "run", seq: 501, priority: .critical))
 
+        let drops = buffer.dropStats
         let drained = buffer.flushAll()
         let criticals = drained.filter { $0.type == "critical" }.count
         XCTAssertEqual(criticals, 2, "Both critical events bypass the per-run telemetry cap")
         XCTAssertLessThan(drained.count, 502, "Telemetry beyond the per-run cap is shed")
+
+        // Nothing vanishes unaccounted for: every enqueued event was either drained
+        // or counted as a drop. (502 enqueued = 2 critical + 500 telemetry.)
+        XCTAssertEqual(drained.count + Int(drops.total), 502,
+                       "admitted + dropped must equal enqueued — no silent loss")
+        // And every drop was telemetry; the integrity-bearing tiers are untouched.
+        XCTAssertEqual(drops.telemetry, drops.total, "Only telemetry should be shed here")
+        XCTAssertTrue(drops.preservedIntegrity, "Per-run shedding must not touch structural/critical")
+    }
+
+    /// Eviction under the global cap is also a real loss and must be counted, not just
+    /// the incoming events refused at the door.
+    func testGlobalEvictionIsCounted() {
+        let cap = 100
+        let buffer = TraceWriteBuffer(maxGlobalBuffer: cap, maxPerRunBuffer: Int.max)
+
+        // Fill with telemetry to the cap, then push criticals that must evict telemetry.
+        for i in 0..<cap {
+            buffer.enqueue(makeRow(runID: "r", seq: Int64(i), priority: .telemetry))
+        }
+        let criticalCount = 10
+        for i in 0..<criticalCount {
+            buffer.enqueue(makeRow(runID: "r", seq: Int64(cap + i), priority: .critical))
+        }
+
+        let drops = buffer.dropStats
+        // Each critical displaced exactly one (oldest) telemetry event.
+        XCTAssertEqual(drops.telemetry, UInt64(criticalCount),
+                       "Each admitted critical evicts one telemetry victim, all counted")
+        XCTAssertTrue(drops.preservedIntegrity, "Evictions only ever shed telemetry here")
+
+        let drained = buffer.flushAll()
+        XCTAssertEqual(drained.count + Int(drops.total), cap + criticalCount,
+                       "admitted + dropped must equal enqueued")
+        XCTAssertEqual(drained.filter { $0.type == "critical" }.count, criticalCount,
+                       "Every critical was admitted")
     }
 }

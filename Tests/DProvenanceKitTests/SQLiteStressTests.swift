@@ -165,7 +165,19 @@ final class SQLiteStressTests: XCTestCase {
         XCTAssertTrue(hasStart, "Critical event 'processStarted' should survive the burst drop")
         XCTAssertTrue(hasEnd, "Critical event 'processFinished' should survive the burst drop")
         XCTAssertLessThan(events.count, 202, "Telemetry events should have been dropped")
-        
+
+        // The drop counter turns the survival check above into a guarantee: not only
+        // did the critical events survive, but the only thing shed was telemetry, so
+        // any diff over this run is still trustworthy. `preservedIntegrity` is the
+        // load-bearing assertion — it is the difference between "we dropped some
+        // events" and "we dropped nothing that could change a diff result".
+        let drops = smallStore.dropStats
+        XCTAssertGreaterThan(drops.total, 0, "The burst must have shed events under the small cap")
+        XCTAssertGreaterThan(drops.telemetry, 0, "Telemetry is what should have been shed")
+        XCTAssertEqual(drops.critical, 0, "No critical event may be dropped")
+        XCTAssertEqual(drops.structural, 0, "No structural event may be dropped")
+        XCTAssertTrue(drops.preservedIntegrity, "Shedding must leave diff integrity intact")
+
         try FileManager.default.removeItem(at: burstURL)
     }
 }

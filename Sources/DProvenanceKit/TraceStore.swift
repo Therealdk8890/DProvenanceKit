@@ -5,6 +5,15 @@ public protocol TraceStore<T>: Sendable {
     func record(_ event: TraceEvent<T>)
     func flush() async throws
     func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]
+
+    /// A by-tier tally of events shed under congestion, for callers that need to
+    /// know whether a run's data is complete enough to trust a diff over it.
+    var dropStats: TraceDropStats { get }
+}
+
+public extension TraceStore {
+    /// Stores that cannot shed (e.g. the unbounded in-memory store) report no drops.
+    var dropStats: TraceDropStats { .zero }
 }
 
 /// An in-memory trace store for fast, localized execution and querying.
