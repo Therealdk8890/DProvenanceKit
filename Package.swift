@@ -22,6 +22,10 @@ let package = Package(
         .executable(
             name: "GenerateSample",
             targets: ["GenerateSample"]
+        ),
+        .executable(
+            name: "DProvenanceKitCLI",
+            targets: ["DProvenanceKitCLI"]
         )
     ],
     targets: [
@@ -36,9 +40,13 @@ let package = Package(
         ),
         .executableTarget(
             name: "GenerateSample",
-            dependencies: ["DProvenanceKit"],
+            dependencies: ["DProvenanceKit", "DProvenanceUI"],
             path: "scratch",
             sources: ["GenerateSample.swift"]
+        ),
+        .executableTarget(
+            name: "DProvenanceKitCLI",
+            dependencies: ["DProvenanceKit"]
         ),
         .testTarget(
             name: "DProvenanceKitTests",
