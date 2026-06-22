@@ -12,7 +12,7 @@ public final class StoreManager: ObservableObject {
     
     public init() {}
     
-    func openDatabase() {
+    public func openDatabase() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.data, .database] // Or any extension if not strict
         panel.canChooseFiles = true
@@ -24,7 +24,7 @@ public final class StoreManager: ObservableObject {
         }
     }
     
-    func loadDatabase(at url: URL) {
+    public func loadDatabase(at url: URL) {
         isLoading = true
         errorMessage = nil
         runs = []
