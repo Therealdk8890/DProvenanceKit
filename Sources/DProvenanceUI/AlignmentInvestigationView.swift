@@ -39,7 +39,6 @@ public struct AlignmentInvestigationView<T: TraceableEvent>: View {
                     
                     // 2. Aggregate Stats
                     if let result = viewModel.result {
-                        let totalAlignments = result.alignments.count
                         let semanticMatches = result.alignments.filter { $0.state.isSemanticMatch }.count
                         let removed = result.alignments.filter { $0.state.isRemoved }.count
                         let added = result.alignments.filter { $0.state == .added }.count

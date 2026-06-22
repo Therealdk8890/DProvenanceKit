@@ -29,13 +29,16 @@ public enum AlignmentExecutionContract: Sendable {
     /// Global canonical ordering for final alignments.
     public static func canonicalSort<T>(alignments: [EventAlignment<T>]) -> [EventAlignment<T>] {
         return alignments.sorted { a, b in
-            let seqA = a.baseEvent?.sequence ?? a.comparisonEvent!.sequence
-            let seqB = b.baseEvent?.sequence ?? b.comparisonEvent!.sequence
+            // Every well-formed alignment has at least one of base/comparison; fall back to
+            // stable defaults rather than force-unwrapping so a malformed (both-nil) alignment
+            // sorts deterministically instead of crashing the sort.
+            let seqA = a.baseEvent?.sequence ?? a.comparisonEvent?.sequence ?? 0
+            let seqB = b.baseEvent?.sequence ?? b.comparisonEvent?.sequence ?? 0
             if seqA != seqB { return seqA < seqB }
-            
-            let idA = a.baseEvent?.id ?? a.comparisonEvent!.id
-            let idB = b.baseEvent?.id ?? b.comparisonEvent!.id
-            return idA.uuidString < idB.uuidString
+
+            let idA = (a.baseEvent?.id ?? a.comparisonEvent?.id)?.uuidString ?? ""
+            let idB = (b.baseEvent?.id ?? b.comparisonEvent?.id)?.uuidString ?? ""
+            return idA < idB
         }
     }
     

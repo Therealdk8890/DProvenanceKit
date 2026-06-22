@@ -43,16 +43,13 @@ final class DProvenanceCorpusTests: XCTestCase {
         let result = engine.align(base: base, comparison: comp)
         
         // Baseline has 5 events, Comp has 2 events.
-        // The decision "GenerateFix" is matched.
-        // The fileIO "read App.swift" is matched.
-        // SearchDocs, ValidateAPI, VerifyFix are removed.
-        // Decision is critical. Wait, decision is critical. Did it get removed?
-        // GenerateFix is in both, so it's matched.
-        // The tools SearchDocs, ValidateAPI, VerifyFix are structural, so removing them doesn't trigger a regression.
-        
+        // Matched: fileIO "read App.swift" and the decision "GenerateFix" (both present in comp).
+        // Removed: SearchDocs and VerifyFix (tools, structural) and ValidateAPI (a critical
+        // decision). Removing the critical decision raises regression risk to high.
         XCTAssertEqual(result.alignments.count, 5) // 2 matches, 3 removed.
-        print("ALIGNMENTS: \(result.alignments.map { $0.state })"); let removed = result.alignments.filter { $0.state.isRemoved }
+        let removed = result.alignments.filter { $0.state.isRemoved }
         XCTAssertEqual(removed.count, 3)
+        XCTAssertEqual(result.regressionRisk.level, .high, "Removing the critical ValidateAPI decision should raise regression risk.")
     }
     
     func testSemanticEvolution() {
