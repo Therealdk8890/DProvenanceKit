@@ -58,14 +58,29 @@ struct DProvenanceKitCLI {
             }
 
         case "stability":
-            let boundary = DeterministicBoundary(cacheIsolated: true, seedControl: "cli_seed")
-            let stability = await runner.runRepeatedEvaluation(dataset: dataset, iterations: 3, boundary: boundary) { _, cb in
+            // (1) Under the deterministic boundary the engine is reproducible: variance is 0.
+            let isolated = DeterministicBoundary(cacheIsolated: true, seedControl: "cli_seed")
+            let stable = await runner.runRepeatedEvaluation(dataset: dataset, iterations: 3, boundary: isolated) { _, cb in
                 makeEngine(cb)
             }
-            print(String(format: "Iterations: %d  cacheIsolated: %@  seed: %@",
-                         stability.iterations, boundary.cacheIsolated ? "yes" : "no", boundary.seedControl ?? "none"))
-            print(String(format: "Mean F1: %.3f  F1 variance: %.5f", stability.meanF1, stability.f1Variance))
-            print("Drift: \(stability.driftFingerprint)")
+            print(String(format: "Isolated   (cacheIsolated: true ): mean F1 %.3f  variance %.5f  — %@",
+                         stable.meanF1, stable.f1Variance, stable.driftFingerprint))
+
+            // (2) Control: an engine whose match threshold deterministically varies per iteration
+            // produces findings that change across runs. This confirms the stability report is
+            // load-bearing — it detects real variance rather than always reporting "stable".
+            let unstable = await runner.runRepeatedEvaluation(dataset: dataset, iterations: 4, boundary: DeterministicBoundary(cacheIsolated: false)) { ctx, cb in
+                let toolScore = (ctx.iteration % 2 == 0) ? 0.95 : 0.30
+                let evaluator = AnyEquivalenceEvaluator<DProvenanceCorpus.AgentEvent>(identifier: "drift", evaluator: { b, c in
+                    if b == c { return 1.0 }
+                    guard b.typeIdentifier == c.typeIdentifier else { return 0.0 }
+                    return b.typeIdentifier == "tool" ? toolScore : 0.8
+                })
+                let config = AlignmentConfiguration<DProvenanceCorpus.AgentEvent>(profile: .developerDebugV1, equivalenceEvaluator: evaluator)
+                return TraceAlignmentEngine(configuration: config, captureMode: .evidenceOnly, metaTraceCallback: cb)
+            }
+            print(String(format: "Perturbed  (cacheIsolated: false): mean F1 %.3f  variance %.5f  — %@",
+                         unstable.meanF1, unstable.f1Variance, unstable.driftFingerprint))
 
         default:
             break
