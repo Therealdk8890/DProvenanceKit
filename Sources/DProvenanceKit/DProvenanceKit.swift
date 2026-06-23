@@ -126,6 +126,34 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
     }
 
+    /// Open a span with a caller-supplied, human-readable identifier instead of a
+    /// random UUID. The span id doubles as the node label in the trace viewer and
+    /// only needs to be unique within a run, so a stable name like "Draft
+    /// Generation" groups every event of the run under one meaningful node.
+    public static func withSpan<R>(
+        named name: String,
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let parent = TraceContext.currentSpanID
+        return try await TraceContext.$currentSpanID.withValue(name) {
+            try await TraceContext.$parentSpanID.withValue(parent) {
+                try await block()
+            }
+        }
+    }
+
+    public static func withSpanSync<R>(
+        named name: String,
+        _ block: () throws -> R
+    ) rethrows -> R {
+        let parent = TraceContext.currentSpanID
+        return try TraceContext.$currentSpanID.withValue(name) {
+            try TraceContext.$parentSpanID.withValue(parent) {
+                try block()
+            }
+        }
+    }
+
     public static func record(_ payload: T) {
         guard let run = TraceContext.currentRun else {
             // Soft failure for executions outside of DProvenanceKit.run.
