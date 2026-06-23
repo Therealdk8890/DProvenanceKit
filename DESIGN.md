@@ -13,7 +13,7 @@ The system optimizes for four things, in priority order:
 3. **Reproducible queries.** A query must mean the same thing regardless of which store answers it. A diff or regression check that depends on the storage backend is not a diff; it's a coin flip.
 4. **Swift-native, on-device.** No external service, no network hop, nothing leaving the device. The trace lives where the reasoning lives.
 
-Explicit **non-goals**: distributed collection across machines, payload-value diffing (planned, not present), and cross-language support. These aren't oversights — they're scope chosen to keep the guarantees above honest.
+Explicit **non-goals**: distributed collection across machines, unstructured payload-value diffing, and cross-language support. These aren't oversights — they're scope chosen to keep the guarantees above honest. (Note: behavior equivalence testing is available, but uses a formal semantic model via `TraceAlignmentEngine` rather than unstructured payload diffing).
 
 ---
 
@@ -130,7 +130,9 @@ Two implementations of one language is a powerful pattern — and a dangerous on
 
 Diffing reduces each run to a sequence of **structural signatures** — `typeIdentifier::engineName` — filtered to a minimum priority (default `.structural`), then runs the standard-library `CollectionDifference` (a Myers diff) over the two signature streams. Reordered, inserted, and removed reasoning steps fall out as `added`/`removed` changes carrying their original `sequence` for traceability.
 
-The deliberate limitation: signatures are **structure only**. Two runs that took the same step types in the same order diff as identical even if their payload *values* differ wildly. Payload-aware diffing is planned; until it lands, the diff answers "did the reasoning *path* change?", not "did the reasoning *content* change?". The README states this at the point of use so no one is surprised.
+The deliberate limitation of `TraceDiffEngine`: signatures are **structure only**. Two runs that took the same step types in the same order diff as identical even if their payload *values* differ wildly. The structural diff answers "did the reasoning *path* change?", not "did the reasoning *content* change?".
+
+To answer content changes, DProvenanceKit provides `TraceAlignmentEngine`. Instead of a blind Myers diff on payload strings, the alignment engine determines whether two executions are behaviorally equivalent within a formally defined semantic model, executing a weighted comparison across event types, parent spans, temporal locality, and a provided `AnyEquivalenceEvaluator` for payloads.
 
 ---
 

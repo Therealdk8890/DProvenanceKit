@@ -33,6 +33,7 @@ struct DProvenanceKitCLI {
 
         switch mode {
         case "evaluate":
+            print("=== STANDARD DATASET ===")
             let report = await runner.run(dataset: dataset) { cb in makeEngine(cb) }
             print(String(format: "Dataset: %@  (%d cases, %d passed)", report.datasetName, report.totalCases, report.passedCases))
             print(String(format: "Precision: %.3f  Recall: %.3f  F1: %.3f", report.globalMetrics.precision, report.globalMetrics.recall, report.globalMetrics.f1Score))
@@ -43,6 +44,44 @@ struct DProvenanceKitCLI {
                              c.truePositives.count, c.falsePositives.count, c.falseNegatives.count,
                              c.fidelityScore.overallScore))
             }
+            
+            print("\n=== ADVERSARIAL DATASET ===")
+            let advDataset = DProvenanceCorpus.adversarialDataset
+            let advReport = await runner.run(dataset: advDataset) { cb in 
+                // Explicitly harsher configuration for adversarial evaluation
+                let advProfile = AlignmentProfile(
+                    strategy: .developerDebug,
+                    version: 2,
+                    typeWeight: 0.4,
+                    payloadWeight: 0.4,
+                    structuralWeight: 0.15,
+                    temporalWeight: 0.05,
+                    semanticThreshold: 0.85, // Stricter equivalence bound
+                    maxAmbiguousCandidates: 1, // Restrictive bipartite matching
+                    ambiguityDeltaThreshold: 0.15,
+                    alignmentMode: .spanAware
+                )
+                let config = AlignmentConfiguration<DProvenanceCorpus.AgentEvent>(
+                    profile: advProfile,
+                    equivalenceEvaluator: DProvenanceCorpus.standardEvaluator
+                )
+                return TraceAlignmentEngine(configuration: config, captureMode: .evidenceOnly, metaTraceCallback: cb)
+            }
+            print(String(format: "Dataset: %@  (%d cases, %d passed)", advReport.datasetName, advReport.totalCases, advReport.passedCases))
+            print(String(format: "Precision: %.3f  Recall: %.3f  F1: %.3f", advReport.globalMetrics.precision, advReport.globalMetrics.recall, advReport.globalMetrics.f1Score))
+            print(String(format: "Avg fidelity: %.3f  Avg runtime: %.2fms  p95: %.2fms", advReport.averageFidelityScore, advReport.averageRunTimeMs, advReport.p95RunTimeMs))
+            for c in advReport.caseResults {
+                print(String(format: "  [%@] %@  TP=%d FP=%d FN=%d  fidelity=%.2f",
+                             c.passed ? "PASS" : "FAIL", c.benchmarkCase.name,
+                             c.truePositives.count, c.falsePositives.count, c.falseNegatives.count,
+                             c.fidelityScore.overallScore))
+            }
+
+            print("\n=== SUMMARY ===")
+            let totalCases = report.totalCases + advReport.totalCases
+            let totalPassed = report.passedCases + advReport.passedCases
+            print(String(format: "Total Cases: %d", totalCases))
+            print(String(format: "Total Passed: %d (%.1f%%)", totalPassed, Double(totalPassed) / Double(totalCases) * 100))
 
         case "diagnose":
             let report = await runner.run(dataset: dataset) { cb in makeEngine(cb) }

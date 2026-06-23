@@ -105,11 +105,30 @@ let diff = engine.diff(base: runA, comparison: runB)
 print(diff.changes)
 ```
 
-See exactly which reasoning steps appeared, disappeared, or moved.
+See exactly which structural reasoning steps appeared, disappeared, or moved.
 
-> Diffs currently compare **structural** execution signatures (event types, engines, ordering). Payload-value comparison is planned — see [Status](#status).
+### 4. Semantic Alignment
 
-### 4. Detect regressions automatically
+For a deeper inspection, `TraceAlignmentEngine` lets you determine if two executions are behaviorally equivalent within a formally defined semantic model, even if the exact payloads vary slightly.
+
+```swift
+let config = AlignmentConfiguration(
+    profile: .strictAuditV1,
+    equivalenceEvaluator: AnyEquivalenceEvaluator(identifier: "MyAIDecision_Semantic") { a, b in
+        // Define your formal semantic model for equivalence here
+        // E.g., fuzzy matching token counts or semantic similarity of prompt inputs
+        return a == b ? 1.0 : 0.0
+    }
+)
+
+let aligner = TraceAlignmentEngine(configuration: config)
+let alignment = aligner.align(base: runA, comparison: runB)
+print(alignment.regressionRisk.level)
+```
+
+Compare runs across both structural shape and payload semantics to catch subtle regressions.
+
+### 5. Detect regressions automatically
 
 ```swift
 let detector = AnomalyDetector(store: store)
@@ -121,6 +140,20 @@ let anomalies = try await detector.detectAnomalies(rules: [UnverifiedConflictRul
 🚨 No supporting heuristic found
 🚨 Potential reasoning regression
 ```
+
+---
+
+# Validation & Benchmarks
+
+**Each configuration defines a distinct equivalence relation over the space of execution traces, corresponding to a specific observation model.** The benchmark corpus evaluates the engine's ability to distinguish genuine regressions from meaning-preserving evolution within a specific semantic profile.
+
+Current Corpus:
+- 8 scenarios (including reordering, semantic evolution, noise injection, and branch collapse)
+- Precision: 1.000
+- Recall: 1.000
+- F1: 1.000
+
+See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, confusion matrices, runtime analysis, and benchmark corpus details.
 
 ---
 
@@ -233,9 +266,9 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 **Experimental — core engine complete, actively evolving.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, rule-based anomaly and regression detection, both stores at parity, and by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent.
+**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, and by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent.
 
-**Planned:** payload-aware diffs, counting events lost to a failed batch insert, richer visualization, distributed trace federation.
+**Planned:** counting events lost to a failed batch insert, richer visualization, distributed trace federation.
 
 **Scope:** Apple platforms (macOS / iOS). The library depends on system SQLite and CryptoKit, so it targets Apple OSes rather than Linux — by design, since the goal is reasoning observability for Swift and on-device AI.
 
