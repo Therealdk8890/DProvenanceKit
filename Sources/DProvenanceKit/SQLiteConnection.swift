@@ -1,6 +1,15 @@
 import Foundation
 import SQLite3
 
+// SQLite's SQLITE_TRANSIENT sentinel is a C macro the Swift importer doesn't
+// surface, so we reconstruct it. Passing it as the destructor argument tells
+// SQLite to make its own private copy of the bound bytes *before the bind call
+// returns*. Passing `nil` (SQLITE_STATIC) instead makes SQLite keep the caller's
+// pointer and read it lazily at step() time — a use-after-free for the transient
+// pointers we hand it below (`String` bridges and `Data.withUnsafeBytes` buffers
+// are both dead by the time the statement is stepped).
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+
 public enum SQLiteError: Error, CustomStringConvertible {
     case openFailed(Int32, String?)
     case executeFailed(Int32, String?)
@@ -98,7 +107,9 @@ public final class SQLiteStatement {
     }
     
     public func bind(_ value: String, at index: Int32) throws {
-        let result = sqlite3_bind_text(stmt, index, (value as NSString).utf8String, -1, nil)
+        // SQLITE_TRANSIENT: SQLite copies the bytes during this call, so the
+        // temporary C-string Swift bridges from `value` need not outlive it.
+        let result = sqlite3_bind_text(stmt, index, value, -1, SQLITE_TRANSIENT)
         guard result == SQLITE_OK else { throw SQLiteError.bindFailed(result, String(cString: sqlite3_errmsg(db))) }
     }
     
@@ -108,8 +119,10 @@ public final class SQLiteStatement {
     }
     
     public func bind(_ value: Data, at index: Int32) throws {
+        // SQLITE_TRANSIENT: SQLite copies the blob before withUnsafeBytes returns,
+        // so the buffer pointer (invalid past the closure) is never read at step().
         let result = value.withUnsafeBytes { ptr in
-            sqlite3_bind_blob(stmt, index, ptr.baseAddress, Int32(value.count), nil)
+            sqlite3_bind_blob(stmt, index, ptr.baseAddress, Int32(value.count), SQLITE_TRANSIENT)
         }
         guard result == SQLITE_OK else { throw SQLiteError.bindFailed(result, String(cString: sqlite3_errmsg(db))) }
     }

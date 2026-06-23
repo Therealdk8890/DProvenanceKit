@@ -81,7 +81,10 @@ public struct DefaultAlignmentInterpreter<T: TraceableEvent>: AlignmentInterpret
                 
                 let cEvent = comparison[matchIdx]
                 let score = binding.similarityScore
-                let decision = equivalence(bEvent, cEvent)
+                // Re-run equivalence for its side effect — it records match evidence
+                // into the injected evidenceCollector. The returned decision is unused
+                // here (the score comes from the binding above).
+                _ = equivalence(bEvent, cEvent)
                 let (_, explanation) = config.scoreMatch(base: bEvent, comp: cEvent)
 
                 // Record the matched pair as an evaluated decision in the meta-trace.
@@ -98,7 +101,7 @@ public struct DefaultAlignmentInterpreter<T: TraceableEvent>: AlignmentInterpret
                 // to rebuild the ambiguous list just like the legacy engine.
                 // Rebuilding exactly:
                 let ambiguityThreshold = config.equivalenceEvaluator.ambiguityThreshold(for: bEvent.payload)
-                var bestExplanation = explanation
+                let bestExplanation = explanation
                 
                 for (j, compEvent) in comparison.enumerated() {
                     if j == matchIdx { continue } // Skip the actual match
