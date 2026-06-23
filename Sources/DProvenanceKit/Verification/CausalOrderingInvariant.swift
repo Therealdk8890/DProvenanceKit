@@ -1,39 +1,37 @@
 import Foundation
 
-/// Measures how well the engine's aligned pairs preserve the relative execution order
-/// of the two traces. We take every matched pair (both base and comparison anchored to a
-/// real execution `sequence`), order them by their base sequence, and count order
-/// inversions in the corresponding comparison sequence. A fully order-preserving alignment
-/// has zero inversions and scores 1.0; a fully reversed alignment scores 0.0.
+/// CausalOrdering: are execution-order changes faithfully *reported*?
 ///
-/// This is an execution-anchored, evidence-derived consistency check — it reads the actual
-/// `(baseSequence, comparisonSequence)` recorded for each interpretation step rather than
-/// inspecting a textual state label.
+/// This is NOT a penalty for reordering — a reordered trace is a legitimate finding. It is a
+/// faithfulness check: every matched pair whose relative execution order changed (an inversion,
+/// measured on the recorded `(baseSequence, comparisonSequence)` anchors) must be reported by the
+/// interpreter as `reordered`. An event the engine silently moved while labelling it
+/// exact/semantic match is an unfaithful ordering claim. A faithful explanation that labels its
+/// reorders scores 1.0 even when the trace is heavily reordered.
 public struct CausalOrderingInvariant: FidelityInvariant {
     public init() {}
 
     public func evaluate(_ map: FormalizationMap) -> Double {
-        // Only matched pairs carry an ordering relationship worth checking.
         let matched = map.interpretations
-            .compactMap { step -> (base: UInt64, comparison: UInt64)? in
-                guard let b = step.baseSequence, let c = step.comparisonSequence else { return nil }
-                return (b, c)
-            }
-            .sorted { $0.base < $1.base }
+            .filter { $0.baseSequence != nil && $0.comparisonSequence != nil }
+            .sorted { ($0.baseSequence ?? 0) < ($1.baseSequence ?? 0) }
 
         // Fewer than two pairs cannot be out of order.
         guard matched.count >= 2 else { return 1.0 }
 
-        let comparisonOrder = matched.map { $0.comparison }
-        var inversions = 0
-        for i in 0..<comparisonOrder.count {
-            for j in (i + 1)..<comparisonOrder.count where comparisonOrder[i] > comparisonOrder[j] {
-                inversions += 1
+        // A step is "out of order" if it forms an inversion (base order ascending, comparison
+        // order descending) with any other matched step.
+        var outOfOrder = Set<Int>()
+        for i in 0..<matched.count {
+            for j in (i + 1)..<matched.count
+            where (matched[i].comparisonSequence ?? 0) > (matched[j].comparisonSequence ?? 0) {
+                outOfOrder.insert(i)
+                outOfOrder.insert(j)
             }
         }
 
-        let maxInversions = comparisonOrder.count * (comparisonOrder.count - 1) / 2
-        guard maxInversions > 0 else { return 1.0 }
-        return 1.0 - (Double(inversions) / Double(maxInversions))
+        // A faithful explanation reports each out-of-order step as a reorder.
+        let unreported = outOfOrder.filter { !matched[$0].outputState.hasPrefix("reordered") }.count
+        return 1.0 - (Double(unreported) / Double(matched.count))
     }
 }

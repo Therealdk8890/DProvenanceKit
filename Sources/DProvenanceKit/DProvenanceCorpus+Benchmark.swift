@@ -152,4 +152,86 @@ extension DProvenanceCorpus {
             ]
         )
     }
+
+    // MARK: - Adversarial Dataset
+    public static var adversarialDataset: BenchmarkDataset<AgentEvent> {
+        return BenchmarkDataset(
+            name: "DProvenance Adversarial Robustness Suite",
+            description: "Stress tests for causal failure modes and semantic traps",
+            cases: [
+                BenchmarkCase(
+                    name: "Dependency Inversion Trap",
+                    description: "Swaps order of two dependent critical events",
+                    baseRun: TraceRun(runID: UUID(), contextID: "adv_1", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_1", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s1", parentSpanID: nil, payload: .decision(action: "CreateCustomer"), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_1", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s1", parentSpanID: nil, payload: .decision(action: "GenerateInvoice"), timestamp: Date())
+                    ]),
+                    comparisonRun: TraceRun(runID: UUID(), contextID: "adv_1", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_1", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s2", parentSpanID: nil, payload: .decision(action: "GenerateInvoice"), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_1", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s2", parentSpanID: nil, payload: .decision(action: "CreateCustomer"), timestamp: Date())
+                    ]),
+                    expectedFindings: [
+                        ExpectedFinding(finding: .reorderedExecution(eventIdentifier: "decision", originalSequence: 0, newSequence: 1)),
+                        ExpectedFinding(finding: .reorderedExecution(eventIdentifier: "decision", originalSequence: 1, newSequence: 0)),
+                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 1.0, reasoning: ""))) // Generic regression risk check
+                    ]
+                ),
+                BenchmarkCase(
+                    name: "Causal Ambiguity Trap",
+                    description: "Multiple identical events to confuse bipartite matching",
+                    baseRun: TraceRun(runID: UUID(), contextID: "adv_2", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_2", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s1", parentSpanID: nil, payload: .toolExecution(toolName: "Search", params: "A"), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_2", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s1", parentSpanID: nil, payload: .toolExecution(toolName: "Search", params: "A"), timestamp: Date())
+                    ]),
+                    comparisonRun: TraceRun(runID: UUID(), contextID: "adv_2", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_2", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s2", parentSpanID: nil, payload: .toolExecution(toolName: "Search", params: "A"), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_2", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s2", parentSpanID: nil, payload: .toolExecution(toolName: "Search", params: "A"), timestamp: Date())
+                    ]),
+                    expectedFindings: []
+                ),
+                BenchmarkCase(
+                    name: "Partial Trace Truncation",
+                    description: "Trace drops off before final critical decision",
+                    baseRun: TraceRun(runID: UUID(), contextID: "adv_3", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_3", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s1", parentSpanID: nil, payload: .decision(action: "Auth"), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_3", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s1", parentSpanID: nil, payload: .decision(action: "Commit"), timestamp: Date())
+                    ]),
+                    comparisonRun: TraceRun(runID: UUID(), contextID: "adv_3", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_3", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s2", parentSpanID: nil, payload: .decision(action: "Auth"), timestamp: Date())
+                    ]),
+                    expectedFindings: [
+                        ExpectedFinding(finding: .criticalStepRemoved(baseEventIdentifier: "decision")),
+                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 0.95, reasoning: "")))
+                    ]
+                ),
+                BenchmarkCase(
+                    name: "Semantic Substitution Trap",
+                    description: "False friend equivalence: Cached vs Recompute",
+                    baseRun: TraceRun(runID: UUID(), contextID: "adv_4", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_4", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s1", parentSpanID: nil, payload: .toolExecution(toolName: "FetchUserProfile", params: "u1"), timestamp: Date())
+                    ]),
+                    comparisonRun: TraceRun(runID: UUID(), contextID: "adv_4", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_4", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s2", parentSpanID: nil, payload: .toolExecution(toolName: "RecomputeProfileFromEvents", params: "u1"), timestamp: Date())
+                    ]),
+                    expectedFindings: [
+                        ExpectedFinding(finding: .semanticEvolution(baseIdentifier: "tool", compIdentifier: "tool"), expectedConfidence: 0.8)
+                    ]
+                ),
+                BenchmarkCase(
+                    name: "Multi-tool Semantic Collapse",
+                    description: "Two tools replaced by one overarching tool",
+                    baseRun: TraceRun(runID: UUID(), contextID: "adv_5", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_5", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s1", parentSpanID: nil, payload: .toolExecution(toolName: "GetLocation", params: ""), timestamp: Date()),
+                        TraceEvent(runID: UUID(), contextID: "adv_5", engineName: "Agent", schemaVersion: 1, sequence: 1, spanID: "s1", parentSpanID: nil, payload: .toolExecution(toolName: "GetWeather", params: ""), timestamp: Date())
+                    ]),
+                    comparisonRun: TraceRun(runID: UUID(), contextID: "adv_5", events: [
+                        TraceEvent(runID: UUID(), contextID: "adv_5", engineName: "Agent", schemaVersion: 1, sequence: 0, spanID: "s2", parentSpanID: nil, payload: .toolExecution(toolName: "GetLocationAndWeather", params: ""), timestamp: Date())
+                    ]),
+                    expectedFindings: [
+                        ExpectedFinding(finding: .semanticEvolution(baseIdentifier: "tool", compIdentifier: "tool"), expectedConfidence: 0.8)
+                    ]
+                )
+            ]
+        )
+    }
 }
