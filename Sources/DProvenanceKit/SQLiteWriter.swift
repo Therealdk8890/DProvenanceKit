@@ -5,13 +5,23 @@ import CryptoKit
 public actor SQLiteWriter {
     private let db: SQLiteConnection
     private let buffer: TraceWriteBuffer
+    /// Where losses from a failed batch insert are recorded so they surface in the
+    /// store's `dropStats`/`preservedIntegrity` instead of vanishing silently.
+    private let dropTally: TraceDropTally
     private var writeTask: Task<Void, Never>?
     private var isShuttingDown = false
-    
+
     // EMA smoothing state
     private var smoothedLoad: Double = 0
     private let alpha: Double = 0.2 // Smoothing factor
-    
+
+    // Adaptive idle cadence: when the buffer is empty the loop backs off geometrically
+    // from `baseIdleSleepMs` up to `maxIdleSleepMs` so a quiet writer isn't waking
+    // ~20×/second to drain nothing. The next enqueued event resets it on the next tick.
+    private let baseIdleSleepMs: UInt64 = 50
+    private let maxIdleSleepMs: UInt64 = 500
+    private var idleSleepMs: UInt64 = 50
+
     private var lastRunFlushTime: TimeInterval = Date().timeIntervalSince1970
     
     // Incremental run state cache to throttle UPSERTs to the `runs` table
@@ -26,9 +36,10 @@ public actor SQLiteWriter {
     
     private var activeRuns: [String: RunState] = [:]
     
-    public init(db: SQLiteConnection, buffer: TraceWriteBuffer) {
+    public init(db: SQLiteConnection, buffer: TraceWriteBuffer, dropTally: TraceDropTally = TraceDropTally()) {
         self.db = db
         self.buffer = buffer
+        self.dropTally = dropTally
     }
     
     public func start() {
@@ -71,16 +82,28 @@ public actor SQLiteWriter {
             // High load
             batchSize = 5_000
             sleepMs = UInt64.random(in: 0...5)
+            idleSleepMs = baseIdleSleepMs
         } else if smoothedLoad > 500 {
             // Medium load
             batchSize = 1_000
             sleepMs = UInt64.random(in: 10...20)
+            idleSleepMs = baseIdleSleepMs
         } else {
-            // Idle
             batchSize = 500
-            sleepMs = 50
+            if depth > 0 {
+                // Light but non-empty: stay responsive.
+                sleepMs = baseIdleSleepMs
+                idleSleepMs = baseIdleSleepMs
+            } else {
+                // Genuinely idle: back off geometrically up to the cap to save power.
+                // flush()/shutdown() drain directly and never wait on this loop, so the
+                // only effect of a longer sleep is a wider crash-durability window for
+                // events recorded while idle — bounded by maxIdleSleepMs.
+                sleepMs = idleSleepMs
+                idleSleepMs = Swift.min(idleSleepMs * 2, maxIdleSleepMs)
+            }
         }
-        
+
         await processBatch(maxBatch: batchSize)
         
         // Throttled UPSERTs (every 1s)
@@ -104,12 +127,26 @@ public actor SQLiteWriter {
     private func processBatch(drainAll: Bool = false, maxBatch: Int = 1000) async {
         let batch = drainAll ? buffer.flushAll() : buffer.drain(max: maxBatch)
         guard !batch.isEmpty else { return }
-        
+
         do {
             try db.transaction {
                 try insert(batch)
             }
+            // The rows are durably committed, so it is now safe to fold them into the
+            // in-memory run metadata. Doing this *after* commit — not per-event inside
+            // the transaction — keeps event_count and the fingerprint consistent with
+            // what is actually on disk; a rolled-back batch never inflates them.
+            for event in batch {
+                updateRunState(for: event)
+            }
         } catch {
+            // The transaction rolled back: these rows were already drained out of the
+            // buffer and are now gone. Count the loss per tier so it surfaces in
+            // dropStats/preservedIntegrity instead of being a silent drop that still
+            // reports the run as fully retained.
+            for event in batch {
+                dropTally.record(priority: event.priority)
+            }
             print("🚨 [DProvenanceKit] SQLiteWriter failed to insert batch: \(error)")
         }
     }
@@ -148,8 +185,6 @@ public actor SQLiteWriter {
             
             _ = try stmt.step()
             stmt.reset()
-            
-            updateRunState(for: event)
         }
     }
     

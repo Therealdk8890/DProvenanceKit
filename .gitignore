@@ -6,3 +6,14 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# Generated sample trace database (produced by the GenerateSample executable)
+sample_traces.sqlite
+# SQLite WAL sidecar files — never commit these
+*.sqlite-wal
+*.sqlite-shm
+
+# Root-level scratch experiments (not part of any build target)
+/test.swift
+/test_loop.swift
+/run_test.swift
