@@ -3,6 +3,7 @@ import Foundation
 public protocol TraceStore<T>: Sendable {
     associatedtype T: TraceableEvent
     func record(_ event: TraceEvent<T>)
+    func link(source: UUID, target: UUID, type: TraceEdgeType)
     func flush() async throws
     func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]
     func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>]
@@ -10,6 +11,17 @@ public protocol TraceStore<T>: Sendable {
     /// A by-tier tally of events shed under congestion, for callers that need to
     /// know whether a run's data is complete enough to trust a diff over it.
     var dropStats: TraceDropStats { get }
+
+    // MARK: - Graph Traversal
+
+    /// Low-level API to retrieve just the raw edges backward from a specific node
+    func lineageEdges(of id: UUID) async throws -> [TraceEdge]
+    
+    /// Low-level API to retrieve just the raw edges forward from a specific node
+    func impactEdges(of id: UUID) async throws -> [TraceEdge]
+
+    /// Retrieves a set of events by their exact IDs
+    func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>]
 }
 
 public extension TraceStore {
@@ -20,7 +32,70 @@ public extension TraceStore {
     func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
         return []
     }
+
+    /// Retrieves the fully hydrated lineage graph (backward traversal) for a specific node
+    func lineage(of id: UUID) async throws -> TraceGraph<T> {
+        let edges = try await lineageEdges(of: id)
+        var idsToFetch = Set<UUID>([id])
+        for edge in edges {
+            idsToFetch.insert(edge.sourceID)
+            idsToFetch.insert(edge.targetID)
+        }
+        let nodes = try await getEvents(ids: idsToFetch)
+        return TraceGraph(nodes: nodes, edges: edges)
+    }
+
+    /// Retrieves the fully hydrated impact graph (forward traversal) for a specific node
+    func impact(of id: UUID) async throws -> TraceGraph<T> {
+        let edges = try await impactEdges(of: id)
+        var idsToFetch = Set<UUID>([id])
+        for edge in edges {
+            idsToFetch.insert(edge.sourceID)
+            idsToFetch.insert(edge.targetID)
+        }
+        let nodes = try await getEvents(ids: idsToFetch)
+        return TraceGraph(nodes: nodes, edges: edges)
+    }
+
+    /// Generates a human-readable explanation of the provenance of a given node
+    func explain(id: UUID) async throws -> TraceExplanation {
+        let graph = try await lineage(of: id)
+        guard let targetNode = graph.nodes[id] else {
+            throw TraceError.nodeNotFound(id) // We'll add this error
+        }
+        
+        let targetSummary = String(describing: targetNode.payload)
+        
+        var informedBy = [String]()
+        var derivedFrom = [String]()
+        
+        // Find direct incoming edges to the target node
+        let directEdges = graph.edges.filter { $0.targetID == id }
+        for edge in directEdges {
+            guard let sourceNode = graph.nodes[edge.sourceID] else { continue }
+            let summary = String(describing: sourceNode.payload)
+            if edge.type == .informed {
+                informedBy.append(summary)
+            } else if edge.type == .derivedFrom {
+                derivedFrom.append(summary)
+            }
+        }
+        
+        return TraceExplanation(
+            targetNodeID: id,
+            targetNodeSummary: targetSummary,
+            informedBy: informedBy,
+            derivedFrom: derivedFrom
+        )
+    }
 }
+
+public enum TraceError: Error {
+    case nodeNotFound(UUID)
+    case notImplemented
+}
+
+
 
 /// An in-memory trace store for fast, localized execution and querying.
 ///
@@ -34,6 +109,7 @@ public extension TraceStore {
 public final class InMemoryTraceStore<T: TraceableEvent>: TraceStore, @unchecked Sendable {
     private let lock = NSLock()
     private var eventsByRunID: [UUID: [TraceEvent<T>]] = [:]
+    private var edges: [TraceEdge] = []
 
     // Indices for Phase 1 candidate narrowing
     private var runByContextID: [String: Set<UUID>] = [:]
@@ -87,12 +163,70 @@ public final class InMemoryTraceStore<T: TraceableEvent>: TraceStore, @unchecked
         }
     }
 
+    public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        lock.withLock {
+            edges.append(TraceEdge(sourceID: source, targetID: target, type: type))
+        }
+    }
+
     public func flush() async throws {
         // No-op: `record` commits synchronously, so nothing is pending to drain.
     }
 
     public func getRun(id: UUID) -> TraceRun<T>? {
         lock.withLock { makeRunLocked(id: id) }
+    }
+
+    public func lineageEdges(of id: UUID) async throws -> [TraceEdge] {
+        lock.withLock {
+            var result = [TraceEdge]()
+            var queue = [id]
+            var visited = Set<UUID>()
+            
+            while !queue.isEmpty {
+                let current = queue.removeFirst()
+                if visited.contains(current) { continue }
+                visited.insert(current)
+                
+                let incoming = edges.filter { $0.targetID == current }
+                result.append(contentsOf: incoming)
+                queue.append(contentsOf: incoming.map { $0.sourceID })
+            }
+            return result
+        }
+    }
+
+    public func impactEdges(of id: UUID) async throws -> [TraceEdge] {
+        lock.withLock {
+            var result = [TraceEdge]()
+            var queue = [id]
+            var visited = Set<UUID>()
+            
+            while !queue.isEmpty {
+                let current = queue.removeFirst()
+                if visited.contains(current) { continue }
+                visited.insert(current)
+                
+                let outgoing = edges.filter { $0.sourceID == current }
+                result.append(contentsOf: outgoing)
+                queue.append(contentsOf: outgoing.map { $0.targetID })
+            }
+            return result
+        }
+    }
+
+    public func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>] {
+        lock.withLock {
+            var result: [UUID: TraceEvent<T>] = [:]
+            for runEvents in eventsByRunID.values {
+                for event in runEvents {
+                    if ids.contains(event.id) {
+                        result[event.id] = event
+                    }
+                }
+            }
+            return result
+        }
     }
 
     /// Builds a run snapshot ordered by the authoritative causal clock (`sequence`),
