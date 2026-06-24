@@ -274,6 +274,12 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 ---
 
+# Commercial & team use
+
+The library and the **Lineage** trace viewer are free to build with. If you're running DProvenanceKit in production — or want a **team version**: traces shared across machines and CI, a regression gate that fails a pull request when reasoning drifts, and production monitoring — reach out: **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
+
+---
+
 # License
 
 DProvenanceKit is distributed under the **Business Source License 1.1**: free for development, testing, and non-production use, with limited production use under the Additional Use Grant. It converts to Apache 2.0 on June 16, 2030. Commercial production use and licensing options are described in [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md).
