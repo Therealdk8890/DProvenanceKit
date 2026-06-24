@@ -48,6 +48,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         
         buffer.enqueue(row)
     }
+
+    public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        buffer.enqueueEdge(TraceEdge(sourceID: source, targetID: target, type: type))
+    }
     
     public func flush() async throws {
         try await writer.flush()
@@ -157,5 +161,17 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         }
         
         return matchedEvents
+    }
+
+    public func lineageEdges(of id: UUID) async throws -> [TraceEdge] {
+        throw CloudTraceStoreError.notImplemented
+    }
+    
+    public func impactEdges(of id: UUID) async throws -> [TraceEdge] {
+        throw CloudTraceStoreError.notImplemented
+    }
+    
+    public func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>] {
+        throw CloudTraceStoreError.notImplemented
     }
 }

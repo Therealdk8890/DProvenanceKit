@@ -126,11 +126,18 @@ public actor SQLiteWriter {
     
     private func processBatch(drainAll: Bool = false, maxBatch: Int = 1000) async {
         let batch = drainAll ? buffer.flushAll() : buffer.drain(max: maxBatch)
-        guard !batch.isEmpty else { return }
-
+        let edgesBatch = buffer.drainEdges()
+        
+        guard !batch.isEmpty || !edgesBatch.isEmpty else { return }
+        
         do {
             try db.transaction {
-                try insert(batch)
+                if !batch.isEmpty {
+                    try insert(batch)
+                }
+                if !edgesBatch.isEmpty {
+                    try insertEdges(edgesBatch)
+                }
             }
             // The rows are durably committed, so it is now safe to fold them into the
             // in-memory run metadata. Doing this *after* commit — not per-event inside
@@ -148,6 +155,23 @@ public actor SQLiteWriter {
                 dropTally.record(priority: event.priority)
             }
             print("🚨 [DProvenanceKit] SQLiteWriter failed to insert batch: \(error)")
+        }
+    }
+    
+    private func insertEdges(_ edges: [TraceEdge]) throws {
+        let insertSQL = """
+        INSERT INTO trace_edges (source_id, target_id, edge_type)
+        VALUES (?, ?, ?);
+        """
+        let stmt = try db.prepare(insertSQL)
+        
+        for edge in edges {
+            try stmt.bind(edge.sourceID.uuidString, at: 1)
+            try stmt.bind(edge.targetID.uuidString, at: 2)
+            try stmt.bind(edge.type.rawValue, at: 3)
+            
+            _ = try stmt.step()
+            stmt.reset()
         }
     }
     
