@@ -5,21 +5,27 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     private let buffer: TraceWriteBuffer
     private let writer: SQLiteWriter
 
-    /// Events that could not be JSON-encoded and therefore could not be persisted.
-    /// Counted by tier rather than dropped silently, so an encode failure on a
-    /// `structural`/`critical` event surfaces in `dropStats.preservedIntegrity` exactly
-    /// like a congestion drop. Guarded by its own lock; `record` runs concurrently.
-    private let encodeDropLock = NSLock()
-    private var encodeDroppedByTier: [UInt64] = [0, 0, 0, 0]
+    /// Events lost outside the write buffer, counted by tier rather than dropped
+    /// silently: payloads that fail to JSON-encode here, plus batches the writer fails
+    /// to persist. Shared with `writer` so both loss sites land in one accounting and
+    /// surface in `dropStats.preservedIntegrity` exactly like a congestion drop.
+    private let dropTally: TraceDropTally
+
+    /// Reused across the concurrent `record` entrypoint: configured once and only read
+    /// during `encode`, so concurrent calls are data-race-free while avoiding a fresh
+    /// allocation per event.
+    private let encoder = JSONEncoder()
 
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
         let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
-        let wr = SQLiteWriter(db: database, buffer: buf)
-        
+        let tally = TraceDropTally()
+        let wr = SQLiteWriter(db: database, buffer: buf, dropTally: tally)
+
         self.db = database
         self.buffer = buf
         self.writer = wr
+        self.dropTally = tally
         
         // Ensure tables exist
         try database.transaction {
@@ -89,12 +95,10 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     public func record(_ event: TraceEvent<T>) {
-        guard let payloadData = try? JSONEncoder().encode(event.payload) else {
+        guard let payloadData = try? encoder.encode(event.payload) else {
             // An unencodable payload can't be persisted — but it must not vanish
             // silently. Count it in its own tier so the loss shows up in dropStats.
-            encodeDropLock.withLock {
-                encodeDroppedByTier[event.payload.priority.rawValue] &+= 1
-            }
+            dropTally.record(priority: event.payload.priority.rawValue)
             return
         }
         
@@ -123,19 +127,12 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
 
     /// Every event this store failed to retain, by priority tier: the write buffer's
-    /// congestion drops plus payloads that could not be encoded. `preservedIntegrity`
-    /// is `true` when no `structural` or `critical` event was lost by either path, i.e.
-    /// when diffs over these runs are fully trustworthy.
+    /// congestion drops plus events lost outside it — payloads that could not be encoded
+    /// and batches the writer failed to persist. `preservedIntegrity` is `true` when no
+    /// `structural` or `critical` event was lost by any path, i.e. when diffs over these
+    /// runs are fully trustworthy.
     public var dropStats: TraceDropStats {
-        let encodeDrops = encodeDropLock.withLock {
-            TraceDropStats(
-                telemetry: encodeDroppedByTier[TracePriority.telemetry.rawValue],
-                diagnostic: encodeDroppedByTier[TracePriority.diagnostic.rawValue],
-                structural: encodeDroppedByTier[TracePriority.structural.rawValue],
-                critical: encodeDroppedByTier[TracePriority.critical.rawValue]
-            )
-        }
-        return buffer.dropStats + encodeDrops
+        buffer.dropStats + dropTally.snapshot
     }
     
     public func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>] {
