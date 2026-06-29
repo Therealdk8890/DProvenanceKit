@@ -48,14 +48,23 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
             evidenceCollector: collector
         )
         
-        // Pass 4: Regression Risk Analysis (carried over from legacy for now until it's also separated)
+        // Pass 4: Regression Risk Analysis (carried over from legacy for now until it's also separated).
+        // Two failure modes degrade a critical reasoning step: removing it, or reordering it.
+        // Reordering critical steps can invert a dependency (e.g. GenerateInvoice before
+        // CreateCustomer). The engine has no dependency graph, so this is critical-*order*
+        // sensitivity, not true dependency inference; it fires only on .critical steps so that
+        // reordering of structural/diagnostic steps (the common, benign case) stays .none.
         let removedCritical = alignments.filter { $0.state.isRemoved && $0.baseEvent?.payload.priority == .critical }
+        let reorderedCritical = alignments.filter { $0.state.isReordered && $0.baseEvent?.payload.priority == .critical }
         let risk: RegressionRisk
         if !removedCritical.isEmpty {
             let criticalTypes = removedCritical.compactMap { $0.baseEvent?.payload.typeIdentifier }.joined(separator: ", ")
             risk = RegressionRisk(level: .high, strength: 0.95, reasoning: "Critical reasoning steps removed: \(criticalTypes)")
+        } else if !reorderedCritical.isEmpty {
+            let reorderedTypes = reorderedCritical.compactMap { $0.baseEvent?.payload.typeIdentifier }.joined(separator: ", ")
+            risk = RegressionRisk(level: .high, strength: 1.0, reasoning: "Critical reasoning steps reordered: \(reorderedTypes)")
         } else {
-            risk = RegressionRisk(level: .none, strength: 1.0, reasoning: "No critical steps removed.")
+            risk = RegressionRisk(level: .none, strength: 1.0, reasoning: "No critical steps removed or reordered.")
         }
         
         var vArtifacts: VerificationArtifacts? = nil

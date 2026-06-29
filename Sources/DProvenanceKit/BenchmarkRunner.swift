@@ -129,11 +129,11 @@ public actor BenchmarkRunner<T: TraceableEvent> {
             
             var availableActual = actualFindings
             
-            // Check FN and TP
+            // Check FN and TP. Matching is on semantic identity (matchKey), not on the
+            // human-facing `reasoning` prose of a regression-risk finding — see matchKey below.
             for expected in bCase.expectedFindings {
-                // Find first matching finding deterministically (could sort to be totally safe, but finding is Equatable)
-                // Wait, equatable match is fine, we just take the first.
-                if let index = availableActual.firstIndex(of: expected.finding) {
+                let expectedKey = expected.finding.matchKey
+                if let index = availableActual.firstIndex(where: { $0.matchKey == expectedKey }) {
                     availableActual.remove(at: index)
                     truePositives.append(expected.finding)
                     categoryTP[expected.finding.categoryName, default: 0] += 1
@@ -227,5 +227,21 @@ public actor BenchmarkRunner<T: TraceableEvent> {
             stratifiedMetrics: stratifiedMetrics,
             averageFidelityScore: avgFidelity
         )
+    }
+}
+
+fileprivate extension AlignmentFinding {
+    /// Identity of a finding for ground-truth matching.
+    ///
+    /// A finding's `reasoning` is human-facing explanatory prose, not part of its semantic
+    /// identity: `RegressionRisk(.high, 0.95, "Critical step removed: decision")` is the *same*
+    /// finding the ground truth means by `RegressionRisk(.high, 0.95, "")`. Comparing the prose
+    /// would otherwise turn a correct detection into a simultaneous false positive + false
+    /// negative. Level and strength remain significant; only the free-text reasoning is erased.
+    var matchKey: AlignmentFinding {
+        if case let .regressionRisk(risk) = self {
+            return .regressionRisk(RegressionRisk(level: risk.level, strength: risk.strength, reasoning: ""))
+        }
+        return self
     }
 }
