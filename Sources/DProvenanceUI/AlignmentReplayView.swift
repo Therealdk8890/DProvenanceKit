@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -87,3 +88,4 @@ struct TimelineEntryView: View {
         return fmt
     }
 }
+#endif

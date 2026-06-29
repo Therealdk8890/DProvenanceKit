@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -73,3 +74,4 @@ public struct TraceTimelineView<T: TraceableEvent>: View {
         .cornerRadius(8)
     }
 }
+#endif

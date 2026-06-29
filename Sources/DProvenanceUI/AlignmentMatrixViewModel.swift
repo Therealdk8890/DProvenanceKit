@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -79,3 +80,4 @@ public class AlignmentMatrixViewModel<T: TraceableEvent>: ObservableObject {
         self.cells = newCells
     }
 }
+#endif

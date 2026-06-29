@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -224,4 +225,4 @@ struct ExplanationRow: View {
     )
     .frame(width: 800, height: 600)
 }
-
+#endif

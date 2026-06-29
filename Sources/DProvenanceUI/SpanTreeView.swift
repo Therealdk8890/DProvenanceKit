@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -216,3 +217,4 @@ struct EventDiffRow<T: TraceableEvent>: View {
         }
     }
 }
+#endif

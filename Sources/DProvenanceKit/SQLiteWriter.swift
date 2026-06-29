@@ -57,17 +57,20 @@ public actor SQLiteWriter {
     
     public func flush() async throws {
         await processBatch(drainAll: true)
-        try db.transaction {
+        let staged = try db.transaction {
             try flushRunsTable(force: true)
         }
+        markRunsClean(staged)
     }
     
     public func shutdown() async {
         isShuttingDown = true
         await writeTask?.value
         await processBatch(drainAll: true)
-        try? db.transaction {
+        if let staged = try? db.transaction({
             try flushRunsTable(force: true)
+        }) {
+            markRunsClean(staged)
         }
     }
     
@@ -110,9 +113,10 @@ public actor SQLiteWriter {
         let now = Date().timeIntervalSince1970
         if now - lastRunFlushTime > 1.0 {
             do {
-                try db.transaction {
+                let staged = try db.transaction {
                     try flushRunsTable()
                 }
+                markRunsClean(staged)
                 lastRunFlushTime = now
             } catch {
                 print("🚨 [DProvenanceKit] SQLiteWriter failed to flush runs: \(error)")
@@ -236,7 +240,13 @@ public actor SQLiteWriter {
         activeRuns[runID] = state
     }
     
-    private func flushRunsTable(force: Bool = false) throws {
+    /// UPSERTs dirty run metadata and returns the run ids it staged, so the caller can
+    /// clear their dirty flags *only after* the enclosing transaction commits. Clearing
+    /// inside the loop would mark a run clean whose UPSERT a later rollback discards: it
+    /// would then never be re-flushed and its `runs` row would silently lag the committed
+    /// events — the same cache/transaction desync class as the rolled-back-batch bug.
+    @discardableResult
+    private func flushRunsTable(force: Bool = false) throws -> [String] {
         let upsertSQL = """
         INSERT INTO runs (run_id, context_id, start_time, end_time, event_count, fingerprint)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -247,6 +257,7 @@ public actor SQLiteWriter {
         """
         
         let stmt = try db.prepare(upsertSQL)
+        var staged: [String] = []
         
         for (runID, state) in activeRuns {
             if state.isDirty || force {
@@ -263,8 +274,19 @@ public actor SQLiteWriter {
                 _ = try stmt.step()
                 stmt.reset()
                 
-                activeRuns[runID]?.isDirty = false
+                staged.append(runID)
             }
+        }
+
+        return staged
+    }
+
+    /// Clears the dirty flag for runs whose UPSERT has now durably committed. Kept
+    /// separate from `flushRunsTable` so it is only ever called *after* the transaction
+    /// the staging ran in has returned successfully.
+    private func markRunsClean(_ runIDs: [String]) {
+        for runID in runIDs {
+            activeRuns[runID]?.isDirty = false
         }
     }
 }

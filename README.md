@@ -10,6 +10,8 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 [![Platform: macOS | iOS](https://img.shields.io/badge/Platform-macOS%20%7C%20iOS-lightgrey.svg)](https://swift.org)
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md)
 
+> Platform note: the core `DProvenanceKit` library supports macOS and iOS. `DProvenanceUI` and the `GenerateSample` trace viewer are macOS-only desktop tooling.
+
 ---
 
 ## Who this is for

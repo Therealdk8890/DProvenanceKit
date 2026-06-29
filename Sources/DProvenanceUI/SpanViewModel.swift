@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import DProvenanceKit
 
@@ -89,3 +90,4 @@ public func flattenSpanTree<T: TraceableEvent>(roots: [SpanViewModel<T>], dynami
     
     return result
 }
+#endif

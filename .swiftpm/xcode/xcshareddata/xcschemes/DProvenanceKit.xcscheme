@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DProvenanceKit"
                BuildableName = "DProvenanceKit"
+               BlueprintName = "DProvenanceKit"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -52,6 +53,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DProvenanceKit"
             BuildableName = "DProvenanceKit"
+            BlueprintName = "DProvenanceKit"
             ReferencedContainer = "container:">
          </BuildableReference>
       </MacroExpansion>

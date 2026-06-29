@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -97,3 +98,4 @@ public struct RunDetailView: View {
         }
     }
 }
+#endif
