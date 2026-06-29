@@ -1,0 +1,46 @@
+{
+  "spec_version": "1.0",
+  "description": "Canonical JSON encoding of an event payload (keys sorted, UTF-8).",
+  "cases": [
+    {
+      "event": {
+        "type": "documentEvaluated",
+        "priority": 2,
+        "attributes": {
+          "score": 0.95,
+          "doc": "A"
+        }
+      },
+      "canonical_json": "{\"doc\": \"A\", \"priority\": 2, \"score\": 0.95, \"type\": \"documentEvaluated\"}"
+    },
+    {
+      "event": {
+        "type": "finalDecisionMade",
+        "priority": 3,
+        "attributes": {
+          "approved": false
+        }
+      },
+      "canonical_json": "{\"approved\": false, \"priority\": 3, \"type\": \"finalDecisionMade\"}"
+    },
+    {
+      "event": {
+        "type": "conflictDetected",
+        "priority": 1,
+        "attributes": {}
+      },
+      "canonical_json": "{\"priority\": 1, \"type\": \"conflictDetected\"}"
+    },
+    {
+      "event": {
+        "type": "z_event",
+        "priority": 0,
+        "attributes": {
+          "b": 2,
+          "a": 1
+        }
+      },
+      "canonical_json": "{\"a\": 1, \"b\": 2, \"priority\": 0, \"type\": \"z_event\"}"
+    }
+  ]
+}

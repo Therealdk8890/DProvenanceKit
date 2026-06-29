@@ -30,7 +30,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     }
     
     public func record(_ event: TraceEvent<T>) {
-        guard let payloadData = try? JSONEncoder().encode(event.payload) else { return }
+        // `.sortedKeys` produces the canonical payload bytes required by Trace Spec v1 §2.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let payloadData = try? encoder.encode(event.payload) else { return }
         
         let row = TraceEventRow(
             id: UUID().uuidString,
