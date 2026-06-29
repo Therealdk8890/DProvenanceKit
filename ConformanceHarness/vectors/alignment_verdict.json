@@ -1,0 +1,196 @@
+{
+  "spec_version": "1.0",
+  "evaluator_identifier": "ExactEquality_v1",
+  "evaluator_rule": "similarity(a, b) = 1.0 if payloads are fully equal else 0.0",
+  "description": "Alignment verdict: regression level + ordered per-event alignment states.",
+  "cases": [
+    {
+      "description": "Identical runs -> no regression, all exact matches.",
+      "profile": "strict_audit_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        }
+      ],
+      "expected": {
+        "regression_level": "none",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "exactMatch"
+        ]
+      }
+    },
+    {
+      "description": "A critical step present in base is absent in comparison.",
+      "profile": "strict_audit_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "conflictDetected",
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003ea"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        }
+      ],
+      "expected": {
+        "regression_level": "high",
+        "regression_strength": 0.95,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "removed",
+          "exactMatch"
+        ]
+      }
+    },
+    {
+      "description": "Same steps, payload of one step changed.",
+      "profile": "strict_audit_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A",
+            "score": 0.9
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A",
+            "score": 0.4
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        }
+      ],
+      "expected": {
+        "regression_level": "none",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "ambiguous",
+          "exactMatch"
+        ]
+      }
+    },
+    {
+      "description": "Comparison adds a step base never had.",
+      "profile": "developer_debug_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "conflictDetected",
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d2"
+        }
+      ],
+      "expected": {
+        "regression_level": "none",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "exactMatch",
+          "added"
+        ]
+      }
+    }
+  ]
+}

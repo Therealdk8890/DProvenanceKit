@@ -13,8 +13,13 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
 
     /// Reused across the concurrent `record` entrypoint: configured once and only read
     /// during `encode`, so concurrent calls are data-race-free while avoiding a fresh
-    /// allocation per event.
-    private let encoder = JSONEncoder()
+    /// allocation per event. `.sortedKeys` produces the canonical payload bytes required
+    /// by Trace Specification v1 §2 (sorted keys).
+    private let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.outputFormatting = [.sortedKeys]
+        return e
+    }()
 
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
