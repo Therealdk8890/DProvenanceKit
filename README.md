@@ -8,7 +8,7 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![Platform: macOS | iOS](https://img.shields.io/badge/Platform-macOS%20%7C%20iOS-lightgrey.svg)](https://swift.org)
-[![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
 
 ---
 
@@ -276,10 +276,10 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 # Commercial & team use
 
-The library and the **Lineage** trace viewer are free to build with. If you're running DProvenanceKit in production — or want a **team version**: traces shared across machines and CI, a regression gate that fails a pull request when reasoning drifts, and production monitoring — reach out: **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
+The library and the **Lineage** trace viewer are free and open source under Apache 2.0 — including for production and commercial use. If you want a **team version** — traces shared across machines and CI, a regression gate that fails a pull request when reasoning drifts, and production monitoring — or commercial support and SLAs, reach out: **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**. See [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md) for details.
 
 ---
 
 # License
 
-DProvenanceKit is distributed under the **Business Source License 1.1**: free for development, testing, and non-production use, with limited production use under the Additional Use Grant. It converts to Apache 2.0 on June 16, 2030. Commercial production use and licensing options are described in [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md).
+DProvenanceKit is distributed under the **Apache License 2.0** — free for any use, including production and commercial use, with no usage restrictions. See [LICENSE](LICENSE). Support, SLAs, and enterprise/hosted features are described in [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md).
