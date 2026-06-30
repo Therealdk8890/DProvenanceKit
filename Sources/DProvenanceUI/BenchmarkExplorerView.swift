@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -263,3 +264,4 @@ struct DeltaLensView<T: TraceableEvent>: View {
         }
     }
 }
+#endif

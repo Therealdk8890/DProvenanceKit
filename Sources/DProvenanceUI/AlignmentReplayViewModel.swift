@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import DProvenanceKit
 
@@ -51,3 +52,4 @@ public class AlignmentReplayViewModel: ObservableObject {
         )
     }
 }
+#endif

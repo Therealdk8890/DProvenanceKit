@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Combine
 import AppKit
@@ -52,3 +53,4 @@ public final class StoreManager: ObservableObject {
         }
     }
 }
+#endif

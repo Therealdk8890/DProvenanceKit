@@ -1,11 +1,22 @@
+#if os(macOS)
 import SwiftUI
+import AppKit
 import DProvenanceKit
 import DProvenanceUI
 
 @main
 struct GenerateSampleApp: App {
     @StateObject private var storeManager = StoreManager()
-    
+
+    init() {
+        // A bare SwiftPM executable has no app bundle, so macOS launches it as a
+        // background accessory: the window renders but can't claim the foreground.
+        // Promote it to a regular foreground app so it gets a Dock icon, menu bar,
+        // and can be brought to front normally.
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
     var body: some Scene {
         WindowGroup {
             InvestigationDemoView()
@@ -13,6 +24,14 @@ struct GenerateSampleApp: App {
         }
     }
 }
+#else
+@main
+struct GenerateSampleUnsupported {
+    static func main() {
+        print("GenerateSample is available on macOS only. Use DProvenanceKit for shared tracing on this platform.")
+    }
+}
+#endif
 
 struct InvestigationDemoView: View {
     @State private var selectedTab = 2 // Default to Explorer

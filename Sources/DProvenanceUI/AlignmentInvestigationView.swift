@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -179,3 +180,4 @@ struct MatrixGridView<T: TraceableEvent>: View {
         }
     }
 }
+#endif

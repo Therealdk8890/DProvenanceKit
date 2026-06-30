@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -37,3 +38,4 @@ public struct TraceViewer: View {
         }
     }
 }
+#endif

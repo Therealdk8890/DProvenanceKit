@@ -13,8 +13,13 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
 
     /// Reused across the concurrent `record` entrypoint: configured once and only read
     /// during `encode`, so concurrent calls are data-race-free while avoiding a fresh
-    /// allocation per event.
-    private let encoder = JSONEncoder()
+    /// allocation per event. `.sortedKeys` produces the canonical payload bytes required
+    /// by Trace Specification v1 §2 (sorted keys).
+    private let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.outputFormatting = [.sortedKeys]
+        return e
+    }()
 
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
@@ -68,6 +73,19 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_sequence ON trace_events(run_id, sequence);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_priority ON trace_events(priority);")
             
+            if database.userVersion < 2 {
+                try database.execute("""
+                CREATE TABLE IF NOT EXISTS trace_edges (
+                    source_id TEXT NOT NULL,
+                    target_id TEXT NOT NULL,
+                    edge_type TEXT NOT NULL
+                );
+                """)
+                try database.execute("CREATE INDEX IF NOT EXISTS idx_edge_source ON trace_edges(source_id, edge_type);")
+                try database.execute("CREATE INDEX IF NOT EXISTS idx_edge_target ON trace_edges(target_id, edge_type);")
+                database.userVersion = 2
+            }
+            
             // Write-behind reconciliation
             // Ensure any runs interrupted during a crash are rebuilt from trace_events
             let reconcileSQL = """
@@ -103,7 +121,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         }
         
         let row = TraceEventRow(
-            id: UUID().uuidString,
+            id: event.id.uuidString,
             runID: event.runID.uuidString,
             contextID: event.contextID,
             priority: event.payload.priority.rawValue,
@@ -115,11 +133,12 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             payload: payloadData,
             timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000)
         )
-
-        // Synchronous, ordered enqueue. The event is in the buffer before `record`
-        // returns, so a subsequent `flush()` is a true barrier and record order is
-        // preserved under concurrency.
+        
         buffer.enqueue(row)
+    }
+
+    public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        buffer.enqueueEdge(TraceEdge(sourceID: source, targetID: target, type: type))
     }
     
     public func flush() async throws {
@@ -205,5 +224,138 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         
         guard !events.isEmpty else { return nil }
         return TraceRun(runID: id, contextID: contextID, events: events)
+    }
+
+    public func lineageEdges(of id: UUID) async throws -> [TraceEdge] {
+        // Ensure pending edges are flushed so we get the complete graph
+        try await flush()
+        
+        // UNION (not UNION ALL) deduplicates rows, so traversal terminates even when
+        // the edge set contains a cycle: once every reachable edge is in the result,
+        // the recursive step yields no new rows. It also removes duplicate edges that
+        // multiple paths would otherwise produce.
+        let sql = """
+        WITH RECURSIVE lineage_cte(source_id, target_id, edge_type) AS (
+            SELECT source_id, target_id, edge_type
+            FROM trace_edges
+            WHERE target_id = ?
+            UNION
+            SELECT e.source_id, e.target_id, e.edge_type
+            FROM trace_edges e
+            JOIN lineage_cte l ON e.target_id = l.source_id
+        )
+        SELECT source_id, target_id, edge_type FROM lineage_cte;
+        """
+        
+        let stmt = try db.prepare(sql)
+        try stmt.bind(id.uuidString, at: 1)
+        
+        var edges: [TraceEdge] = []
+        while try stmt.step() {
+            guard let sourceStr = stmt.columnString(at: 0),
+                  let targetStr = stmt.columnString(at: 1),
+                  let typeStr = stmt.columnString(at: 2),
+                  let sourceUUID = UUID(uuidString: sourceStr),
+                  let targetUUID = UUID(uuidString: targetStr) else {
+                continue
+            }
+            edges.append(TraceEdge(sourceID: sourceUUID, targetID: targetUUID, type: TraceEdgeType(rawValue: typeStr) ?? .informed))
+        }
+        return edges
+    }
+    
+    public func impactEdges(of id: UUID) async throws -> [TraceEdge] {
+        try await flush()
+        
+        // UNION (not UNION ALL) deduplicates rows, so traversal terminates even when
+        // the edge set contains a cycle, and returns distinct edges.
+        let sql = """
+        WITH RECURSIVE impact_cte(source_id, target_id, edge_type) AS (
+            SELECT source_id, target_id, edge_type
+            FROM trace_edges
+            WHERE source_id = ?
+            UNION
+            SELECT e.source_id, e.target_id, e.edge_type
+            FROM trace_edges e
+            JOIN impact_cte l ON e.source_id = l.target_id
+        )
+        SELECT source_id, target_id, edge_type FROM impact_cte;
+        """
+        
+        let stmt = try db.prepare(sql)
+        try stmt.bind(id.uuidString, at: 1)
+        
+        var edges: [TraceEdge] = []
+        while try stmt.step() {
+            guard let sourceStr = stmt.columnString(at: 0),
+                  let targetStr = stmt.columnString(at: 1),
+                  let typeStr = stmt.columnString(at: 2),
+                  let sourceUUID = UUID(uuidString: sourceStr),
+                  let targetUUID = UUID(uuidString: targetStr) else {
+                continue
+            }
+            edges.append(TraceEdge(sourceID: sourceUUID, targetID: targetUUID, type: TraceEdgeType(rawValue: typeStr) ?? .informed))
+        }
+        return edges
+    }
+    
+    public func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>] {
+        if ids.isEmpty { return [:] }
+        try await flush()
+        
+        // SQLite limits IN clauses, so we batch if necessary, but graphs are usually small.
+        let idStrings = ids.map { $0.uuidString }
+        let placeholders = Array(repeating: "?", count: idStrings.count).joined(separator: ", ")
+        
+        let sql = """
+        SELECT e.id, e.run_id, r.context_id, e.engine, e.span_id, e.parent_span_id, e.payload, e.timestamp, e.sequence 
+        FROM trace_events e
+        JOIN runs r ON e.run_id = r.run_id
+        WHERE e.id IN (\(placeholders))
+        """
+        
+        let stmt = try db.prepare(sql)
+        for (i, idString) in idStrings.enumerated() {
+            try stmt.bind(idString, at: Int32(i + 1))
+        }
+        
+        var events: [UUID: TraceEvent<T>] = [:]
+        let decoder = JSONDecoder()
+        
+        while try stmt.step() {
+            guard let idStr = stmt.columnString(at: 0),
+                  let runIDStr = stmt.columnString(at: 1),
+                  let contextID = stmt.columnString(at: 2),
+                  let engine = stmt.columnString(at: 3),
+                  let id = UUID(uuidString: idStr),
+                  let runID = UUID(uuidString: runIDStr) else {
+                continue
+            }
+            
+            let payloadData = stmt.columnData(at: 6)
+            
+            let spanID = stmt.columnString(at: 4)
+            let parentSpanID = stmt.columnString(at: 5)
+            let timestampMs = stmt.columnInt64(at: 7)
+            let sequence = UInt64(stmt.columnInt64(at: 8))
+            
+            if let payload = try? decoder.decode(T.self, from: payloadData) {
+                let event = TraceEvent(
+                    id: id,
+                    runID: runID,
+                    contextID: contextID,
+                    engineName: engine,
+                    schemaVersion: 1,
+                    sequence: sequence,
+                    spanID: spanID,
+                    parentSpanID: parentSpanID,
+                    payload: payload,
+                    timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
+                )
+                events[id] = event
+            }
+        }
+        
+        return events
     }
 }

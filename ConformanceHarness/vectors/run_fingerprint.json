@@ -1,0 +1,71 @@
+{
+  "spec_version": "1.0",
+  "algorithm": "sha1( concat( type + ':' + engine + '|' for each event in commit order ) )",
+  "description": "Run fingerprint: the per-run identity over (type, engine) signatures.",
+  "cases": [
+    {
+      "description": "Single-engine three-step run.",
+      "events": [
+        {
+          "type": "promptGenerated",
+          "engine": "Planner"
+        },
+        {
+          "type": "documentEvaluated",
+          "engine": "Planner"
+        },
+        {
+          "type": "finalDecisionMade",
+          "engine": "Planner"
+        }
+      ],
+      "fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48"
+    },
+    {
+      "description": "Engine changes mid-run (engine is part of the signature).",
+      "events": [
+        {
+          "type": "promptGenerated",
+          "engine": "Planner"
+        },
+        {
+          "type": "documentEvaluated",
+          "engine": "Analyzer"
+        },
+        {
+          "type": "finalDecisionMade",
+          "engine": "Decider"
+        }
+      ],
+      "fingerprint": "343d10a8c111860b6e141cb881eaacd7dc820a8f"
+    },
+    {
+      "description": "Reordering the same steps yields a different fingerprint.",
+      "events": [
+        {
+          "type": "documentEvaluated",
+          "engine": "Planner"
+        },
+        {
+          "type": "promptGenerated",
+          "engine": "Planner"
+        },
+        {
+          "type": "finalDecisionMade",
+          "engine": "Planner"
+        }
+      ],
+      "fingerprint": "3f6ec23bd0fb4fcfdeef6a04dc36602ed2ab9224"
+    },
+    {
+      "description": "Single event.",
+      "events": [
+        {
+          "type": "promptGenerated",
+          "engine": "Planner"
+        }
+      ],
+      "fingerprint": "362e27d1441613bc1f3bf4fcc4cdfbd3705ecf5e"
+    }
+  ]
+}

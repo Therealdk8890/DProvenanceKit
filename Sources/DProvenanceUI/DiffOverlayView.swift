@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import DProvenanceKit
 
@@ -47,3 +48,4 @@ public struct DiffOverlayView<T: TraceableEvent>: View {
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import DProvenanceKit
 
@@ -21,3 +22,4 @@ extension RawTraceEvent {
         )
     }
 }
+#endif

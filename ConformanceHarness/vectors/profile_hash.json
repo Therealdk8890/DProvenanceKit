@@ -1,0 +1,98 @@
+{
+  "spec_version": "1.0",
+  "contract_version": "1.0.0",
+  "algorithm": "sha256 over the frozen contract string (see TRACE_SPEC_v1.md section 6).",
+  "description": "Alignment profile hash: the version-stamp two runs must share to be comparable.",
+  "cases": [
+    {
+      "description": "strict_audit_v1",
+      "profile": {
+        "strategy": "strict_audit",
+        "version": 1,
+        "type_weight": 0.5,
+        "payload_weight": 0.5,
+        "structural_weight": 0.0,
+        "temporal_weight": 0.0,
+        "semantic_threshold": 0.99,
+        "max_ambiguous_candidates": 1,
+        "ambiguity_delta_threshold": 0.0,
+        "alignment_mode": "linear"
+      },
+      "evaluator_identifier": "ExactEquality_v1",
+      "engine_version": "1.0.0",
+      "profile_hash": "2b03a8601d43de1384a0a45be3ffc2cb2df7473f4702e5b0c2427cc5031d4468"
+    },
+    {
+      "description": "developer_debug_v1",
+      "profile": {
+        "strategy": "developer_debug",
+        "version": 1,
+        "type_weight": 0.4,
+        "payload_weight": 0.4,
+        "structural_weight": 0.15,
+        "temporal_weight": 0.05,
+        "semantic_threshold": 0.75,
+        "max_ambiguous_candidates": 3,
+        "ambiguity_delta_threshold": 0.1,
+        "alignment_mode": "spanAware"
+      },
+      "evaluator_identifier": "ExactEquality_v1",
+      "engine_version": "1.0.0",
+      "profile_hash": "2cefc9f309f1d55ce32106b148c3ae49838dab359dc0cfcc6e0c3433a6c8ef15"
+    },
+    {
+      "description": "strict_audit_v1 / different evaluator",
+      "profile": {
+        "strategy": "strict_audit",
+        "version": 1,
+        "type_weight": 0.5,
+        "payload_weight": 0.5,
+        "structural_weight": 0.0,
+        "temporal_weight": 0.0,
+        "semantic_threshold": 0.99,
+        "max_ambiguous_candidates": 1,
+        "ambiguity_delta_threshold": 0.0,
+        "alignment_mode": "linear"
+      },
+      "evaluator_identifier": "OtherEvaluator",
+      "engine_version": "1.0.0",
+      "profile_hash": "ff77b6ef28dc154b9269195ac3cf4726cd38dae9e1211d356ca612fe50bb9107"
+    },
+    {
+      "description": "strict_audit_v1 / different engine version",
+      "profile": {
+        "strategy": "strict_audit",
+        "version": 1,
+        "type_weight": 0.5,
+        "payload_weight": 0.5,
+        "structural_weight": 0.0,
+        "temporal_weight": 0.0,
+        "semantic_threshold": 0.99,
+        "max_ambiguous_candidates": 1,
+        "ambiguity_delta_threshold": 0.0,
+        "alignment_mode": "linear"
+      },
+      "evaluator_identifier": "ExactEquality_v1",
+      "engine_version": "2.0.0",
+      "profile_hash": "daf26e9f161fa14bf6e3c0c167426dd5bdccdd2b3df7bdcea4d2c89b8600b595"
+    },
+    {
+      "description": "custom semantic-exploration profile",
+      "profile": {
+        "strategy": "semantic_exploration",
+        "version": 2,
+        "type_weight": 0.3,
+        "payload_weight": 0.45,
+        "structural_weight": 0.15,
+        "temporal_weight": 0.1,
+        "semantic_threshold": 0.8,
+        "max_ambiguous_candidates": 5,
+        "ambiguity_delta_threshold": 0.25,
+        "alignment_mode": "fullGraph"
+      },
+      "evaluator_identifier": "ExactEquality_v1",
+      "engine_version": "1.0.0",
+      "profile_hash": "f387c3583c120b2c5707f19bc07e30b65a00a9e9f6904cffa700b8b82ad5d6ae"
+    }
+  ]
+}

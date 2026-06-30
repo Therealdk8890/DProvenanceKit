@@ -30,7 +30,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     }
     
     public func record(_ event: TraceEvent<T>) {
-        guard let payloadData = try? JSONEncoder().encode(event.payload) else { return }
+        // `.sortedKeys` produces the canonical payload bytes required by Trace Spec v1 §2.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let payloadData = try? encoder.encode(event.payload) else { return }
         
         let row = TraceEventRow(
             id: UUID().uuidString,
@@ -47,6 +50,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         )
         
         buffer.enqueue(row)
+    }
+
+    public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        buffer.enqueueEdge(TraceEdge(sourceID: source, targetID: target, type: type))
     }
     
     public func flush() async throws {
@@ -157,5 +164,17 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         }
         
         return matchedEvents
+    }
+
+    public func lineageEdges(of id: UUID) async throws -> [TraceEdge] {
+        throw CloudTraceStoreError.notImplemented
+    }
+    
+    public func impactEdges(of id: UUID) async throws -> [TraceEdge] {
+        throw CloudTraceStoreError.notImplemented
+    }
+    
+    public func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>] {
+        throw CloudTraceStoreError.notImplemented
     }
 }
