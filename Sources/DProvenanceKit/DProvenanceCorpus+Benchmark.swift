@@ -173,7 +173,7 @@ extension DProvenanceCorpus {
                     expectedFindings: [
                         ExpectedFinding(finding: .reorderedExecution(eventIdentifier: "decision", originalSequence: 0, newSequence: 1)),
                         ExpectedFinding(finding: .reorderedExecution(eventIdentifier: "decision", originalSequence: 1, newSequence: 0)),
-                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 1.0, reasoning: ""))) // Generic regression risk check
+                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 1.0, reasoning: "Critical reasoning steps reordered: decision, decision")))
                     ]
                 ),
                 BenchmarkCase(
@@ -201,7 +201,7 @@ extension DProvenanceCorpus {
                     ]),
                     expectedFindings: [
                         ExpectedFinding(finding: .criticalStepRemoved(baseEventIdentifier: "decision")),
-                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 0.95, reasoning: "")))
+                        ExpectedFinding(finding: .regressionRisk(RegressionRisk(level: .high, strength: 0.95, reasoning: "Critical reasoning steps removed: decision")))
                     ]
                 ),
                 BenchmarkCase(

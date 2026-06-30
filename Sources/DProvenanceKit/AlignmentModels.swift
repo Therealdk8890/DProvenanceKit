@@ -157,7 +157,12 @@ extension AlignmentState {
         if case .removed = self { return true }
         return false
     }
-    
+
+    public var isReordered: Bool {
+        if case .reordered = self { return true }
+        return false
+    }
+
     public var isSemanticMatch: Bool {
         if case .semanticMatch = self { return true }
         return false
