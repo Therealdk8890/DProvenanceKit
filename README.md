@@ -6,6 +6,7 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 
 > Run → Record → Query → Diff → Detect Regressions
 
+[![CI](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml)
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![Platform: macOS | iOS](https://img.shields.io/badge/Platform-macOS%20%7C%20iOS-lightgrey.svg)](https://swift.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
@@ -183,7 +184,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", branch: "main")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.1.0")
 ]
 ```
 
@@ -271,6 +272,14 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 **Planned:** counting events lost to a failed batch insert, richer visualization, distributed trace federation.
 
 **Scope:** Apple platforms (macOS / iOS). The library depends on system SQLite and CryptoKit, so it targets Apple OSes rather than Linux — by design, since the goal is reasoning observability for Swift and on-device AI.
+
+---
+
+# Not writing Swift?
+
+There's a full **Python port** — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and validation corpus, plus a CI regression gate and a [GitHub Action](https://github.com/Therealdk8890/dprovenancekit-action) that fails a pull request when an agent's reasoning regresses.
+
+Docs, hosted trace visualizer, and more at **[dprovenance.dev](https://dprovenance.dev)**.
 
 ---
 
