@@ -7,8 +7,8 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 > Run → Record → Query → Diff → Detect Regressions
 
 [![CI](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml)
-[![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
-[![Platform: macOS | iOS](https://img.shields.io/badge/Platform-macOS%20%7C%20iOS-lightgrey.svg)](https://swift.org)
+[![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
 
 ---
@@ -17,7 +17,7 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 
 If you're building AI in Swift — agents, LLM workflows, tool-using models, or reasoning that runs **on-device** with Apple Foundation Models, MLX, or Core ML — the observability ecosystem has mostly passed you by. LangSmith, Langfuse, Phoenix, OpenTelemetry: Python- and JS-first, built around requests crossing a network.
 
-DProvenanceKit works at the reasoning layer, in your language, with no service to stand up and nothing leaving the device. If your reasoning happens in Swift, this is built for you.
+DProvenanceKit works at the reasoning layer, in your language, with no service to stand up and nothing leaving the device. If your reasoning happens in Swift, this is built for you — and if it happens in Apple's Foundation Models, tracing it is [one line](docs/foundation-models.md).
 
 ---
 
@@ -52,6 +52,8 @@ OpenTelemetry answers **what happened** — request tracing, latency, service he
 DProvenanceKit answers **why the AI reached this conclusion** — decision lineage, logic diffs, regression detection, execution auditing.
 
 > OpenTelemetry traces requests. DProvenanceKit traces reasoning.
+
+And when you need both: **[DProvenanceOTel](docs/otel-bridge.md)** exports finished runs as standard OTLP spans — DPK stays the on-device capture layer, and reasoning traces flow to Langfuse or any OTLP/HTTP collector for the dashboards your team already watches. Export, not equivalence.
 
 ## Git for AI logic
 
@@ -245,6 +247,38 @@ try await DProvenanceKit<MyAIDecision>.run(contextID: "Case-12345", store: store
 }
 ```
 
+### 4. Trace an Apple Foundation Models session
+
+If your AI is Apple's on-device LLM, skip the custom vocabulary — the adapter ships one, frozen and diff-ready:
+
+```swift
+import DProvenanceFoundationModels
+
+let fmStore = try SQLiteTraceStore<FoundationModelTraceEvent>(
+    fileURL: URL(fileURLWithPath: "traces.sqlite")
+)
+
+try await FMTrace.run(contextID: "onboarding-chat", store: fmStore) {
+    let session = LanguageModelSession.traced(instructions: "Be terse.")
+    _ = try await session.respond(to: "Plan my day.")
+}
+```
+
+Every prompt, response, tool call, and generation error is now a queryable trace event. Already have working FoundationModels code? `session.recordProvenance()` ingests the transcript after the fact — zero refactor. Full guide, including redaction and streaming: **[docs/foundation-models.md](docs/foundation-models.md)**.
+
+### 5. Export to Langfuse or any OTLP backend
+
+```swift
+import DProvenanceOTel
+
+let exporter = OTLPHTTPExporter<MyAIDecision>(
+    configuration: .langfuse(publicKey: "pk-lf-...", secretKey: "sk-lf-...")
+)
+let receipt = try await DProvenanceOTelExport.export(from: store, using: exporter)
+```
+
+One run becomes one OTel trace, deterministically — same run, same trace ID, every export. Backend matrix and mapping details: **[docs/otel-bridge.md](docs/otel-bridge.md)**.
+
 ---
 
 # Architecture
@@ -260,6 +294,26 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 | Query Engine         | Reasoning-pattern search, missing-step and temporal detection      |
 | Diff Engine          | Structural reasoning diffs and path comparison                     |
 | Anomaly Detection    | Rule-based validation and regression discovery                     |
+| `DProvenanceFoundationModels` | Drop-in tracing for Apple Foundation Models sessions and tools |
+| `DProvenanceOTel`    | Deterministic OTLP/JSON export to Langfuse and OTLP/HTTP collectors |
+
+---
+
+# Documentation
+
+| Guide | What's inside |
+| ----- | ------------- |
+| [Foundation Models integration](docs/foundation-models.md) | Trace Apple's on-device LLM: live sessions, post-hoc transcripts, traced tools, redaction policy |
+| [OpenTelemetry bridge](docs/otel-bridge.md) | Export runs as OTLP spans to Langfuse or any OTLP/HTTP collector |
+| [Trace replay](docs/REPLAY.md) | Reconstruct a run's span tree as of any point in time, with integrity manifests |
+| [Snapshot diffing](docs/SNAPSHOTS.md) | Diff two replay states: span changes, event changes, the exact divergence point |
+| [Live queries](docs/LIVE_QUERIES.md) | Register a query once, get a callback the moment a run starts matching |
+| [Cloud ingestion (experimental)](docs/CLOUD.md) | Buffered, offline-first HTTP trace shipping with drop accounting |
+| [Trace inspector UI](docs/UI.md) | Drop-in SwiftUI viewer for macOS: run list, timeline scrubber, diff overlay |
+| [DESIGN.md](DESIGN.md) | Engine internals: the concurrency tradeoff, backpressure, durability, known limitations |
+| [SEMANTICS.md](SEMANTICS.md) | The formal semantic model behind alignment and behavioral equivalence |
+| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, confusion matrices |
+| [Alignment validation walkthrough](walkthrough.md) | Case study: validating the alignment engine against the corpus |
 
 ---
 
@@ -267,7 +321,7 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 **Experimental — core engine complete, actively evolving.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, and by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent.
+**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent, a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), and [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector.
 
 **Planned:** counting events lost to a failed batch insert, richer visualization, distributed trace federation.
 

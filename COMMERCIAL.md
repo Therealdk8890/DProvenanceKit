@@ -13,7 +13,7 @@ observability in production tend to need.
 | Tier              | Best for                              | Annual pricing (USD)     | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
 | **Starter**       | Small teams, indie developers         | $2,400 – $6,000          | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), managed OTel export pipeline, analytics dashboard, up to 5 seats |
+| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), analytics dashboard, up to 5 seats |
 | **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom features, on-prem/air-gapped deployment, audit logs, indemnity, SOC 2 / HIPAA-ready documentation, unlimited seats |
 
 **Notes**
@@ -27,6 +27,13 @@ observability in production tend to need.
   is free and open source under Apache 2.0, like the rest of the library. The Pro tier's
   **managed OTel export pipeline** is the hosted layer on top — shared team traces, CI
   gates, monitoring — not the exporter itself.
+
+**What's in the free library (not a paid feature):** the core recording, querying, and
+diff/regression engine, the **FoundationModels adapter** (`DProvenanceFoundationModels`),
+and the **OpenTelemetry / OTLP exporter** (`DProvenanceOTel`) that sends traces to Langfuse,
+an OTel collector, or any OTLP backend. On-device capture and getting your traces *out* to
+the tools you already run are free by design — the paid tiers are the hosted, cross-machine,
+and support layers on top.
 
 ## What a commercial agreement includes
 

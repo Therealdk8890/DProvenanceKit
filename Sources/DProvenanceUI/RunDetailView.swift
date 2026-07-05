@@ -69,7 +69,7 @@ public struct RunDetailView: View {
                 }
             }
             .padding()
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(Color.dpkControlBackground)
             
             Divider()
             

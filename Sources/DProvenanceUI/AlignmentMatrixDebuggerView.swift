@@ -63,7 +63,7 @@ public struct AlignmentMatrixDebuggerView<T: TraceableEvent>: View {
             if let selected = viewModel.selectedCell {
                 MatrixDetailPanelView(cell: selected)
                     .frame(width: 300)
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .background(Color.dpkWindowBackground)
                     .border(Color.secondary.opacity(0.3), width: 1)
             }
         }

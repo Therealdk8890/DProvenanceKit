@@ -69,7 +69,7 @@ public struct TraceTimelineView<T: TraceableEvent>: View {
             }
         }
         .padding()
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.dpkControlBackground)
         .cornerRadius(8)
     }
 }
