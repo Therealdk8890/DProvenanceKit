@@ -212,7 +212,7 @@ struct EventDiffRow<T: TraceableEvent>: View {
         
         switch event.source {
         case .quarantined: return Color.orange.opacity(0.05)
-        case .committed: return Color(NSColor.textBackgroundColor)
+        case .committed: return Color.dpkTextBackground
         }
     }
 }

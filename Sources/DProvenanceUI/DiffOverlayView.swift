@@ -27,7 +27,7 @@ public struct DiffOverlayView<T: TraceableEvent>: View {
             }
         }
         .padding()
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.dpkControlBackground)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)

@@ -13,7 +13,7 @@ observability in production tend to need.
 | Tier              | Best for                              | Annual pricing (USD)     | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
 | **Starter**       | Small teams, indie developers         | $2,400 – $6,000          | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), OTel exporter, analytics dashboard, up to 5 seats |
+| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), hosted trace sharing across machines & CI, the CI regression gate, analytics dashboard, up to 5 seats |
 | **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom features, on-prem/air-gapped deployment, audit logs, indemnity, SOC 2 / HIPAA-ready documentation, unlimited seats |
 
 **Notes**
@@ -23,6 +23,13 @@ observability in production tend to need.
 - Multi-year discounts and usage-based options are available.
 - Paid tiers include access to private repositories for premium features and early access
   to new capabilities.
+
+**What's in the free library (not a paid feature):** the core recording, querying, and
+diff/regression engine, the **FoundationModels adapter** (`DProvenanceFoundationModels`),
+and the **OpenTelemetry / OTLP exporter** (`DProvenanceOTel`) that sends traces to Langfuse,
+an OTel collector, or any OTLP backend. On-device capture and getting your traces *out* to
+the tools you already run are free by design — the paid tiers are the hosted, cross-machine,
+and support layers on top.
 
 ## What a commercial agreement includes
 
@@ -72,4 +79,4 @@ members.
 Feel free to reach out via GitHub or email. We're happy to discuss how DProvenanceKit can
 support your AI observability needs.
 
-*Last updated: June 2026*
+*Last updated: July 2026*

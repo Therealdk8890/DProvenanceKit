@@ -1,0 +1,10 @@
+# Swift Package Index manifest. Controls documentation generation for the
+# package page on swiftpackageindex.com; the first target listed is the
+# landing (default) documentation target.
+version: 1
+builder:
+  configs:
+    - documentation_targets:
+        - DProvenanceKit
+        - DProvenanceFoundationModels
+        - DProvenanceOTel

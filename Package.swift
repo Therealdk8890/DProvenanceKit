@@ -1,4 +1,4 @@
-// swift-tools-version: 6.3
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -19,6 +19,14 @@ let package = Package(
             name: "DProvenanceUI",
             targets: ["DProvenanceUI"]
         ),
+        .library(
+            name: "DProvenanceFoundationModels",
+            targets: ["DProvenanceFoundationModels"]
+        ),
+        .library(
+            name: "DProvenanceOTel",
+            targets: ["DProvenanceOTel"]
+        ),
         .executable(
             name: "GenerateSample",
             targets: ["GenerateSample"]
@@ -38,6 +46,14 @@ let package = Package(
             name: "DProvenanceUI",
             dependencies: ["DProvenanceKit"]
         ),
+        .target(
+            name: "DProvenanceFoundationModels",
+            dependencies: ["DProvenanceKit"]
+        ),
+        .target(
+            name: "DProvenanceOTel",
+            dependencies: ["DProvenanceKit"]
+        ),
         .executableTarget(
             name: "GenerateSample",
             dependencies: ["DProvenanceKit", "DProvenanceUI"],
@@ -51,6 +67,14 @@ let package = Package(
         .testTarget(
             name: "DProvenanceKitTests",
             dependencies: ["DProvenanceKit", "DProvenanceUI"]
+        ),
+        .testTarget(
+            name: "DProvenanceFoundationModelsTests",
+            dependencies: ["DProvenanceFoundationModels", "DProvenanceKit"]
+        ),
+        .testTarget(
+            name: "DProvenanceOTelTests",
+            dependencies: ["DProvenanceOTel", "DProvenanceKit"]
         ),
     ],
     swiftLanguageModes: [.v6]

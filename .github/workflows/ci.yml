@@ -1,0 +1,42 @@
+# Continuous integration for DProvenanceKit.
+#
+# Runs on macos-26 (GA since 2026-02-26) because DProvenanceFoundationModels
+# imports Apple's FoundationModels framework, which requires the macOS 26 SDK
+# shipped with Xcode 26+. Xcode is pinned explicitly rather than relying on
+# the image default, which drifts as GitHub rolls the image forward weekly.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: Build and test (macOS 26, Xcode 26.5)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode 26.5
+        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+
+      - name: Print toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+      - name: Run benchmark corpus
+        run: swift run DProvenanceKitCLI evaluate

@@ -17,6 +17,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DProvenanceKit"
                BuildableName = "DProvenanceKit"
+               BlueprintName = "DProvenanceKit"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -30,6 +31,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DProvenanceUI"
                BuildableName = "DProvenanceUI"
+               BlueprintName = "DProvenanceUI"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -43,6 +45,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "GenerateSample"
                BuildableName = "GenerateSample"
+               BlueprintName = "GenerateSample"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -61,6 +64,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "DProvenanceKitTests"
                BuildableName = "DProvenanceKitTests"
+               BlueprintName = "DProvenanceKitTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -83,6 +87,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "GenerateSample"
             BuildableName = "GenerateSample"
+            BlueprintName = "GenerateSample"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -91,6 +96,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "DProvenanceUI"
             BuildableName = "DProvenanceUI"
+            BlueprintName = "DProvenanceUI"
             ReferencedContainer = "container:">
          </BuildableReference>
       </MacroExpansion>
@@ -107,6 +113,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "GenerateSample"
             BuildableName = "GenerateSample"
+            BlueprintName = "GenerateSample"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>

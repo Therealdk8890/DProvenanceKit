@@ -90,7 +90,7 @@ public struct AlignmentInvestigationView<T: TraceableEvent>: View {
                 Divider()
                 MatrixDetailPanelView(cell: selected)
                     .frame(width: 350)
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .background(Color.dpkWindowBackground)
             }
         }
         .onAppear {

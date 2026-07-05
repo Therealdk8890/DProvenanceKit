@@ -143,7 +143,13 @@ public struct DefaultAlignmentInterpreter<T: TraceableEvent>: AlignmentInterpret
                     usedComparisonIndices.insert(matchIdx)
                     usedBaseIndices.insert(i)
 
-                    let isReordered = config.profile.alignmentMode != .linear && reorderedBaseIDs.contains(bEvent.id)
+                    // Critical events surface reorder in EVERY mode: SEMANTICS.md Invariant E
+                    // (causal preservation) is promised without a profile qualifier, and the
+                    // regression-risk pass derives its "critical steps reordered" HIGH from this
+                    // state. `.linear` suppresses reorder only for non-critical events, where
+                    // order shifts are the common, benign case.
+                    let isReordered = reorderedBaseIDs.contains(bEvent.id)
+                        && (config.profile.alignmentMode != .linear || bEvent.payload.priority == .critical)
                     if isReordered {
                         // Relative execution order changed — dominant signal regardless of payload.
                         state = .reordered(originalSequence: bEvent.sequence, newSequence: cEvent.sequence)

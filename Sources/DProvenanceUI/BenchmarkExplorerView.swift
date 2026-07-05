@@ -252,7 +252,7 @@ struct DeltaLensView<T: TraceableEvent>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding()
-                    .background(Color(NSColor.windowBackgroundColor))
+                    .background(Color.dpkWindowBackground)
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)

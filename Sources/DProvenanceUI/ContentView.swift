@@ -24,9 +24,13 @@ public struct TraceViewer: View {
                     if storeManager.store == nil {
                         Text("No Database Loaded")
                             .font(.headline)
+                        #if canImport(AppKit)
+                        // The file-picker button is macOS-only; iOS hosts hand
+                        // a URL to StoreManager.loadDatabase(at:) themselves.
                         Button("Open Traces.sqlite") {
                             storeManager.openDatabase()
                         }
+                        #endif
                     } else {
                         Text("Select a Run to view details")
                             .font(.headline)

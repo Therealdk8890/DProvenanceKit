@@ -1,6 +1,8 @@
 import Foundation
 import Combine
+#if canImport(AppKit)
 import AppKit
+#endif
 import DProvenanceKit
 
 @MainActor
@@ -12,17 +14,21 @@ public final class StoreManager: ObservableObject {
     
     public init() {}
     
+    #if canImport(AppKit)
+    /// macOS only — file-picker UI. iOS hosts supply a URL to `loadDatabase(at:)`
+    /// themselves (e.g. via a document picker).
     public func openDatabase() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.data, .database] // Or any extension if not strict
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
-        
+
         if panel.runModal() == .OK, let url = panel.url {
             loadDatabase(at: url)
         }
     }
+    #endif
     
     public func loadDatabase(at url: URL) {
         isLoading = true
