@@ -1,0 +1,127 @@
+{
+  "spec_version": "1.0",
+  "description": "Query semantics: a corpus + DSL (wire form) -> matching context_ids.",
+  "corpus": [
+    {
+      "context_id": "run-complete",
+      "engine": "Reasoner",
+      "events": [
+        {
+          "type": "documentEvaluated"
+        },
+        {
+          "type": "conflictDetected"
+        },
+        {
+          "type": "finalDecisionMade"
+        }
+      ]
+    },
+    {
+      "context_id": "run-unverified-conflict",
+      "engine": "Reasoner",
+      "events": [
+        {
+          "type": "conflictDetected"
+        },
+        {
+          "type": "finalDecisionMade"
+        }
+      ]
+    },
+    {
+      "context_id": "run-reordered",
+      "engine": "Auditor",
+      "events": [
+        {
+          "type": "conflictDetected"
+        },
+        {
+          "type": "documentEvaluated"
+        },
+        {
+          "type": "finalDecisionMade"
+        }
+      ]
+    },
+    {
+      "context_id": "run-no-decision",
+      "engine": "Auditor",
+      "events": [
+        {
+          "type": "documentEvaluated"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "description": "Conflict reported but no document ever evaluated (the README query).",
+      "dsl": {
+        "type": "and",
+        "nodes": [
+          {
+            "type": "containsStep",
+            "step": "conflictDetected"
+          },
+          {
+            "type": "missingStep",
+            "step": "documentEvaluated"
+          }
+        ]
+      },
+      "expected_context_ids": [
+        "run-unverified-conflict"
+      ]
+    },
+    {
+      "description": "documentEvaluated occurs before the first finalDecisionMade.",
+      "dsl": {
+        "type": "before",
+        "step": "finalDecisionMade",
+        "precededBy": "documentEvaluated"
+      },
+      "expected_context_ids": [
+        "run-complete",
+        "run-reordered"
+      ]
+    },
+    {
+      "description": "Ordered subsequence: evaluate then decide.",
+      "dsl": {
+        "type": "sequence",
+        "steps": [
+          "documentEvaluated",
+          "finalDecisionMade"
+        ]
+      },
+      "expected_context_ids": [
+        "run-complete",
+        "run-reordered"
+      ]
+    },
+    {
+      "description": "Runs produced by the Auditor engine.",
+      "dsl": {
+        "type": "engineNameEquals",
+        "name": "Auditor"
+      },
+      "expected_context_ids": [
+        "run-no-decision",
+        "run-reordered"
+      ]
+    },
+    {
+      "description": "Any run that reached a final decision.",
+      "dsl": {
+        "type": "containsStep",
+        "step": "finalDecisionMade"
+      },
+      "expected_context_ids": [
+        "run-complete",
+        "run-reordered",
+        "run-unverified-conflict"
+      ]
+    }
+  ]
+}

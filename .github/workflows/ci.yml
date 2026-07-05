@@ -12,6 +12,10 @@ on:
   pull_request:
     branches: [main]
 
+# Least-privilege token: the build only needs to read the repo.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

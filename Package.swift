@@ -69,6 +69,10 @@ let package = Package(
             dependencies: ["DProvenanceKit", "DProvenanceUI"]
         ),
         .testTarget(
+            name: "DProvenanceUITests",
+            dependencies: ["DProvenanceUI"]
+        ),
+        .testTarget(
             name: "DProvenanceFoundationModelsTests",
             dependencies: ["DProvenanceFoundationModels", "DProvenanceKit"]
         ),
