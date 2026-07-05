@@ -224,4 +224,3 @@ struct ExplanationRow: View {
     )
     .frame(width: 800, height: 600)
 }
-

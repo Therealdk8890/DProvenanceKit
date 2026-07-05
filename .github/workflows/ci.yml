@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Select Xcode 26.5
         run: sudo xcode-select -s /Applications/Xcode_26.5.app
 
@@ -42,5 +46,22 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Run benchmark corpus
+      - name: Run CLI evaluation
         run: swift run DProvenanceKitCLI evaluate
+
+      - name: Run conformance harness
+        run: swift run --package-path ConformanceHarness
+
+      - name: Build iOS Core Library
+        run: xcodebuild -scheme DProvenanceKit -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+      - name: Build iOS UI Library
+        run: xcodebuild -scheme DProvenanceUI -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+      - name: Install WebVisualizer dependencies
+        working-directory: WebVisualizer
+        run: npm ci
+
+      - name: Build WebVisualizer
+        working-directory: WebVisualizer
+        run: npm run build
