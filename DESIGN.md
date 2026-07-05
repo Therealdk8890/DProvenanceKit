@@ -13,7 +13,7 @@ The system optimizes for four things, in priority order:
 3. **Reproducible queries.** A query must mean the same thing regardless of which store answers it. A diff or regression check that depends on the storage backend is not a diff; it's a coin flip.
 4. **Swift-native, on-device.** No external service, no network hop, nothing leaving the device. The trace lives where the reasoning lives.
 
-Explicit **non-goals**: distributed collection across machines, unstructured payload-value diffing, and cross-language support. These aren't oversights — they're scope chosen to keep the guarantees above honest. (Note: behavior equivalence testing is available, but uses a formal semantic model via `TraceAlignmentEngine` rather than unstructured payload diffing).
+Explicit **non-goals**: distributed collection across machines as a core guarantee, unstructured payload-value diffing, and cross-language support. These aren't oversights — they're scope chosen to keep the guarantees above honest. (Two boundary notes: behavior equivalence testing is available, but uses a formal semantic model via `TraceAlignmentEngine` rather than unstructured payload diffing. And `CloudTraceStore` ([docs/CLOUD.md](docs/CLOUD.md)) is an experimental client-side building block for shipping traces off-device — the guarantees above are still defined on-device, no server ships with this repository, and the hosted team pipeline is a separate commercial layer.)
 
 ---
 
