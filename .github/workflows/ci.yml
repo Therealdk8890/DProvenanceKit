@@ -18,8 +18,8 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       - name: Build macOS
-        run: swift build -v --destination "platform=macOS"
+        run: swift build -v --destination 'generic/platform=macOS'
       - name: Test macOS
-        run: swift test -v --destination "platform=macOS"
+        run: swift test -v --destination 'generic/platform=macOS'
       - name: Build iOS Simulator
-        run: swift build -v --destination "generic/platform=iOS Simulator"
+        run: swift build -v --destination 'generic/platform=iOS Simulator'
