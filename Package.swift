@@ -79,7 +79,7 @@ let package = Package(
         .testTarget(
             name: "DProvenanceOTelTests",
             dependencies: ["DProvenanceOTel", "DProvenanceKit"]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )
