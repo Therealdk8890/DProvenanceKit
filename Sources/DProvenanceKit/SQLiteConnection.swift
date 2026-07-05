@@ -91,6 +91,20 @@ public final class SQLiteConnection: @unchecked Sendable {
             return SQLiteStatement(stmt: stmt, db: db)
         }
     }
+    
+    public var userVersion: Int32 {
+        get {
+            guard let stmt = try? prepare("PRAGMA user_version;") else { return 0 }
+            defer { stmt.reset() }
+            if (try? stmt.step()) == true {
+                return Int32(stmt.columnInt(at: 0))
+            }
+            return 0
+        }
+        set {
+            try? execute("PRAGMA user_version = \(newValue);")
+        }
+    }
 }
 
 public final class SQLiteStatement {

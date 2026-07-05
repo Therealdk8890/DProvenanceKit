@@ -50,6 +50,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
 
     /// One FIFO per `TracePriority` tier, indexed by `rawValue` (0...3).
     private var tiers: [FIFOQueue<Buffered>]
+    private var edgeQueue: FIFOQueue<TraceEdge>
     private var totalCount: Int = 0
     private var totalBytes: Int = 0
     private var enqueueCounter: UInt64 = 0
@@ -69,12 +70,14 @@ public final class TraceWriteBuffer: @unchecked Sendable {
         self.config = OfflineConfig(capacity: BufferCapacity(maxItems: maxGlobalBuffer, maxBytes: Int.max, maxEventSizeBytes: Int.max), eviction: .dropOldest)
         self.maxPerRunBuffer = maxPerRunBuffer
         self.tiers = Array(repeating: FIFOQueue<Buffered>(), count: 4)
+        self.edgeQueue = FIFOQueue<TraceEdge>()
     }
 
     public init(config: OfflineConfig = OfflineConfig(), maxPerRunBuffer: Int = 5_000) {
         self.config = config
         self.maxPerRunBuffer = maxPerRunBuffer
         self.tiers = Array(repeating: FIFOQueue<Buffered>(), count: 4)
+        self.edgeQueue = FIFOQueue<TraceEdge>()
     }
 
     public var currentDepth: Int {
@@ -143,6 +146,12 @@ public final class TraceWriteBuffer: @unchecked Sendable {
             totalCount += 1
             totalBytes += eventBytes
             queueDepthByRun[event.runID, default: 0] += 1
+        }
+    }
+
+    public func enqueueEdge(_ edge: TraceEdge) {
+        lock.withLock {
+            edgeQueue.append(edge)
         }
     }
 
@@ -219,5 +228,15 @@ public final class TraceWriteBuffer: @unchecked Sendable {
         }
 
         return result
+    }
+
+    public func drainEdges() -> [TraceEdge] {
+        lock.withLock {
+            var result: [TraceEdge] = []
+            while let edge = edgeQueue.popFirst() {
+                result.append(edge)
+            }
+            return result
+        }
     }
 }

@@ -1,7 +1,8 @@
 import Foundation
 
 public protocol AnyActiveTraceRun: Sendable {
-    func recordAny(_ payload: Any, engineName: String?)
+    func recordAny(_ payload: Any, engineName: String?) -> UUID?
+    func link(source: UUID, target: UUID, type: TraceEdgeType)
     func flush() async throws
 }
 
@@ -28,7 +29,8 @@ public enum DProvenanceKit<T: TraceableEvent> {
             self.schemaVersion = schemaVersion
         }
 
-        public func record(_ payload: T, engineName: String?) {
+        @discardableResult
+        public func record(_ payload: T, engineName: String?) -> UUID {
             sequenceLock.lock()
             let seq = sequenceCounter
             sequenceCounter += 1
@@ -46,11 +48,20 @@ public enum DProvenanceKit<T: TraceableEvent> {
                 timestamp: Date()
             )
             store.record(traceEvent)
+            return traceEvent.id
         }
         
-        public func recordAny(_ payload: Any, engineName: String?) {
-            guard let typedPayload = payload as? T else { return }
-            self.record(typedPayload, engineName: engineName)
+        @discardableResult
+        public func recordAny(_ payload: Any, engineName: String?) -> UUID? {
+            guard let typedPayload = payload as? T else { return nil }
+            return self.record(typedPayload, engineName: engineName)
+        }
+
+        public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+            // Reject self-referential edges at the write boundary — they are never
+            // valid provenance and would otherwise have to be filtered downstream.
+            guard source != target else { return }
+            store.link(source: source, target: target, type: type)
         }
         
         public func flush() async throws {
@@ -154,12 +165,18 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
     }
 
-    public static func record(_ payload: T) {
+    @discardableResult
+    public static func record(_ payload: T) -> UUID? {
         guard let run = TraceContext.currentRun else {
             // Soft failure for executions outside of DProvenanceKit.run.
-            return
+            return nil
         }
-        run.recordAny(payload, engineName: TraceContext.engineStack.last)
+        return run.recordAny(payload, engineName: TraceContext.engineStack.last)
+    }
+
+    public static func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        guard let run = TraceContext.currentRun else { return }
+        run.link(source: source, target: target, type: type)
     }
     
     public static func flush() async throws {
