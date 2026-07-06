@@ -27,7 +27,29 @@ public indirect enum TraceQueryNode<T: TraceableEvent>: Sendable {
     // Temporal operators
     case after(step: String, followedBy: String)
     case before(step: String, precededBy: String)
-    
+
+    /// A predicate over event payload *values* (content, e.g. `score < 0.5`), matched
+    /// against any event — optionally narrowed to one `step` (typeIdentifier) first.
+    /// Evaluated in-process, so it is NOT serializable (see the `Encodable` extension)
+    /// and works only with local stores (in-memory, SQLite), not the cloud query.
+    case matchingPayload(step: String?, @Sendable (T) -> Bool)
+
+    /// True when this node (or any descendant) carries a payload predicate the SQL
+    /// compiler can't express. The SQLite store uses this to fall back to in-process
+    /// evaluation instead of trusting the compiled SQL.
+    public var hasPayloadPredicate: Bool {
+        switch self {
+        case .matchingPayload:
+            return true
+        case .and(let nodes), .or(let nodes):
+            return nodes.contains { $0.hasPayloadPredicate }
+        case .not(let node):
+            return node.hasPayloadPredicate
+        default:
+            return false
+        }
+    }
+
     public func evaluate(run: TraceRun<T>) -> Bool {
         let types = run.events.map { $0.payload.typeIdentifier }
         
@@ -74,6 +96,11 @@ public indirect enum TraceQueryNode<T: TraceableEvent>: Sendable {
                 return types[..<firstIdx].contains(precededBy)
             }
             return false
+
+        case .matchingPayload(let step, let predicate):
+            return run.events.contains { event in
+                (step == nil || event.payload.typeIdentifier == step) && predicate(event.payload)
+            }
         }
     }
 }
@@ -120,9 +147,34 @@ public struct TraceQueryDSL<T: TraceableEvent>: Sendable {
     public func requiring(step: String, precededBy: String) -> TraceQueryDSL<T> {
         return appendToAnd(.before(step: step, precededBy: precededBy))
     }
-    
+
+    /// Query by payload *value*, not just which steps ran — e.g. "runs where a document
+    /// scored below 0.5". The predicate runs against each event's decoded payload;
+    /// `step` optionally narrows to one typeIdentifier first.
+    ///
+    /// ```swift
+    /// TraceQueryDSL<MyEvent>().matching(step: "documentEvaluated") {
+    ///     if case .documentEvaluated(_, let score) = $0 { return score < 0.5 }
+    ///     return false
+    /// }
+    /// ```
+    ///
+    /// Local stores only (in-memory, SQLite): the closure is evaluated in-process and
+    /// can't cross the wire, so it is unsupported by the cloud query (encoding throws).
+    public func matching(step: String? = nil,
+                         where predicate: @escaping @Sendable (T) -> Bool) -> TraceQueryDSL<T> {
+        return appendToAnd(.matchingPayload(step: step, predicate))
+    }
+
     public func or(_ other: TraceQueryDSL<T>) -> TraceQueryDSL<T> {
         return TraceQueryDSL(rootNode: .or([self.rootNode, other.rootNode]))
+    }
+
+    /// Narrows to runs that do NOT match `other` — the negation the AST already models
+    /// but no builder exposed. E.g. `TraceQueryDSL().excluding(lowScoreQuery)` finds runs
+    /// with no low-score event.
+    public func excluding(_ other: TraceQueryDSL<T>) -> TraceQueryDSL<T> {
+        return appendToAnd(.not(other.rootNode))
     }
     
     private func appendToAnd(_ node: TraceQueryNode<T>) -> TraceQueryDSL<T> {
@@ -174,6 +226,10 @@ extension TraceQueryNode: Encodable {
             try container.encode("before", forKey: .type)
             try container.encode(step, forKey: .step)
             try container.encode(precededBy, forKey: .precededBy)
+        case .matchingPayload:
+            throw EncodingError.invalidValue("matchingPayload", EncodingError.Context(
+                codingPath: encoder.codingPath,
+                debugDescription: "A payload predicate (matching(where:)) is a Swift closure and cannot be serialized; it is evaluated in-process and works only with local stores, not the cloud query."))
         }
     }
 }

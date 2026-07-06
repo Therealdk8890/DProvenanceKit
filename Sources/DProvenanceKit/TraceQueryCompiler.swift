@@ -32,6 +32,13 @@ public enum TraceQueryCompiler {
             return CompiledSQLQuery(sql: sql, bindings: bindings)
 
         case .not(let node):
+            // A payload predicate isn't expressible in SQL, so it compiles to match-all.
+            // Under NOT that would become `all EXCEPT all` = ∅ — a subset the post-filter
+            // can't recover. So any NOT over a payload predicate selects all runs as
+            // candidates and defers entirely to in-process evaluation.
+            if node.hasPayloadPredicate {
+                return CompiledSQLQuery(sql: "SELECT run_id FROM runs", bindings: [])
+            }
             let compiled = compileNode(node)
             return CompiledSQLQuery(
                 sql: "SELECT run_id FROM runs EXCEPT\n\(compiled.sql)",
@@ -134,6 +141,12 @@ public enum TraceQueryCompiler {
                 sql += " AND e\(i - 1).sequence < e\(i).sequence"
             }
             return CompiledSQLQuery(sql: sql, bindings: steps)
+
+        case .matchingPayload:
+            // Payload-value predicates can't be expressed in SQL. Select all runs as
+            // candidates (a superset); the SQLite store refines with in-process
+            // `TraceQueryNode.evaluate` after hydrating each candidate.
+            return CompiledSQLQuery(sql: "SELECT run_id FROM runs", bindings: [])
         }
     }
 }

@@ -54,6 +54,14 @@ public struct TraceQueryPlanner: Sendable {
         case .missingStep:
             // A missing step is a negative constraint, not indexable for presence inclusion
             return []
+
+        case .matchingPayload(let step, _):
+            // A payload predicate narrowed to `step` still requires an event of that type
+            // to exist, so the presence constraint is safe (and lets the index prune
+            // candidates before the value predicate runs). An unscoped predicate
+            // guarantees nothing structural.
+            if let step { return [.decisionType(step)] }
+            return []
         }
     }
     
@@ -82,6 +90,9 @@ public struct TraceQueryPlanner: Sendable {
             
         case .contextIDEquals, .engineNameEquals:
             return []
+
+        case .matchingPayload(let step, _):
+            return step.map { [$0] } ?? []
         }
     }
 }

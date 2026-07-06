@@ -190,19 +190,28 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             }
         }
 
-        // Cap BEFORE hydration: matching one full run means N per-run fetches, so
-        // bounding the id list here is what actually saves work on a large corpus,
-        // not trimming the hydrated array afterward.
-        if let limit, limit >= 0 {
+        // A payload predicate can't be pushed into SQL, so the compiled query returns a
+        // candidate SUPERSET; the authoritative filter is the in-process evaluator, run
+        // after hydration. Structural-only queries compile exactly, so they trust the SQL.
+        let needsInProcessFilter = dsl.ast.hasPayloadPredicate
+
+        // Cap BEFORE hydration only when the SQL is exact — bounding the id list is what
+        // saves the N per-run fetches. With a payload predicate the ids are a superset,
+        // so we must hydrate every candidate, refine, then apply the limit afterward.
+        if let limit, limit >= 0, !needsInProcessFilter {
             runIDs = Array(runIDs.prefix(limit))
         }
 
         var runs: [TraceRun<T>] = []
         for idString in runIDs {
             guard let uuid = UUID(uuidString: idString) else { continue }
-            if let run = try await fetchRun(id: uuid) {
-                runs.append(run)
-            }
+            guard let run = try await fetchRun(id: uuid) else { continue }
+            if needsInProcessFilter && !dsl.ast.evaluate(run: run) { continue }
+            runs.append(run)
+        }
+
+        if let limit, limit >= 0, needsInProcessFilter {
+            runs = Array(runs.prefix(limit))
         }
         return runs
     }
