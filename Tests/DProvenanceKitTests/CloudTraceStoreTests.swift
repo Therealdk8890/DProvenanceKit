@@ -2,8 +2,18 @@ import XCTest
 @testable import DProvenanceKit
 
 final class MockURLProtocol: URLProtocol {
-    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-    
+    // The test sets `requestHandler` while URLSession reads it on its own loading
+    // thread, so the storage must be lock-guarded — otherwise it's a data race (which
+    // ThreadSanitizer flags). The `nonisolated(unsafe)` only silences the *compiler*;
+    // the lock is what makes it actually safe.
+    private static let handlerLock = NSLock()
+    nonisolated(unsafe) private static var _requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))? {
+        get { handlerLock.withLock { _requestHandler } }
+        set { handlerLock.withLock { _requestHandler = newValue } }
+    }
+
     override class func canInit(with request: URLRequest) -> Bool {
         return true
     }

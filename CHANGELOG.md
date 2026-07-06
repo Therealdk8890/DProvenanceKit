@@ -7,6 +7,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Bounded queries** — `TraceStore.queryRuns(_:limit:)` returns at most `limit` runs.
+  The SQLite store pushes the bound down so it caps per-run hydration instead of
+  materializing the whole result set on a large corpus.
+
+### Changed
+- **SQLite reads are isolated from writes** — the SQLite store now reads through a
+  dedicated connection. Previously a query could observe the writer's uncommitted rows
+  mid-transaction on the shared connection; with a separate connection, WAL gives reads
+  a committed snapshot. Reads still flush the writer first, so recent records are visible.
+
+### Added (OTel)
 - **OTel error status** — a generation or tool span whose semantics carry an
   `errorType` now exports with OTLP status `ERROR` and an `error.type` attribute, so
   error-rate dashboards can see failures. `GenAIAttributes` gains an `errorType` field,

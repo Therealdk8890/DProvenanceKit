@@ -6,6 +6,13 @@ public protocol TraceStore<T>: Sendable {
     func link(source: UUID, target: UUID, type: TraceEdgeType)
     func flush() async throws
     func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]
+
+    /// Like `queryRuns`, but returns at most `limit` runs (nil = unbounded). Backends
+    /// may push the bound down — the SQLite store caps hydration — so a caller listing
+    /// "the 50 most recent matches" over a large corpus doesn't materialize the whole
+    /// result set.
+    func queryRuns(_ dsl: TraceQueryDSL<T>, limit: Int?) async throws -> [TraceRun<T>]
+
     func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>]
 
     /// A by-tier tally of events shed under congestion, for callers that need to
@@ -39,6 +46,15 @@ public extension TraceStore {
     /// Default implementation for stores that do not quarantine events (e.g., local stores).
     func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
         return []
+    }
+
+    /// Default bound: query in full, then cap. Stores whose query is already cheap
+    /// (the in-memory store) or remote (the cloud stub) use this; the SQLite store
+    /// overrides it to bound hydration before it happens.
+    func queryRuns(_ dsl: TraceQueryDSL<T>, limit: Int?) async throws -> [TraceRun<T>] {
+        let all = try await queryRuns(dsl)
+        guard let limit, limit >= 0 else { return all }
+        return Array(all.prefix(limit))
     }
 
     /// Fallback for third-party stores that predate `getRun`. It fails loudly rather

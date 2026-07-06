@@ -2,6 +2,13 @@ import Foundation
 
 public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked Sendable {
     private let db: SQLiteConnection
+    /// A second connection to the same file, used only for reads. The writer's
+    /// inserts bind/step between BEGIN and COMMIT on `db`, and a reader sharing that
+    /// connection would see its own uncommitted rows mid-transaction. On a separate
+    /// connection, WAL gives the reader a committed snapshot, so a query can never
+    /// observe a half-written batch. Reads flush the writer first, so "committed"
+    /// includes everything recorded before the read.
+    private let readDB: SQLiteConnection
     private let buffer: TraceWriteBuffer
     private let writer: SQLiteWriter
 
@@ -110,7 +117,11 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             """
             try database.execute(reconcileSQL)
         }
-        
+
+        // Opened after the schema is committed so the reader sees the tables; WAL then
+        // keeps it isolated from the writer's in-flight transactions from here on.
+        self.readDB = try SQLiteConnection(fileURL: fileURL)
+
         Task {
             await self.writer.start()
         }
@@ -159,23 +170,33 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     public func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>] {
+        try await queryRuns(dsl, limit: nil)
+    }
+
+    public func queryRuns(_ dsl: TraceQueryDSL<T>, limit: Int?) async throws -> [TraceRun<T>] {
         // Ensure all pending events are flushed before querying so results are accurate
         try await flush()
-        
+
         let compiled = TraceQueryCompiler.compile(node: dsl.ast)
-        let stmt = try db.prepare(compiled.sql)
+        let stmt = try readDB.prepare(compiled.sql)
         for (i, binding) in compiled.bindings.enumerated() {
             try stmt.bind(binding, at: Int32(i + 1))
         }
-        
+
         var runIDs: [String] = []
         while try stmt.step() {
             if let runID = stmt.columnString(at: 0) {
                 runIDs.append(runID)
             }
         }
-        
-        // Hydrate runs
+
+        // Cap BEFORE hydration: matching one full run means N per-run fetches, so
+        // bounding the id list here is what actually saves work on a large corpus,
+        // not trimming the hydrated array afterward.
+        if let limit, limit >= 0 {
+            runIDs = Array(runIDs.prefix(limit))
+        }
+
         var runs: [TraceRun<T>] = []
         for idString in runIDs {
             guard let uuid = UUID(uuidString: idString) else { continue }
@@ -195,14 +216,14 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
 
     private func fetchRun(id: UUID) async throws -> TraceRun<T>? {
         let sql = "SELECT engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
-        let stmt = try db.prepare(sql)
+        let stmt = try readDB.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
         var events: [TraceEvent<T>] = []
         let decoder = JSONDecoder()
         
         // Fetch context_id from the runs table
-        let ctxStmt = try db.prepare("SELECT context_id FROM runs WHERE run_id = ?")
+        let ctxStmt = try readDB.prepare("SELECT context_id FROM runs WHERE run_id = ?")
         try ctxStmt.bind(id.uuidString, at: 1)
         guard try ctxStmt.step(), let contextID = ctxStmt.columnString(at: 0) else {
             return nil
@@ -258,7 +279,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         SELECT source_id, target_id, edge_type FROM lineage_cte;
         """
         
-        let stmt = try db.prepare(sql)
+        let stmt = try readDB.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
         var edges: [TraceEdge] = []
@@ -293,7 +314,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         SELECT source_id, target_id, edge_type FROM impact_cte;
         """
         
-        let stmt = try db.prepare(sql)
+        let stmt = try readDB.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
         var edges: [TraceEdge] = []
@@ -325,7 +346,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         WHERE e.id IN (\(placeholders))
         """
         
-        let stmt = try db.prepare(sql)
+        let stmt = try readDB.prepare(sql)
         for (i, idString) in idStrings.enumerated() {
             try stmt.bind(idString, at: Int32(i + 1))
         }
