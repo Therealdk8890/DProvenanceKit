@@ -75,7 +75,28 @@ public enum DProvenanceKit<T: TraceableEvent> {
             guard source != target else { return }
             store.link(source: source, target: target, type: type)
         }
-        
+
+        /// Records `payload` and links it to the events it was derived from, so the
+        /// lineage/impact/explain graph is populated as you record instead of requiring
+        /// manual UUID bookkeeping. The edge runs parent → new event, matching
+        /// `TraceStore.explain`/`lineageEdges`. Returns the new event's id.
+        @discardableResult
+        public func record(_ payload: T, derivedFrom parents: [UUID],
+                           engineName: String? = nil, type: TraceEdgeType = .derivedFrom) -> UUID {
+            let id = record(payload, engineName: engineName)
+            for parent in parents {
+                link(source: parent, target: id, type: type)
+            }
+            return id
+        }
+
+        /// Single-parent convenience for ``record(_:derivedFrom:engineName:type:)``.
+        @discardableResult
+        public func record(_ payload: T, derivedFrom parent: UUID,
+                           engineName: String? = nil, type: TraceEdgeType = .derivedFrom) -> UUID {
+            record(payload, derivedFrom: [parent], engineName: engineName, type: type)
+        }
+
         public func flush() async throws {
             try await store.flush()
         }
@@ -228,6 +249,35 @@ public enum DProvenanceKit<T: TraceableEvent> {
             return nil
         }
         return run.recordAny(payload, engineName: TraceContext.engineStack.last)
+    }
+
+    /// Records `payload` and links it to the events it was derived from in one call,
+    /// so the lineage/impact/explain graph is built as you record — no manual UUID
+    /// bookkeeping or separate `link` calls. The edge runs parent → new event, the
+    /// direction `TraceStore.explain`/`lineageEdges` expect. Returns the new event's
+    /// id (nil when recording is a soft no-op outside a `run` scope), which you can
+    /// feed as a parent to later derivations.
+    ///
+    /// ```swift
+    /// let doc = DProvenanceKit.record(.documentEvaluated(id: "A", score: 0.9))
+    /// let decision = DProvenanceKit.record(.decisionMade(approved: true), derivedFrom: doc!)
+    /// let graph = try await store.lineage(of: decision!)   // decision ← doc
+    /// ```
+    @discardableResult
+    public static func record(_ payload: T, derivedFrom parents: [UUID],
+                              type: TraceEdgeType = .derivedFrom) -> UUID? {
+        guard let id = record(payload) else { return nil }
+        for parent in parents {
+            link(source: parent, target: id, type: type)
+        }
+        return id
+    }
+
+    /// Single-parent convenience for ``record(_:derivedFrom:type:)``.
+    @discardableResult
+    public static func record(_ payload: T, derivedFrom parent: UUID,
+                              type: TraceEdgeType = .derivedFrom) -> UUID? {
+        record(payload, derivedFrom: [parent], type: type)
     }
 
     public static func link(source: UUID, target: UUID, type: TraceEdgeType) {
