@@ -13,7 +13,7 @@ observability in production tend to need.
 | Tier              | Best for                              | Annual pricing (USD)     | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
 | **Starter**       | Small teams, indie developers         | $2,400 – $6,000          | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), analytics dashboard, up to 5 seats |
+| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), cross-machine lineage graph & analytics dashboard, up to 5 seats |
 | **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom features, on-prem/air-gapped deployment, audit logs, indemnity, SOC 2 / HIPAA-ready documentation, unlimited seats |
 
 **Notes**
@@ -29,11 +29,32 @@ observability in production tend to need.
   gates, monitoring — not the exporter itself.
 
 **What's in the free library (not a paid feature):** the core recording, querying, and
-diff/regression engine, the **FoundationModels adapter** (`DProvenanceFoundationModels`),
-and the **OpenTelemetry / OTLP exporter** (`DProvenanceOTel`) that sends traces to Langfuse,
-an OTel collector, or any OTLP backend. On-device capture and getting your traces *out* to
-the tools you already run are free by design — the paid tiers are the hosted, cross-machine,
-and support layers on top.
+diff/regression engine, **provenance/lineage** (record what each reasoning step was derived
+from, then trace, diff, and export it), the **FoundationModels adapter**
+(`DProvenanceFoundationModels`), and the **OpenTelemetry / OTLP exporter** (`DProvenanceOTel`)
+that sends traces — lineage attributes included — to Langfuse, an OTel collector, or any OTLP
+backend. On-device capture and getting your traces *out* to the tools you already run are free
+by design — the paid tiers are the hosted, cross-machine, and support layers on top.
+
+## How we decide free vs. paid
+
+One line, applied consistently so the boundary never surprises a user or a contributor:
+
+> **The library is free. The service is paid.**
+
+- **Free, always** — anything that runs *in your process, on your machine*: capture, query,
+  diff, regression detection, lineage recording, and exporting your traces to a backend
+  *you* run. Paywalling these would only slow adoption, and adoption is the whole strategy in
+  an empty niche.
+- **Paid** — anything DProvenanceKit runs *for you, across machines*: hosted trace and lineage
+  sharing, a managed CI regression gate, cross-run/cross-machine analytics dashboards,
+  production monitoring, plus support, SLAs, indemnity, and compliance.
+
+The test for any new feature: *does it deliver its value standalone, in the user's own
+process?* If yes, it ships free and widens the top of the funnel. If its value only exists as
+a hosted, multi-machine, or managed service, it belongs in a paid tier. A strong free library
+makes the paid service **more** valuable, not less: the more teams capture and record locally,
+the more they want it shared, gated in CI, and monitored in production.
 
 ## What a commercial agreement includes
 
