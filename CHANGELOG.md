@@ -7,6 +7,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **OTel error status** — a generation or tool span whose semantics carry an
+  `errorType` now exports with OTLP status `ERROR` and an `error.type` attribute, so
+  error-rate dashboards can see failures. `GenAIAttributes` gains an `errorType` field,
+  and the FoundationModels bridge maps `generationError` (chat failures and
+  `execute_tool` failures) accordingly.
+- **OTLP/HTTP gzip** — `OTLPHTTPExporter.Configuration.compression = .gzip` compresses
+  the request body and sets `Content-Encoding: gzip`. Zero-dependency (wraps the OS
+  Compression framework); falls back to uncompressed if compression fails. Default
+  `.none` keeps the prior wire behavior.
 - **`DProvenanceFoundationModelsOTel`** — a bridge target that makes FoundationModels
   traces classify as `gen_ai.*` out of the box when exported through the OTel bridge
   (operation name, provider, request model/temperature/max-tokens, and `execute_tool`

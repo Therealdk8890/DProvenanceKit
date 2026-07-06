@@ -27,6 +27,7 @@ struct GenAIStubEvent: TraceableEvent, OTelSemanticsProviding {
     var tool: String? = nil
     var inputTokens: Int64? = 11
     var outputTokens: Int64? = 29
+    var errorType: String? = nil
     var explicitName: String? = nil
 
     var otelSemantics: GenAIAttributes? {
@@ -36,7 +37,8 @@ struct GenAIStubEvent: TraceableEvent, OTelSemanticsProviding {
             toolName: tool,
             providerName: "anthropic",
             usageInputTokens: inputTokens,
-            usageOutputTokens: outputTokens
+            usageOutputTokens: outputTokens,
+            errorType: errorType
         )
     }
     var otelEventName: String? { explicitName }

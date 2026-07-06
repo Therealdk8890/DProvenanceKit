@@ -36,6 +36,9 @@ enum GenAISemconvAttribute {
     static let providerName      = "gen_ai.provider.name"
     static let usageInputTokens  = "gen_ai.usage.input_tokens"
     static let usageOutputTokens = "gen_ai.usage.output_tokens"
+    /// OTel general semconv attribute (not gen_ai-namespaced): the type of a
+    /// failed operation. Its presence also drives the span's ERROR status.
+    static let errorType         = "error.type"
 
     /// The one `operation.name` whose promoted span is `INTERNAL` rather than
     /// `CLIENT` (tool execution happens in-process; inference calls out).
@@ -54,6 +57,10 @@ public struct GenAIAttributes: Sendable, Equatable {
     public var providerName: String?
     public var usageInputTokens: Int64?
     public var usageOutputTokens: Int64?
+    /// When set, this operation failed: the value is emitted as `error.type` and
+    /// the promoted (or containing) span is marked with OTLP status ERROR, so
+    /// error-rate dashboards can see it. Nil = success/unset.
+    public var errorType: String?
     /// Appended after the fixed-order gen_ai set, in caller order. Cannot
     /// express arrays/kvlists (v1 limitation of `OTLPAnyValue`).
     public var extra: [OTLPKeyValue]
@@ -61,7 +68,8 @@ public struct GenAIAttributes: Sendable, Equatable {
     public init(operationName: String? = nil, requestModel: String? = nil,
                 responseModel: String? = nil, toolName: String? = nil,
                 providerName: String? = nil, usageInputTokens: Int64? = nil,
-                usageOutputTokens: Int64? = nil, extra: [OTLPKeyValue] = []) {
+                usageOutputTokens: Int64? = nil, errorType: String? = nil,
+                extra: [OTLPKeyValue] = []) {
         self.operationName = operationName
         self.requestModel = requestModel
         self.responseModel = responseModel
@@ -69,12 +77,13 @@ public struct GenAIAttributes: Sendable, Equatable {
         self.providerName = providerName
         self.usageInputTokens = usageInputTokens
         self.usageOutputTokens = usageOutputTokens
+        self.errorType = errorType
         self.extra = extra
     }
 
     /// Fixed emission order (mapping rule M6): operation.name, request.model,
     /// response.model, tool.name, provider.name, usage.input_tokens,
-    /// usage.output_tokens, then `extra` — pinned so re-exports are
+    /// usage.output_tokens, error.type, then `extra` — pinned so re-exports are
     /// byte-identical.
     var keyValues: [OTLPKeyValue] {
         var out: [OTLPKeyValue] = []
@@ -98,6 +107,9 @@ public struct GenAIAttributes: Sendable, Equatable {
         }
         if let usageOutputTokens {
             out.append(.int(GenAISemconvAttribute.usageOutputTokens, usageOutputTokens))
+        }
+        if let errorType {
+            out.append(.string(GenAISemconvAttribute.errorType, errorType))
         }
         out.append(contentsOf: extra)
         return out
