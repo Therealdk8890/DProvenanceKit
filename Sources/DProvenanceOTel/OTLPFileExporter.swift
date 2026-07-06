@@ -20,7 +20,11 @@ public struct OTLPFileExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
     }
 
     public func export(_ runs: [TraceRun<T>]) async throws -> OTelExportReceipt {
-        let mapped = mapper.mapped(for: runs)
+        try await export(runs, lineageEdges: [])
+    }
+
+    public func export(_ runs: [TraceRun<T>], lineageEdges: [TraceEdge]) async throws -> OTelExportReceipt {
+        let mapped = mapper.mapped(for: runs, lineageEdges: lineageEdges)
 
         let data: Data
         do {

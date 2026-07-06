@@ -154,7 +154,8 @@ All keys live in `DPKOTelAttribute` — dashboards should reference the constant
 | Attribute | Where | Meaning |
 | --------- | ----- | ------- |
 | `dpk.run_id`, `dpk.context_id`, `dpk.schema_version`, `dpk.event_count` | root span | Run identity |
-| `dpk.type_identifier`, `dpk.sequence`, `dpk.priority`, `dpk.engine` | span events | Event envelope |
+| `dpk.type_identifier`, `dpk.sequence`, `dpk.priority`, `dpk.engine`, `dpk.event_id` | span events | Event envelope (`dpk.event_id` = the recorded `TraceEvent.id`, the lineage join key) |
+| `dpk.derived_from`, `dpk.derived_from.type` | span events | Lineage: comma-joined direct-parent event ids (sorted) and their edge types, index-aligned. Present only when the event has parents. |
 | `dpk.payload`, `dpk.payload_truncated`, `dpk.payload_error` | span events | Re-encoded payload JSON; truncation/encode-failure flags |
 | `dpk.span_id`, `dpk.parent_span_id` | child spans | Original DPK span strings (survive any `childSpanName` override) |
 | `dpk.synthesized`, `dpk.parent_conflict` | child spans | Structural repair flags |
@@ -168,6 +169,10 @@ Mirror the store's drop tally onto the resource so the backend can see whether a
 var options = OTelExportOptions<MyAIDecision>()
 options.dropStats = store.dropStats   // store-scoped snapshot at export time
 ```
+
+### Lineage
+
+Edges recorded with `record(_:derivedFrom:)` / `link(...)` are exported as attributes: the derived event's span (or span-event) carries `dpk.derived_from` (its direct parents' `dpk.event_id`s) and `dpk.derived_from.type`. Attributes — not OTLP span links — are the representation because they carry **every** edge over the run-independent `TraceEvent.id`, regardless of gen_ai promotion, request chunking, or cross-run references (a span link could only connect the promoted-event subset). The `DProvenanceOTelExport.export` convenience fetches the edges for you and degrades gracefully if a store can't traverse them. Native OTLP span links for the promoted↔promoted subset are a planned addition on top of this.
 
 ## GenAI semantic conventions
 

@@ -17,7 +17,7 @@ final class OTelAttributeMappingTests: XCTestCase {
 
         let attributes = try XCTUnwrap(event["attributes"] as? [[String: Any]])
         XCTAssertEqual(attributeKeyList(attributes),
-                       ["dpk.type_identifier", "dpk.sequence", "dpk.priority", "dpk.engine", "dpk.payload"])
+                       ["dpk.type_identifier", "dpk.sequence", "dpk.priority", "dpk.engine", "dpk.event_id", "dpk.payload"])
         XCTAssertEqual(stringAttribute(attributes, "dpk.type_identifier"), "decision.made")
         XCTAssertEqual(attributeValue(attributes, "dpk.sequence")?["intValue"] as? String, "3")
         XCTAssertEqual(stringAttribute(attributes, "dpk.priority"), "critical")
