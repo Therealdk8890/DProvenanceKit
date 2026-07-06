@@ -33,17 +33,29 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
     /// Implements mapping rules M1–M9, including synthesized parents,
     /// parent-conflict/cycle resolution, GenAI promotion, and the total
     /// ordering contract (M7). Never throws (M8 payload-error path).
-    public func document(for runs: [TraceRun<T>]) -> OTLPTraceDocument {
-        mapped(for: runs).document
+    public func document(for runs: [TraceRun<T>], lineageEdges: [TraceEdge] = []) -> OTLPTraceDocument {
+        mapped(for: runs, lineageEdges: lineageEdges).document
     }
 
-    /// Single-run building block; empty for a zero-event run.
-    public func spans(for run: TraceRun<T>) -> [OTLPSpan] {
+    /// Maps a run's events to spans. `lineageEdges` is the DIRECT-edge set (the caller
+    /// filters the store's transitive closure); edges whose target is one of this run's
+    /// events surface as `dpk.derived_from` on the target's span/span-event. Passing an
+    /// empty edge set reproduces the prior, lineage-free output byte-for-byte apart from
+    /// the always-present `dpk.event_id` join key.
+    public func spans(for run: TraceRun<T>, lineageEdges: [TraceEdge] = []) -> [OTLPSpan] {
         guard !run.events.isEmpty else { return [] }
 
         // Sequence is the authoritative causal clock; sorting here makes the
         // mapping insensitive to the input array's order (M7).
         let events = run.events.sorted { $0.sequence < $1.sequence }
+
+        // Direct parents of each in-run event, for `dpk.derived_from`. Restricting to
+        // this run's events as targets keeps cross-run edges on the correct document.
+        let eventIDs = Set(events.map { $0.id })
+        var directParents: [UUID: [(source: UUID, type: TraceEdgeType)]] = [:]
+        for edge in lineageEdges where eventIDs.contains(edge.targetID) {
+            directParents[edge.targetID, default: []].append((edge.sourceID, edge.type))
+        }
 
         let traceId = OTelTraceIdentity.traceID(forRun: run.runID)
         let rootSpanId = OTelTraceIdentity.rootSpanID(forRun: run.runID)
@@ -155,7 +167,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             isRoot: true,
             span: rootSpan(run: run, events: events, rootMembers: rootMembers,
                            traceId: traceId, rootSpanId: rootSpanId,
-                           envelope: rootEnvelope)
+                           envelope: rootEnvelope, directParents: directParents)
         ))
 
         for id in groupOrder {
@@ -167,7 +179,8 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
                 spanIdHex: spanId,
                 isRoot: false,
                 span: childSpan(group: group, run: run, traceId: traceId,
-                                rootSpanId: rootSpanId, spanId: spanId, envelope: env)
+                                rootSpanId: rootSpanId, spanId: spanId, envelope: env,
+                                directParents: directParents)
             ))
         }
 
@@ -197,7 +210,8 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
                 orderKey: r.event.sequence,
                 spanIdHex: spanId,
                 isRoot: false,
-                span: promotedSpan(r, traceId: traceId, parentSpanId: parentSpanId, spanId: spanId)
+                span: promotedSpan(r, traceId: traceId, parentSpanId: parentSpanId,
+                                   spanId: spanId, directParents: directParents)
             ))
         }
 
@@ -222,7 +236,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
         var traceIDsByRun: [UUID: String]
     }
 
-    func mapped(for runs: [TraceRun<T>]) -> MappedRuns {
+    func mapped(for runs: [TraceRun<T>], lineageEdges: [TraceEdge] = []) -> MappedRuns {
         var allSpans: [OTLPSpan] = []
         var runsExported = 0
         var runsSkipped = 0
@@ -231,7 +245,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
         // Runs stay in caller order (M7); the store convenience is
         // responsible for sorting store-supplied runs.
         for run in runs {
-            let runSpans = spans(for: run)
+            let runSpans = spans(for: run, lineageEdges: lineageEdges)
             guard !runSpans.isEmpty else {
                 runsSkipped += 1
                 continue
@@ -263,6 +277,10 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
     }
 
     // MARK: - Private structure
+
+    /// Direct parents of an event (target id → its [(source id, edge type)]), used to
+    /// emit `dpk.derived_from`. Built per run from the caller's direct-edge set.
+    private typealias DirectParents = [UUID: [(source: UUID, type: TraceEdgeType)]]
 
     private struct ResolvedEvent {
         let event: TraceEvent<T>
@@ -350,7 +368,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
     private func rootSpan(run: TraceRun<T>, events: [TraceEvent<T>],
                           rootMembers: [ResolvedEvent],
                           traceId: String, rootSpanId: String,
-                          envelope: Envelope) -> OTLPSpan {
+                          envelope: Envelope, directParents: DirectParents) -> OTLPSpan {
         var name = options.rootSpanName(run)
         if name.isEmpty {
             name = "run " + traceId.prefix(8)
@@ -376,14 +394,14 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             startTimeUnixNano: OTLPTimestamp.unixNano(bounds.start),
             endTimeUnixNano: OTLPTimestamp.unixNano(bounds.end),
             attributes: attributes,
-            events: rootMembers.filter { !$0.promoted }.map(spanEvent(for:)),
+            events: rootMembers.filter { !$0.promoted }.map { spanEvent(for: $0, directParents: directParents) },
             status: options.rootStatus?(run) ?? .unset
         )
     }
 
     private func childSpan(group: Group, run: TraceRun<T>, traceId: String,
                            rootSpanId: String, spanId: String,
-                           envelope: Envelope) -> OTLPSpan {
+                           envelope: Envelope, directParents: DirectParents) -> OTLPSpan {
         let parentSpanId: String
         if let parent = group.resolvedParent {
             parentSpanId = OTelTraceIdentity.spanID(forRun: run.runID, dpkSpanID: parent)
@@ -426,7 +444,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             startTimeUnixNano: OTLPTimestamp.unixNano(bounds.start),
             endTimeUnixNano: OTLPTimestamp.unixNano(bounds.end),
             attributes: attributes,
-            events: group.members.filter { !$0.promoted }.map(spanEvent(for:)),
+            events: group.members.filter { !$0.promoted }.map { spanEvent(for: $0, directParents: directParents) },
             status: errorType.map(OTLPStatus.error) ?? .unset
         )
     }
@@ -453,7 +471,8 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
     }
 
     private func promotedSpan(_ r: ResolvedEvent, traceId: String,
-                              parentSpanId: String, spanId: String) -> OTLPSpan {
+                              parentSpanId: String, spanId: String,
+                              directParents: DirectParents) -> OTLPSpan {
         let semantics = r.semantics ?? GenAIAttributes()
         let isToolOp = semantics.operationName == GenAISemconvAttribute.executeToolOperation
 
@@ -477,7 +496,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             kind: isToolOp ? .internal : .client,
             startTimeUnixNano: time,
             endTimeUnixNano: time,
-            attributes: semantics.keyValues + eventEnvelopeAttributes(for: r.event),
+            attributes: semantics.keyValues + eventEnvelopeAttributes(for: r.event, directParents: directParents),
             events: [],
             // A generation/tool span that carries an error type is a failure;
             // marking it ERROR is what lets error-rate dashboards see it.
@@ -487,14 +506,14 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
 
     // MARK: - Span events and attributes
 
-    private func spanEvent(for r: ResolvedEvent) -> OTLPSpanEvent {
+    private func spanEvent(for r: ResolvedEvent, directParents: DirectParents) -> OTLPSpanEvent {
         // With .attachedToEventOnly the gen_ai set leads, mirroring the
         // promoted-span attribute order (M6).
         var attributes: [OTLPKeyValue] = []
         if let semantics = r.semantics, options.genAIPromotion == .attachedToEventOnly {
             attributes.append(contentsOf: semantics.keyValues)
         }
-        attributes.append(contentsOf: eventEnvelopeAttributes(for: r.event))
+        attributes.append(contentsOf: eventEnvelopeAttributes(for: r.event, directParents: directParents))
         return OTLPSpanEvent(
             timeUnixNano: OTLPTimestamp.unixNano(r.event.timestamp),
             name: r.eventName ?? r.event.payload.typeIdentifier,
@@ -502,15 +521,29 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
         )
     }
 
-    /// The full dpk.* event envelope (M8), fixed order: type_identifier,
-    /// sequence, priority, engine, then the payload policy's attributes.
-    private func eventEnvelopeAttributes(for event: TraceEvent<T>) -> [OTLPKeyValue] {
+    /// The full dpk.* event envelope (M8), fixed order: type_identifier, sequence,
+    /// priority, engine, event_id, then lineage (derived_from/.type when the event has
+    /// direct parents), then the payload policy's attributes. `event_id` is always
+    /// present so `dpk.derived_from` UUIDs can be resolved to the spans that carry them.
+    private func eventEnvelopeAttributes(for event: TraceEvent<T>,
+                                         directParents: DirectParents) -> [OTLPKeyValue] {
         var attributes: [OTLPKeyValue] = [
             .string(DPKOTelAttribute.typeIdentifier, event.payload.typeIdentifier),
             .int(DPKOTelAttribute.sequence, Int64(clamping: event.sequence)),
             .string(DPKOTelAttribute.priority, priorityName(event.payload.priority)),
             .string(DPKOTelAttribute.engine, event.engineName),
+            .string(DPKOTelAttribute.eventID, event.id.uuidString),
         ]
+        if let parents = directParents[event.id], !parents.isEmpty {
+            // Deterministic (M7): sort by source uuid (lowercased); the type list is
+            // index-aligned to the same order. OTLPAnyValue has no array case, so both
+            // are comma-joined strings.
+            let sorted = parents.sorted { $0.source.uuidString.lowercased() < $1.source.uuidString.lowercased() }
+            attributes.append(.string(DPKOTelAttribute.derivedFrom,
+                                      sorted.map { $0.source.uuidString }.joined(separator: ",")))
+            attributes.append(.string(DPKOTelAttribute.derivedFromType,
+                                      sorted.map { $0.type.rawValue }.joined(separator: ",")))
+        }
         attributes.append(contentsOf: payloadAttributes(for: event.payload))
         return attributes
     }

@@ -13,10 +13,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and same-rule runs still diff equal; a masked field is a distinct identity from an
   unmasked capture (different content). Includes a `.commonPII` preset; invalid patterns
   are skipped, never fatal. Default `nil` = exact prior behavior.
+- **Payload-value queries** — `TraceQueryDSL.matching(step:where:)` filters runs by event
+  payload *content* (`score < 0.5`, `approved == false`), not just which steps ran —
+  closing the biggest query gap vs. Langfuse/LangSmith. The predicate is a Swift closure
+  evaluated in-process, so the in-memory and SQLite stores agree by construction (SQLite
+  hydrates a candidate superset, then applies the same evaluator); it's unsupported by the
+  cloud query (encoding throws rather than silently dropping the filter). Also adds
+  `TraceQueryDSL.excluding(_:)` to negate a sub-query.
 - **`record(_:derivedFrom:)`** — records an event and wires its lineage edge(s) in one
   call (single parent or an array; custom `TraceEdgeType`, default `.derivedFrom`), on
   both `DProvenanceKit` (ambient run) and `ActiveTraceRun`. The shipped
   `lineage`/`impact`/`explain` graph is now reachable without manual UUID bookkeeping.
+- **OTel lineage export** — lineage edges now surface in the OTLP export as
+  `dpk.derived_from` (comma-joined direct-parent event ids) + `dpk.derived_from.type` on
+  the derived event's span/span-event, with `dpk.event_id` on every event as the join
+  key. Attributes carry 100% of edges regardless of gen_ai promotion, chunking, or
+  cross-run references. The store `export` convenience fetches edges and is fault-tolerant
+  (a store that can't traverse — e.g. the cloud stub — degrades to no lineage rather than
+  failing the export). Determinism (M7) is preserved: `dpk.derived_from` is sorted by
+  source id. (OTLP span *links* for the promoted↔promoted subset are a planned follow-up.)
 - **Bounded queries** — `TraceStore.queryRuns(_:limit:)` returns at most `limit` runs.
   The SQLite store pushes the bound down so it caps per-run hydration instead of
   materializing the whole result set on a large corpus.
@@ -26,6 +41,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dedicated connection. Previously a query could observe the writer's uncommitted rows
   mid-transaction on the shared connection; with a separate connection, WAL gives reads
   a committed snapshot. Reads still flush the writer first, so recent records are visible.
+
+### Fixed
+- **SQLite preserves `TraceEvent.id` on read** — `getRun`/`queryRuns` were minting a fresh
+  UUID for each hydrated event instead of restoring the recorded id, so id-based joins
+  (and the new lineage export) wouldn't line up for SQLite-backed runs.
 
 ### Added (OTel)
 - **OTel error status** — a generation or tool span whose semantics carry an

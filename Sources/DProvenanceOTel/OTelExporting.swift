@@ -48,6 +48,17 @@ public enum OTelExportError: Error, Sendable, Equatable {
 public protocol OTelTraceExporter<T>: Sendable {
     associatedtype T: TraceableEvent
     func export(_ runs: [TraceRun<T>]) async throws -> OTelExportReceipt
+
+    /// Export with lineage edges surfaced on the target events' spans as
+    /// `dpk.derived_from`. The default ignores edges, so existing conformers and the
+    /// plain `export(_:)` path keep working with no lineage.
+    func export(_ runs: [TraceRun<T>], lineageEdges: [TraceEdge]) async throws -> OTelExportReceipt
+}
+
+public extension OTelTraceExporter {
+    func export(_ runs: [TraceRun<T>], lineageEdges: [TraceEdge]) async throws -> OTelExportReceipt {
+        try await export(runs)
+    }
 }
 
 /// Store-level convenience: query, order deterministically, export.
@@ -70,7 +81,38 @@ public enum DProvenanceOTelExport {
             if timeA != timeB { return timeA < timeB }
             return a.runID.uuidString.lowercased() < b.runID.uuidString.lowercased()
         }
-        return try await exporter.export(runs)
+
+        let lineageEdges = await directLineageEdges(from: store, runs: runs)
+        return try await exporter.export(runs, lineageEdges: lineageEdges)
+    }
+
+    /// Direct lineage edges among the exported runs' events, canonically sorted.
+    /// `lineageEdges(of:)` returns the full transitive closure, so we keep only edges
+    /// whose TARGET is one of the exported events (direct parents). The per-event fetch
+    /// is `try?` so a store that can't traverse (e.g. `CloudTraceStore` throws
+    /// `notImplemented`) degrades to no lineage instead of failing the whole export.
+    private static func directLineageEdges<Store: TraceStore>(
+        from store: Store, runs: [TraceRun<Store.T>]
+    ) async -> [TraceEdge] {
+        let inBatchIDs = Set(runs.flatMap { $0.events.map(\.id) })
+        guard !inBatchIDs.isEmpty else { return [] }
+
+        var edges = Set<TraceEdge>()
+        for id in inBatchIDs {
+            guard let reachable = try? await store.lineageEdges(of: id) else { continue }
+            for edge in reachable where inBatchIDs.contains(edge.targetID) {
+                edges.insert(edge)
+            }
+        }
+        return edges.sorted { a, b in
+            if a.targetID != b.targetID {
+                return a.targetID.uuidString.lowercased() < b.targetID.uuidString.lowercased()
+            }
+            if a.sourceID != b.sourceID {
+                return a.sourceID.uuidString.lowercased() < b.sourceID.uuidString.lowercased()
+            }
+            return a.type.rawValue < b.type.rawValue
+        }
     }
 
     /// "First event" by the causal clock, not array position — hand-assembled

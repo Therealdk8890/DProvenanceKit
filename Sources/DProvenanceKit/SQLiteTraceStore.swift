@@ -190,19 +190,28 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             }
         }
 
-        // Cap BEFORE hydration: matching one full run means N per-run fetches, so
-        // bounding the id list here is what actually saves work on a large corpus,
-        // not trimming the hydrated array afterward.
-        if let limit, limit >= 0 {
+        // A payload predicate can't be pushed into SQL, so the compiled query returns a
+        // candidate SUPERSET; the authoritative filter is the in-process evaluator, run
+        // after hydration. Structural-only queries compile exactly, so they trust the SQL.
+        let needsInProcessFilter = dsl.ast.hasPayloadPredicate
+
+        // Cap BEFORE hydration only when the SQL is exact — bounding the id list is what
+        // saves the N per-run fetches. With a payload predicate the ids are a superset,
+        // so we must hydrate every candidate, refine, then apply the limit afterward.
+        if let limit, limit >= 0, !needsInProcessFilter {
             runIDs = Array(runIDs.prefix(limit))
         }
 
         var runs: [TraceRun<T>] = []
         for idString in runIDs {
             guard let uuid = UUID(uuidString: idString) else { continue }
-            if let run = try await fetchRun(id: uuid) {
-                runs.append(run)
-            }
+            guard let run = try await fetchRun(id: uuid) else { continue }
+            if needsInProcessFilter && !dsl.ast.evaluate(run: run) { continue }
+            runs.append(run)
+        }
+
+        if let limit, limit >= 0, needsInProcessFilter {
+            runs = Array(runs.prefix(limit))
         }
         return runs
     }
@@ -215,31 +224,36 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
 
     private func fetchRun(id: UUID) async throws -> TraceRun<T>? {
-        let sql = "SELECT engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
+        // Select `id` too: the recorded TraceEvent.id must survive the round-trip, or a
+        // fresh UUID is minted on read and lineage edges (keyed on the original id) and
+        // the exported dpk.event_id no longer line up.
+        let sql = "SELECT id, engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
         let stmt = try readDB.prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
-        
+
         var events: [TraceEvent<T>] = []
         let decoder = JSONDecoder()
-        
+
         // Fetch context_id from the runs table
         let ctxStmt = try readDB.prepare("SELECT context_id FROM runs WHERE run_id = ?")
         try ctxStmt.bind(id.uuidString, at: 1)
         guard try ctxStmt.step(), let contextID = ctxStmt.columnString(at: 0) else {
             return nil
         }
-        
+
         while try stmt.step() {
-            let engine = stmt.columnString(at: 0)
-            let spanID = stmt.columnString(at: 1)
-            let parentSpanID = stmt.columnString(at: 2)
-            _ = stmt.columnString(at: 3) // type
-            let payloadData = stmt.columnData(at: 4)
-            let timestampMs = stmt.columnInt64(at: 5)
-            let sequence = UInt64(stmt.columnInt64(at: 6))
-            
+            let eventID = stmt.columnString(at: 0).flatMap(UUID.init(uuidString:)) ?? UUID()
+            let engine = stmt.columnString(at: 1)
+            let spanID = stmt.columnString(at: 2)
+            let parentSpanID = stmt.columnString(at: 3)
+            _ = stmt.columnString(at: 4) // type
+            let payloadData = stmt.columnData(at: 5)
+            let timestampMs = stmt.columnInt64(at: 6)
+            let sequence = UInt64(stmt.columnInt64(at: 7))
+
             if let payload = try? decoder.decode(T.self, from: payloadData) {
                 let event = TraceEvent(
+                    id: eventID,
                     runID: id,
                     contextID: contextID,
                     engineName: engine ?? "Unknown",

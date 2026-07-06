@@ -16,6 +16,9 @@ public enum DPKOTelAttribute {
     public static let payloadError     = "dpk.payload_error"     // "encoding_failed"
     public static let spanID           = "dpk.span_id"           // original DPK span id
     public static let parentSpanID     = "dpk.parent_span_id"    // original DPK parent id
+    public static let eventID          = "dpk.event_id"          // this event's TraceEvent.id — the lineage join key
+    public static let derivedFrom      = "dpk.derived_from"      // comma-joined source event ids (direct parents)
+    public static let derivedFromType  = "dpk.derived_from.type" // comma-joined TraceEdgeType, index-aligned to derived_from
     public static let synthesized      = "dpk.synthesized"       // parent had no events
     public static let parentConflict   = "dpk.parent_conflict"   // self-parent/disagreement/cycle
     public static let eventCount       = "dpk.event_count"
