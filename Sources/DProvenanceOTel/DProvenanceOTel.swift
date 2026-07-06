@@ -46,7 +46,7 @@ import DProvenanceKit
 /// scope so backends can attribute spans to this bridge.
 public enum OTelBridge {
     public static let scopeName = "dprovenancekit-otel"
-    public static let version = "0.1.0"
+    public static let version = "0.2.0"
 
     /// Version tag of the deterministic ID derivation scheme (`OTelTraceIdentity`).
     /// Bumping it changes every derived trace/span id, so it only moves when the
