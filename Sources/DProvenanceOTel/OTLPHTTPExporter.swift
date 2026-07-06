@@ -90,6 +90,10 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
     }
 
     public func export(_ runs: [TraceRun<T>]) async throws -> OTelExportReceipt {
+        try await export(runs, lineageEdges: [])
+    }
+
+    public func export(_ runs: [TraceRun<T>], lineageEdges: [TraceEdge]) async throws -> OTelExportReceipt {
         let url = try normalizedEndpoint()
 
         let nonEmptyRuns = runs.filter { !$0.events.isEmpty }
@@ -103,7 +107,10 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
             let chunk = Array(nonEmptyRuns[index..<min(index + chunkSize, nonEmptyRuns.count)])
             index += chunkSize
 
-            let mapped = mapper.mapped(for: chunk)
+            // Same edge set to each chunk; the mapper keeps only edges whose target is
+            // in the chunk's runs, so a cross-run edge attaches in whichever chunk holds
+            // its target event.
+            let mapped = mapper.mapped(for: chunk, lineageEdges: lineageEdges)
             let data: Data
             do {
                 data = try OTLPJSON.encode(mapped.document, deterministic: true)

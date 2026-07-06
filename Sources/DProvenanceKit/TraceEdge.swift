@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TraceEdgeType: String, Codable, Sendable, Equatable {
+public enum TraceEdgeType: String, Codable, Sendable, Equatable, Hashable {
     case derivedFrom
     case influencedBy
     case generatedFrom
@@ -9,7 +9,7 @@ public enum TraceEdgeType: String, Codable, Sendable, Equatable {
     case informed
 }
 
-public struct TraceEdge: Sendable, Codable, Equatable {
+public struct TraceEdge: Sendable, Codable, Equatable, Hashable {
     public let sourceID: UUID
     public let targetID: UUID
     public let type: TraceEdgeType
