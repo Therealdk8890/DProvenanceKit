@@ -135,7 +135,15 @@ Compare runs across both structural shape and payload semantics to catch subtle 
 
 ```swift
 let detector = AnomalyDetector(store: store)
-let anomalies = try await detector.detectAnomalies(rules: [UnverifiedConflictRule()])
+
+// Batteries-included rule: flag any run that detected a conflict but never
+// evaluated a document to support it. Or conform your own type to `AnomalyRule`.
+let rule = MissingSupportRule<MyAIDecision>(
+    name: "UnsupportedConflict",
+    whenPresent: "conflictDetected",
+    isMissing: "documentEvaluated"
+)
+let anomalies = try await detector.detectAnomalies(rules: [rule])
 ```
 
 ```
