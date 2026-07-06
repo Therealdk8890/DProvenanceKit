@@ -7,6 +7,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Content-aware redaction** — `FMRedactor` masks sensitive substrings *inside* a field
+  (SSN, email, …) via regex rules, set on `FMRedactionPolicy.redactor`. Masking runs
+  before the field's mode and is deterministic, so live/post-hoc capture stay byte-equal
+  and same-rule runs still diff equal; a masked field is a distinct identity from an
+  unmasked capture (different content). Includes a `.commonPII` preset; invalid patterns
+  are skipped, never fatal. Default `nil` = exact prior behavior.
 - **`record(_:derivedFrom:)`** — records an event and wires its lineage edge(s) in one
   call (single parent or an array; custom `TraceEdgeType`, default `.derivedFrom`), on
   both `DProvenanceKit` (ambient run) and `ActiveTraceRun`. The shipped

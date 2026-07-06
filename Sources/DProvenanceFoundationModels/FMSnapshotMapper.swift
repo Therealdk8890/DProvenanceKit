@@ -77,7 +77,7 @@ extension FMSnapshotMapper {
             case .instructions(let text, let toolNames, let toolDescriptions):
                 guard configuration.recordInstructions else { break }
                 let payload = FMInstructionsPayload(
-                    content: FMRedactedText(text, redaction: policy.instructionsContent),
+                    content: FMRedactedText(text, redaction: policy.instructionsContent, redactor: policy.redactor),
                     toolNames: toolNames,
                     toolDescriptions: toolDescriptions
                 )
@@ -93,7 +93,7 @@ extension FMSnapshotMapper {
                 callCounts = [:]
                 outputCounts = [:]
                 let payload = FMPromptPayload(
-                    content: FMRedactedText(text, redaction: policy.promptContent),
+                    content: FMRedactedText(text, redaction: policy.promptContent, redactor: policy.redactor),
                     options: options,
                     responseFormatName: responseFormatName,
                     turnIndex: turn
@@ -109,7 +109,7 @@ extension FMSnapshotMapper {
                     callCounts[call.toolName] = k + 1
                     let payload = FMToolCallPayload(
                         toolName: call.toolName,
-                        arguments: FMRedactedText(call.argumentsJSON, redaction: policy.toolArguments),
+                        arguments: FMRedactedText(call.argumentsJSON, redaction: policy.toolArguments, redactor: policy.redactor),
                         turnIndex: activeTurn(),
                         invocationIndex: k
                     )
@@ -127,7 +127,7 @@ extension FMSnapshotMapper {
                 outputCounts[toolName] = k + 1
                 let payload = FMToolOutputPayload(
                     toolName: toolName,
-                    content: FMRedactedText(text, redaction: policy.toolOutput),
+                    content: FMRedactedText(text, redaction: policy.toolOutput, redactor: policy.redactor),
                     isError: false,
                     turnIndex: activeTurn(),
                     invocationIndex: k
@@ -142,7 +142,7 @@ extension FMSnapshotMapper {
 
             case .response(let text, let assetIDCount):
                 let payload = FMResponsePayload(
-                    content: FMRedactedText(text, redaction: policy.responseContent),
+                    content: FMRedactedText(text, redaction: policy.responseContent, redactor: policy.redactor),
                     assetIDCount: assetIDCount,
                     turnIndex: activeTurn()
                 )
@@ -154,7 +154,7 @@ extension FMSnapshotMapper {
             case .unknown(let description):
                 let turn = currentTurn ?? (startingTurnIndex > 0 ? startingTurnIndex - 1 : nil)
                 let payload = FMUnknownEntryPayload(
-                    kindDescription: FMRedactedText(description, redaction: policy.errorMessages),
+                    kindDescription: FMRedactedText(description, redaction: policy.errorMessages, redactor: policy.redactor),
                     turnIndex: turn
                 )
                 let spanPath = turn.map { [FMSpanPath.turn($0, sessionLabel: label)] } ?? []

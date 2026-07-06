@@ -418,7 +418,7 @@ public final class TracedLanguageModelSession: Sendable {
             let bridged = FMTranscriptBridge.bridge([entry])
             if case .instructions(let text, let toolNames, let toolDescriptions) = bridged.snapshot.entries.first {
                 let delivered = context.record(.instructions(FMInstructionsPayload(
-                    content: FMRedactedText(text, redaction: configuration.redaction.instructionsContent),
+                    content: FMRedactedText(text, redaction: configuration.redaction.instructionsContent, redactor: configuration.redaction.redactor),
                     toolNames: toolNames,
                     toolDescriptions: toolDescriptions
                 )), spanPath: [])
@@ -495,7 +495,7 @@ public final class TracedLanguageModelSession: Sendable {
         spanName: String
     ) {
         let payload = FMPromptPayload(
-            content: FMRedactedText(text, redaction: configuration.redaction.promptContent),
+            content: FMRedactedText(text, redaction: configuration.redaction.promptContent, redactor: configuration.redaction.redactor),
             options: FMGenerationOptionsSnapshot(bridging: options),
             responseFormatName: responseFormatName,
             turnIndex: turnIndex
