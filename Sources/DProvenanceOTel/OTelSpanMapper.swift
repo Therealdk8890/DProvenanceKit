@@ -409,6 +409,13 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             attributes.append(.bool(DPKOTelAttribute.parentConflict, true))
         }
 
+        // If an error event is attached to this span (rather than promoted to its
+        // own span), the containing span should still surface the failure. Use the
+        // first error member in sequence order for a deterministic status.
+        let errorType = group.members
+            .first { !$0.promoted && $0.semantics?.errorType != nil }?
+            .semantics?.errorType
+
         let bounds = envelope.clamped
         return OTLPSpan(
             traceId: traceId,
@@ -420,7 +427,7 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             endTimeUnixNano: OTLPTimestamp.unixNano(bounds.end),
             attributes: attributes,
             events: group.members.filter { !$0.promoted }.map(spanEvent(for:)),
-            status: .unset
+            status: errorType.map(OTLPStatus.error) ?? .unset
         )
     }
 
@@ -472,7 +479,9 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
             endTimeUnixNano: time,
             attributes: semantics.keyValues + eventEnvelopeAttributes(for: r.event),
             events: [],
-            status: .unset
+            // A generation/tool span that carries an error type is a failure;
+            // marking it ERROR is what lets error-rate dashboards see it.
+            status: semantics.errorType.map(OTLPStatus.error) ?? .unset
         )
     }
 

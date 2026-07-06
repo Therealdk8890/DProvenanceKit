@@ -233,4 +233,36 @@ final class OTelSpanMapperTests: XCTestCase {
         let traceIDs = Set(spans.compactMap { $0["traceId"] as? String })
         XCTAssertEqual(traceIDs.count, 2)
     }
+
+    // MARK: - Error status (M6 error path)
+
+    private func stringAttr(_ span: OTLPSpan, _ key: String) -> String? {
+        for kv in span.attributes where kv.key == key {
+            if case .string(let s) = kv.value { return s }
+        }
+        return nil
+    }
+
+    /// A promoted gen_ai span whose semantics carry an errorType must be marked
+    /// OTLP status ERROR (code 2) and carry `error.type`, so error-rate dashboards
+    /// can see the failure.
+    func testErrorSemanticsMarkPromotedSpanError() throws {
+        var event = GenAIStubEvent()
+        event.errorType = "guardrail_violation"
+        let run = makeRun([makeEvent(seq: 0, payload: event)])
+
+        let spans = OTelSpanMapper<GenAIStubEvent>().spans(for: run)
+        let errored = try XCTUnwrap(spans.first { stringAttr($0, "error.type") == "guardrail_violation" })
+        XCTAssertEqual(errored.status.code, 2, "an errored generation span must be ERROR")
+    }
+
+    /// A successful gen_ai span (no errorType) stays UNSET — the error path must not
+    /// bleed onto healthy spans.
+    func testSuccessfulSemanticsLeaveSpanUnset() throws {
+        let run = makeRun([makeEvent(seq: 0, payload: GenAIStubEvent())])
+        let spans = OTelSpanMapper<GenAIStubEvent>().spans(for: run)
+        let promoted = try XCTUnwrap(spans.first { stringAttr($0, "gen_ai.operation.name") == "chat" })
+        XCTAssertEqual(promoted.status.code, 0)
+        XCTAssertNil(stringAttr(promoted, "error.type"))
+    }
 }

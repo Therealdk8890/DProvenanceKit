@@ -80,7 +80,25 @@ extension FoundationModelTraceEvent: OTelSemanticsProviding {
                 providerName: FMGenAI.provider
             )
 
-        case .instructions, .generationError, .modelAvailability, .streamSnapshot, .unknownEntry:
+        case .generationError(let payload):
+            // A failed generation: classify it and stamp the error kind so the span
+            // is marked ERROR. A tool-call error is an execute_tool failure; anything
+            // else is a chat failure.
+            if let tool = payload.toolName {
+                return GenAIAttributes(
+                    operationName: FMGenAI.executeTool,
+                    toolName: tool,
+                    providerName: FMGenAI.provider,
+                    errorType: payload.kind.rawValue
+                )
+            }
+            return GenAIAttributes(
+                operationName: FMGenAI.chat,
+                providerName: FMGenAI.provider,
+                errorType: payload.kind.rawValue
+            )
+
+        case .instructions, .modelAvailability, .streamSnapshot, .unknownEntry:
             return nil
         }
     }
@@ -94,7 +112,12 @@ extension FoundationModelTraceEvent: OTelSemanticsProviding {
             return "\(FMGenAI.executeTool) \(payload.toolName)"
         case .toolOutput(let payload):
             return "\(FMGenAI.executeTool) \(payload.toolName)"
-        case .instructions, .generationError, .modelAvailability, .streamSnapshot, .unknownEntry:
+        case .generationError(let payload):
+            if let tool = payload.toolName {
+                return "\(FMGenAI.executeTool) \(tool)"
+            }
+            return "\(FMGenAI.chat) \(FMGenAI.model)"
+        case .instructions, .modelAvailability, .streamSnapshot, .unknownEntry:
             return nil
         }
     }

@@ -89,4 +89,34 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
         XCTAssertTrue(spans.contains { stringAttr($0, "gen_ai.provider.name") == "apple.foundationmodels" })
         XCTAssertTrue(spans.contains { stringAttr($0, "gen_ai.tool.name") == "WeatherTool" })
     }
+
+    // MARK: - Error status (#30)
+
+    func testChatErrorClassifiesAndCarriesErrorType() {
+        let err = FoundationModelTraceEvent.generationError(
+            FMGenerationErrorPayload(kind: .guardrailViolation, message: .omitted, turnIndex: 0))
+        let semantics = (err as? OTelSemanticsProviding)?.otelSemantics
+        XCTAssertEqual(semantics?.operationName, "chat")
+        XCTAssertEqual(semantics?.errorType, "guardrailViolation")
+    }
+
+    func testToolCallErrorClassifiesAsExecuteTool() {
+        let err = FoundationModelTraceEvent.generationError(
+            FMGenerationErrorPayload(kind: .toolCallError, message: .omitted, toolName: "WeatherTool", turnIndex: 0))
+        let semantics = (err as? OTelSemanticsProviding)?.otelSemantics
+        XCTAssertEqual(semantics?.operationName, "execute_tool")
+        XCTAssertEqual(semantics?.toolName, "WeatherTool")
+        XCTAssertEqual(semantics?.errorType, "toolCallError")
+    }
+
+    func testExportedErrorSpanHasErrorStatusAndErrorType() throws {
+        let run = TraceRun<FoundationModelTraceEvent>(runID: runID, contextID: "ctx", events: [
+            event(.generationError(FMGenerationErrorPayload(
+                kind: .exceededContextWindowSize, message: .omitted, turnIndex: 0)), seq: 0, span: "turn0"),
+        ])
+        let spans = OTelSpanMapper<FoundationModelTraceEvent>().spans(for: run)
+        let errorSpan = try XCTUnwrap(spans.first { stringAttr($0, "error.type") == "exceededContextWindowSize" })
+        XCTAssertEqual(errorSpan.status.code, 2, "an errored generation must export as OTLP ERROR")
+        XCTAssertEqual(stringAttr(errorSpan, "gen_ai.operation.name"), "chat")
+    }
 }
