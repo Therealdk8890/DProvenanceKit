@@ -152,6 +152,20 @@ let anomalies = try await detector.detectAnomalies(rules: [rule])
 🚨 Potential reasoning regression
 ```
 
+### 6. Trace a decision's lineage
+
+Record what each step was derived from, and the causal graph builds itself — then ask *why* a conclusion was reached.
+
+```swift
+let doc = DProvenanceKit<MyAIDecision>.record(.documentEvaluated(documentID: "DocA", score: 0.95))
+let decision = DProvenanceKit<MyAIDecision>.record(.finalDecisionMade(approved: false), derivedFrom: doc!)
+
+let why = try await store.explain(id: decision!)   // what this decision was derived from
+let downstream = try await store.impact(of: doc!)   // everything DocA's evaluation influenced
+```
+
+`record(_:derivedFrom:)` wires the edge as you record, so `lineage`, `impact`, and `explain` work without manual bookkeeping.
+
 ---
 
 # Validation & Benchmarks
