@@ -100,6 +100,17 @@ let suspiciousRuns = try await store.queryRuns(
 
 Find runs where a conflict was reported but no document was ever evaluated.
 
+Query by the *content* of reasoning, not just which steps ran — e.g. runs where a document scored below 0.5:
+
+```swift
+let lowConfidence = try await store.queryRuns(
+    TraceQueryDSL<MyAIDecision>().matching(step: "documentEvaluated") {
+        if case .documentEvaluated(_, let score) = $0 { return score < 0.5 }
+        return false
+    }
+)
+```
+
 ### 3. Diff runs
 
 ```swift

@@ -7,6 +7,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Payload-value queries** — `TraceQueryDSL.matching(step:where:)` filters runs by event
+  payload *content* (`score < 0.5`, `approved == false`), not just which steps ran —
+  closing the biggest query gap vs. Langfuse/LangSmith. The predicate is a Swift closure
+  evaluated in-process, so the in-memory and SQLite stores agree by construction (SQLite
+  hydrates a candidate superset, then applies the same evaluator); it's unsupported by the
+  cloud query (encoding throws rather than silently dropping the filter). Also adds
+  `TraceQueryDSL.excluding(_:)` to negate a sub-query.
 - **`record(_:derivedFrom:)`** — records an event and wires its lineage edge(s) in one
   call (single parent or an array; custom `TraceEdgeType`, default `.derivedFrom`), on
   both `DProvenanceKit` (ambient run) and `ActiveTraceRun`. The shipped
