@@ -46,8 +46,11 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Run CLI evaluation
-        run: swift run DProvenanceKitCLI evaluate
+      - name: Run CLI evaluation (gated — fails the build on regression)
+        run: swift run DProvenanceKitCLI evaluate --gate
+
+      - name: Run Quickstart (compile-check of the documented API)
+        run: swift run Quickstart
 
       - name: Run conformance harness
         run: swift run --package-path ConformanceHarness
@@ -58,6 +61,9 @@ jobs:
       - name: Build iOS UI Library
         run: xcodebuild -scheme DProvenanceUI -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 
+      - name: Build iOS FoundationModels/OTel bridge
+        run: xcodebuild -scheme DProvenanceFoundationModelsOTel -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
       - name: Install WebVisualizer dependencies
         working-directory: WebVisualizer
         run: npm ci
@@ -65,3 +71,22 @@ jobs:
       - name: Build WebVisualizer
         working-directory: WebVisualizer
         run: npm run build
+
+  thread-sanitizer:
+    name: Thread sanitizer (concurrency tests)
+    runs-on: macos-26
+    timeout-minutes: 30
+    # Advisory for now: this is a newly added sanitizer over pre-existing hand-locked
+    # @unchecked Sendable classes, so a first run may surface latent races that need
+    # triage. It reports without blocking merges; flip to blocking once it's green.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Select Xcode 26.5
+        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+
+      # Ten @unchecked Sendable hand-locked classes, previously with no TSan coverage.
+      # Scope to the burst/chaos/buffer suites so the race check stays fast.
+      - name: Test concurrency suites under ThreadSanitizer
+        run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker'

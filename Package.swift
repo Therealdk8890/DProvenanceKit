@@ -27,6 +27,10 @@ let package = Package(
             name: "DProvenanceOTel",
             targets: ["DProvenanceOTel"]
         ),
+        .library(
+            name: "DProvenanceFoundationModelsOTel",
+            targets: ["DProvenanceFoundationModelsOTel"]
+        ),
         .executable(
             name: "GenerateSample",
             targets: ["GenerateSample"]
@@ -34,6 +38,10 @@ let package = Package(
         .executable(
             name: "DProvenanceKitCLI",
             targets: ["DProvenanceKitCLI"]
+        ),
+        .executable(
+            name: "Quickstart",
+            targets: ["Quickstart"]
         )
     ],
     targets: [
@@ -54,6 +62,12 @@ let package = Package(
             name: "DProvenanceOTel",
             dependencies: ["DProvenanceKit"]
         ),
+        // Bridge: makes FoundationModels traces carry gen_ai.* semantics when exported
+        // via the OTel bridge. Depends on both so neither base module has to.
+        .target(
+            name: "DProvenanceFoundationModelsOTel",
+            dependencies: ["DProvenanceFoundationModels", "DProvenanceOTel", "DProvenanceKit"]
+        ),
         .executableTarget(
             name: "GenerateSample",
             dependencies: ["DProvenanceKit", "DProvenanceUI"],
@@ -62,6 +76,11 @@ let package = Package(
         ),
         .executableTarget(
             name: "DProvenanceKitCLI",
+            dependencies: ["DProvenanceKit"]
+        ),
+        // Runnable end-to-end tour + compile-check of the documented public API.
+        .executableTarget(
+            name: "Quickstart",
             dependencies: ["DProvenanceKit"]
         ),
         .testTarget(
@@ -79,6 +98,10 @@ let package = Package(
         .testTarget(
             name: "DProvenanceOTelTests",
             dependencies: ["DProvenanceOTel", "DProvenanceKit"]
+        ),
+        .testTarget(
+            name: "DProvenanceFoundationModelsOTelTests",
+            dependencies: ["DProvenanceFoundationModelsOTel", "DProvenanceFoundationModels", "DProvenanceOTel", "DProvenanceKit"]
         )
     ],
     swiftLanguageModes: [.v6]

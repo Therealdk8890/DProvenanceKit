@@ -125,6 +125,15 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         return []
     }
     
+    public func getRun(id: UUID) async throws -> TraceRun<T>? {
+        // The hosted read path is a separate commercial layer; like `queryRuns`, the
+        // client-side stub does not yet reconstruct runs from the server. Returning nil
+        // (rather than throwing) keeps this consistent with `queryRuns` returning [] —
+        // both signal "no server-side read wired here yet", not an error. Recorded
+        // events still ship via the write buffer; reads happen against a local store.
+        return nil
+    }
+
     public func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
         let rows = await writer.getQuarantinedEvents()
         

@@ -48,6 +48,12 @@ public final class SQLiteConnection: @unchecked Sendable {
         try execute("PRAGMA journal_mode=WAL;")
         try execute("PRAGMA synchronous=NORMAL;") // Safe with WAL
         try execute("PRAGMA temp_store=MEMORY;")
+        // Wait up to 5s for a lock instead of failing instantly with SQLITE_BUSY.
+        // A second connection (e.g. the inspector UI reading while the app writes)
+        // can collide with a WAL checkpoint; the default 0ms timeout turns that
+        // transient contention into a hard error. Blocking briefly is the standard
+        // remedy and is bounded, so it never deadlocks the writer.
+        try execute("PRAGMA busy_timeout=5000;")
     }
     
     deinit {

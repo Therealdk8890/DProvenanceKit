@@ -8,13 +8,18 @@ public struct SnapshotDiffEngine<T: TraceableEvent>: Sendable {
         let sequence: UInt64
         let typeIdentifier: String
         let engineName: String
+        // NB: `source` is deliberately NOT part of the identity — it belongs to the
+        // signature below. Matching on (sequence, type, engine) lets the diff pair
+        // the *same* event across two snapshots even when its source changed
+        // (committed → quarantined), so that transition surfaces as a modification
+        // rather than a spurious remove+add. See `testContaminationChanges`.
     }
-    
+
     private struct EventSignature: Equatable {
         let payload: T
         let source: ReplaySource
     }
-    
+
     private func identity(for e: ReplayEvent<T>) -> EventIdentity {
         return EventIdentity(
             sequence: e.event.sequence,

@@ -22,6 +22,14 @@ public protocol TraceStore<T>: Sendable {
 
     /// Retrieves a set of events by their exact IDs
     func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>]
+
+    /// Fetches a single run by the `runID` returned from `DProvenanceKit.run`.
+    ///
+    /// This closes the core Run → Record → Query → Diff loop from the documented
+    /// recording call: record a run, take its id, fetch it back here, then hand it
+    /// to `TraceDiffEngine`/`TraceAlignmentEngine`. Returns nil if no such run
+    /// exists in this store.
+    func getRun(id: UUID) async throws -> TraceRun<T>?
 }
 
 public extension TraceStore {
@@ -31,6 +39,13 @@ public extension TraceStore {
     /// Default implementation for stores that do not quarantine events (e.g., local stores).
     func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
         return []
+    }
+
+    /// Fallback for third-party stores that predate `getRun`. It fails loudly rather
+    /// than returning nil so a missing implementation can't be mistaken for a missing
+    /// run. The in-package stores (in-memory, SQLite) override this with a real fetch.
+    func getRun(id: UUID) async throws -> TraceRun<T>? {
+        throw TraceError.notImplemented
     }
 
     /// Retrieves the fully hydrated lineage graph (backward traversal) for a specific node
@@ -173,7 +188,10 @@ public final class InMemoryTraceStore<T: TraceableEvent>: TraceStore, @unchecked
         // No-op: `record` commits synchronously, so nothing is pending to drain.
     }
 
-    public func getRun(id: UUID) -> TraceRun<T>? {
+    // Signature matches the protocol's `async throws` exactly (the work is synchronous
+    // under the lock, but a uniform signature across all stores avoids a sync-vs-async
+    // overload that resolves inconsistently at call sites).
+    public func getRun(id: UUID) async throws -> TraceRun<T>? {
         lock.withLock { makeRunLocked(id: id) }
     }
 
