@@ -1,6 +1,18 @@
 import Foundation
+import os
+
+#if DEBUG
+/// Fires in DEBUG builds when instrumentation records with no active run. The
+/// event is dropped by design (recording is a soft no-op outside a `run` scope),
+/// but that silence is the single most common onboarding trap, so we surface it
+/// here without changing the release-build behavior or trapping the process.
+private let dpkDiagnosticsLog = Logger(subsystem: "com.dprovenancekit", category: "diagnostics")
+#endif
 
 public protocol AnyActiveTraceRun: Sendable {
+    /// The id of this run — the same value `DProvenanceKit.run(...)` hands back so
+    /// the recorded run can be fetched from the store and diffed.
+    var runID: UUID { get }
     func recordAny(_ payload: Any, engineName: String?) -> UUID?
     func link(source: UUID, target: UUID, type: TraceEdgeType)
     func flush() async throws
@@ -79,6 +91,39 @@ public enum DProvenanceKit<T: TraceableEvent> {
         return try await TraceContext.$currentRun.withValue(run) {
             try await block()
         }
+    }
+
+    /// Records a run and returns both the block's result and the run's `runID`.
+    ///
+    /// This closes the Run → Record → Query → Diff loop from a single call: the
+    /// plain `run` returns only the block's value, so the recorded run was
+    /// previously unreachable without an empty-query detour. Take the `runID` and
+    /// fetch the run straight back for diffing or alignment:
+    ///
+    /// ```swift
+    /// let (_, runID) = try await DProvenanceKit<MyEvent>.runReturningID(contextID: "case", store: store) { run in
+    ///     run.record(.stepA, engineName: nil)     // or DProvenanceKit.record(.stepA)
+    /// }
+    /// let recorded = try await store.getRun(id: runID)
+    /// ```
+    ///
+    /// This is a distinct method rather than a `run` overload on purpose: overloading
+    /// `run` only on the closure's arity is ambiguous when the closure ignores its
+    /// parameter, so a separate name keeps every existing `run { }` call site stable.
+    /// The closure receives the `ActiveTraceRun`; ignore it with `{ _ in … }` and use
+    /// ambient `DProvenanceKit.record` if you prefer.
+    @discardableResult
+    public static func runReturningID<R>(
+        contextID: String,
+        store: any TraceStore<T>,
+        schemaVersion: Int = 1,
+        _ block: (ActiveTraceRun) async throws -> R
+    ) async rethrows -> (result: R, runID: UUID) {
+        let run = ActiveTraceRun(contextID: contextID, store: store, schemaVersion: schemaVersion)
+        let result = try await TraceContext.$currentRun.withValue(run) {
+            try await block(run)
+        }
+        return (result, run.runID)
     }
 
     public static func runSync<R>(
@@ -168,7 +213,18 @@ public enum DProvenanceKit<T: TraceableEvent> {
     @discardableResult
     public static func record(_ payload: T) -> UUID? {
         guard let run = TraceContext.currentRun else {
-            // Soft failure for executions outside of DProvenanceKit.run.
+            // Soft failure for executions outside of DProvenanceKit.run. Dropping
+            // is deliberate (see DESIGN.md §3) so leftover instrumentation never
+            // crashes production — but it silently loses events, which trips up
+            // adopters. Warn in DEBUG only; release behavior is unchanged.
+            #if DEBUG
+            dpkDiagnosticsLog.warning("""
+            DProvenanceKit.record(_:) called with no active run — event of type \
+            '\(payload.typeIdentifier, privacy: .public)' was dropped. Wrap recording in \
+            DProvenanceKit.run(contextID:store:) { ... }. Note: @TaskLocal run context does \
+            not propagate across Task.detached { } — use Task { } or pass the run explicitly.
+            """)
+            #endif
             return nil
         }
         return run.recordAny(payload, engineName: TraceContext.engineStack.last)

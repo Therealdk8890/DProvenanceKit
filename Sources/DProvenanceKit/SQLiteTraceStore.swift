@@ -72,6 +72,10 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             try database.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON trace_events(timestamp);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_sequence ON trace_events(run_id, sequence);")
             try database.execute("CREATE INDEX IF NOT EXISTS idx_priority ON trace_events(priority);")
+            // Recency listing (e.g. the inspector's "all runs, newest first") sorts on
+            // runs.start_time; without this index it degrades to a full-table sort as the
+            // corpus grows.
+            try database.execute("CREATE INDEX IF NOT EXISTS idx_runs_start_time ON runs(start_time);")
             
             if database.userVersion < 2 {
                 try database.execute("""
@@ -182,6 +186,13 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         return runs
     }
     
+    public func getRun(id: UUID) async throws -> TraceRun<T>? {
+        // Flush pending writes first so a run recorded moments ago is visible, matching
+        // `queryRuns`' read-your-writes contract.
+        try await flush()
+        return try await fetchRun(id: id)
+    }
+
     private func fetchRun(id: UUID) async throws -> TraceRun<T>? {
         let sql = "SELECT engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
         let stmt = try db.prepare(sql)
