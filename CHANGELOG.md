@@ -7,6 +7,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`record(_:derivedFrom:)`** — records an event and wires its lineage edge(s) in one
+  call (single parent or an array; custom `TraceEdgeType`, default `.derivedFrom`), on
+  both `DProvenanceKit` (ambient run) and `ActiveTraceRun`. The shipped
+  `lineage`/`impact`/`explain` graph is now reachable without manual UUID bookkeeping.
 - **Bounded queries** — `TraceStore.queryRuns(_:limit:)` returns at most `limit` runs.
   The SQLite store pushes the bound down so it caps per-run hydration instead of
   materializing the whole result set on a large corpus.
