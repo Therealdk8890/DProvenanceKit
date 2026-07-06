@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-06
+
 ### Added
 - **Content-aware redaction** — `FMRedactor` masks sensitive substrings *inside* a field
   (SSN, email, …) via regex rules, set on `FMRedactionPolicy.redactor`. Masking runs
@@ -92,5 +94,6 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.1.0
