@@ -69,7 +69,7 @@ public struct TracedTool<Base: Tool>: Tool {
 
         let callDelivered = record(.toolCall(FMToolCallPayload(
             toolName: name,
-            arguments: FMRedactedText(arguments.jsonString, redaction: configuration.redaction.toolArguments),
+            arguments: FMRedactedText(arguments.jsonString, redaction: configuration.redaction.toolArguments, redactor: configuration.redaction.redactor),
             turnIndex: turnIndex,
             invocationIndex: invocationIndex
         )), spanPath: spanPath)
@@ -83,7 +83,7 @@ public struct TracedTool<Base: Tool>: Tool {
         } catch {
             record(.generationError(FMGenerationErrorPayload(
                 kind: .toolCallError,
-                message: FMRedactedText(String(describing: error), redaction: configuration.redaction.errorMessages),
+                message: FMRedactedText(String(describing: error), redaction: configuration.redaction.errorMessages, redactor: configuration.redaction.redactor),
                 toolName: name,
                 turnIndex: turnIndex
             )), spanPath: spanPath)
@@ -102,7 +102,7 @@ public struct TracedTool<Base: Tool>: Tool {
             }
             let outputDelivered = record(.toolOutput(FMToolOutputPayload(
                 toolName: name,
-                content: FMRedactedText(outputText, redaction: configuration.redaction.toolOutput),
+                content: FMRedactedText(outputText, redaction: configuration.redaction.toolOutput, redactor: configuration.redaction.redactor),
                 isError: false,
                 turnIndex: turnIndex,
                 invocationIndex: invocationIndex
@@ -114,14 +114,14 @@ public struct TracedTool<Base: Tool>: Tool {
         } catch {
             let outputDelivered = record(.toolOutput(FMToolOutputPayload(
                 toolName: name,
-                content: FMRedactedText(String(describing: error), redaction: configuration.redaction.toolOutput),
+                content: FMRedactedText(String(describing: error), redaction: configuration.redaction.toolOutput, redactor: configuration.redaction.redactor),
                 isError: true,
                 turnIndex: turnIndex,
                 invocationIndex: invocationIndex
             )), spanPath: spanPath)
             record(.generationError(FMGenerationErrorPayload(
                 kind: .toolCallError,
-                message: FMRedactedText(String(describing: error), redaction: configuration.redaction.errorMessages),
+                message: FMRedactedText(String(describing: error), redaction: configuration.redaction.errorMessages, redactor: configuration.redaction.redactor),
                 toolName: name,
                 turnIndex: turnIndex
             )), spanPath: spanPath)

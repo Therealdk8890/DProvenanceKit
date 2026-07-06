@@ -16,7 +16,7 @@ extension FMGenerationErrorPayload {
     /// is nil until the SDK surfaces one.
     public init(error: any Error, turnIndex: Int, redaction: FMRedactionPolicy) {
         func redacted(_ text: String) -> FMRedactedText {
-            FMRedactedText(text, redaction: redaction.errorMessages)
+            FMRedactedText(text, redaction: redaction.errorMessages, redactor: redaction.redactor)
         }
 
         if let generationError = error as? LanguageModelSession.GenerationError {

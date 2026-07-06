@@ -225,6 +225,18 @@ policy.errorMessages = .full   // keep error text for debugging
 
 The load-bearing detail: **`FMRedactedText` identity is `(sha256, utf8Count)` only.** The hash is SHA-256 over the exact UTF-8 bytes, no normalization, stable across processes and OS releases. So a `.full` trace and a `.hashed` trace of the same content compare *exactly equal* — cross-policy diffing works, including on the alignment engine's exact-equality path. `.omitted` equals only `.omitted`.
 
+### Content-aware masking
+
+The per-field modes are all-or-nothing. When you need to strip specific sensitive substrings *inside* a field — an SSN or email in an otherwise-useful prompt — set a `FMRedactor` on the policy. It applies regex rules to every captured field before the field's mode:
+
+```swift
+var policy = FMRedactionPolicy.full
+policy.redactor = .commonPII   // masks email, SSN, long digit runs — or supply your own rules
+// FMRedactor(rules: [.init(pattern: #"\d{3}-\d{2}-\d{4}"#, replacement: "[SSN]")])
+```
+
+Masking runs first, so the field's mode (and its identity) operate on the masked text. It's deterministic, so live and post-hoc capture of the same content stay byte-identical, and two runs redacted with the same rules still diff equal. A masked field is, correctly, a *distinct* identity from an unmasked capture of the same original — they recorded different content — while `.full` and `.hashed` of the *same masked* text still compare equal. An invalid pattern is skipped, never fatal: observability must not break the observed.
+
 ## Configuration reference
 
 ```swift

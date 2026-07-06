@@ -28,17 +28,21 @@ public struct FMRedactedText: Codable, Sendable, Equatable, Hashable {
     public let sha256: String?
     public let utf8Count: Int?
 
-    public init(_ text: String, redaction: FMContentRedaction) {
+    public init(_ text: String, redaction: FMContentRedaction, redactor: FMRedactor? = nil) {
+        // Content-aware masking runs first, so the field's mode (and its identity) operate
+        // on the masked text. A nil redactor leaves `text` untouched — the exact prior
+        // behavior. Masking is deterministic, so live and post-hoc capture stay byte-equal.
+        let masked = redactor?.mask(text) ?? text
         self.redaction = redaction
         switch redaction {
         case .full:
-            self.text = text
-            self.sha256 = Self.sha256Hex(of: text)
-            self.utf8Count = text.utf8.count
+            self.text = masked
+            self.sha256 = Self.sha256Hex(of: masked)
+            self.utf8Count = masked.utf8.count
         case .hashed:
             self.text = nil
-            self.sha256 = Self.sha256Hex(of: text)
-            self.utf8Count = text.utf8.count
+            self.sha256 = Self.sha256Hex(of: masked)
+            self.utf8Count = masked.utf8.count
         case .omitted:
             self.text = nil
             self.sha256 = nil
@@ -73,13 +77,18 @@ public struct FMRedactionPolicy: Sendable, Equatable {
     public var toolOutput: FMContentRedaction
     public var errorMessages: FMContentRedaction
 
+    /// Optional content-aware masking applied to every captured field before its mode.
+    /// nil (the default) means no masking — capture is unchanged.
+    public var redactor: FMRedactor?
+
     public init(
         promptContent: FMContentRedaction = .full,
         responseContent: FMContentRedaction = .full,
         instructionsContent: FMContentRedaction = .full,
         toolArguments: FMContentRedaction = .full,
         toolOutput: FMContentRedaction = .full,
-        errorMessages: FMContentRedaction = .full
+        errorMessages: FMContentRedaction = .full,
+        redactor: FMRedactor? = nil
     ) {
         self.promptContent = promptContent
         self.responseContent = responseContent
@@ -87,6 +96,7 @@ public struct FMRedactionPolicy: Sendable, Equatable {
         self.toolArguments = toolArguments
         self.toolOutput = toolOutput
         self.errorMessages = errorMessages
+        self.redactor = redactor
     }
 
     public static let full = FMRedactionPolicy()
