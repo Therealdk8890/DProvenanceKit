@@ -102,7 +102,7 @@ let package = Package(
         .testTarget(
             name: "DProvenanceFoundationModelsOTelTests",
             dependencies: ["DProvenanceFoundationModelsOTel", "DProvenanceFoundationModels", "DProvenanceOTel", "DProvenanceKit"]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )

@@ -45,11 +45,11 @@ final class SpanTreeTests: XCTestCase {
             // At root, there is no spanID
             DProvenanceKit<MockEvent>.record(.taskStarted)
             
-            await DProvenanceKit<MockEvent>.withSpan {
+            _ = await DProvenanceKit<MockEvent>.withSpan {
                 // Inside the first span
                 DProvenanceKit<MockEvent>.record(.processingData)
                 
-                await DProvenanceKit<MockEvent>.withSpan {
+                _ = await DProvenanceKit<MockEvent>.withSpan {
                     // Inside the nested span
                     DProvenanceKit<MockEvent>.record(.taskCompleted)
                 }

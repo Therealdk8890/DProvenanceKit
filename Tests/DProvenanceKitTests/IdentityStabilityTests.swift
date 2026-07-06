@@ -6,8 +6,8 @@ final class IdentityStabilityTests: XCTestCase {
     
     // Minimal mock event for testing the UI models
     struct MockUIEvent: TraceableEvent {
-        let typeIdentifier: String = "TestEvent"
-        let priority: TracePriority = .diagnostic
+        var typeIdentifier: String { "TestEvent" }
+        var priority: TracePriority { .diagnostic }
     }
     
     private func createEvent(runID: UUID, seq: UInt64, spanID: String?, parentSpanID: String?) -> TraceEvent<MockUIEvent> {

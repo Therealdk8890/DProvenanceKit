@@ -81,7 +81,6 @@ final class TraceReplayEngineTests: XCTestCase {
         
         var events: [TraceEvent<MockEvent>] = []
         for i in 0..<50 {
-            let isQuarantine = i % 5 == 0
             let parent = i % 2 == 0 ? spanA : spanB
             let span = UUID().uuidString
             events.append(createEvent(runID: runID, seq: UInt64(i), spanID: span, parentSpanID: parent, payload: .middle))

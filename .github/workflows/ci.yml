@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Select Xcode 26.5
         run: sudo xcode-select -s /Applications/Xcode_26.5.app
 
@@ -42,34 +46,31 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Run benchmark corpus (gated — fails the build on regression)
+      - name: Run CLI evaluation (gated — fails the build on regression)
         run: swift run DProvenanceKitCLI evaluate --gate
 
       - name: Run Quickstart (compile-check of the documented API)
         run: swift run Quickstart
 
-  ios-build:
-    name: iOS build (device SDK — validates UIKit-only paths)
-    runs-on: macos-26
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7
+      - name: Run conformance harness
+        run: swift run --package-path ConformanceHarness
 
-      - name: Select Xcode 26.5
-        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+      - name: Build iOS Core Library
+        run: xcodebuild -scheme DProvenanceKit -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 
-      # The whole pitch is on-device iOS, but `swift build` only host-builds macOS,
-      # so DProvenanceUI's UIKit-only branches never compiled in CI. Build the library
-      # products (not the CLI/sample executables) against the iOS SDK to catch that.
-      - name: Build library products for iOS
-        run: |
-          set -o pipefail
-          for scheme in DProvenanceUI DProvenanceFoundationModelsOTel; do
-            xcodebuild build \
-              -scheme "$scheme" \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=NO
-          done
+      - name: Build iOS UI Library
+        run: xcodebuild -scheme DProvenanceUI -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+      - name: Build iOS FoundationModels/OTel bridge
+        run: xcodebuild -scheme DProvenanceFoundationModelsOTel -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+      - name: Install WebVisualizer dependencies
+        working-directory: WebVisualizer
+        run: npm ci
+
+      - name: Build WebVisualizer
+        working-directory: WebVisualizer
+        run: npm run build
 
   thread-sanitizer:
     name: Thread sanitizer (concurrency tests)
