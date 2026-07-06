@@ -18,15 +18,27 @@ struct DProvenanceKitCLI {
     }
 
     static func main() async {
+        let args = Array(CommandLine.arguments.dropFirst())
+        let flags = args.filter { $0.hasPrefix("-") }
+        let positional = args.filter { !$0.hasPrefix("-") }
+
+        if flags.contains("--help") || flags.contains("-h") {
+            printUsage()
+            return
+        }
+
         print("DProvenanceKit CLI Evaluator")
         print("============================")
 
-        let args = CommandLine.arguments
-        let mode = args.count >= 2 ? args[1] : "evaluate"
+        let mode = positional.first ?? "evaluate"
         guard ["evaluate", "diagnose", "stability"].contains(mode) else {
-            print("Usage: DProvenanceKitCLI <evaluate|diagnose|stability>")
-            return
+            printErr("Unknown mode '\(mode)'.")
+            printUsage()
+            exit(2)
         }
+
+        let gate = flags.contains("--gate")
+        let minF1 = parseMinF1(flags)
 
         let runner = BenchmarkRunner<DProvenanceCorpus.AgentEvent>()
         let dataset = DProvenanceCorpus.dataset
@@ -83,6 +95,13 @@ struct DProvenanceKitCLI {
             print(String(format: "Total Cases: %d", totalCases))
             print(String(format: "Total Passed: %d (%.1f%%)", totalPassed, Double(totalPassed) / Double(totalCases) * 100))
 
+            if gate {
+                enforceGate(totalPassed: totalPassed, totalCases: totalCases,
+                            f1: report.globalMetrics.f1Score,
+                            adversarialF1: advReport.globalMetrics.f1Score,
+                            minF1: minF1)
+            }
+
         case "diagnose":
             let report = await runner.run(dataset: dataset) { cb in makeEngine(cb) }
             print("Causal ranking (most systemically impactful failure modes first):")
@@ -124,5 +143,56 @@ struct DProvenanceKitCLI {
         default:
             break
         }
+    }
+
+    // MARK: - CI gating & help
+
+    /// Exits non-zero when the corpus regresses, so `evaluate --gate` can fail a CI
+    /// job. Without this the evaluator always exited 0, so a dropped reasoning step
+    /// could never break the build — the exact use case DPK is pitched for.
+    static func enforceGate(totalPassed: Int, totalCases: Int, f1: Double, adversarialF1: Double, minF1: Double?) {
+        var failures: [String] = []
+        if totalPassed < totalCases {
+            failures.append("\(totalCases - totalPassed) of \(totalCases) case(s) failed")
+        }
+        if let minF1 {
+            if f1 < minF1 { failures.append(String(format: "standard F1 %.3f < baseline %.3f", f1, minF1)) }
+            if adversarialF1 < minF1 { failures.append(String(format: "adversarial F1 %.3f < baseline %.3f", adversarialF1, minF1)) }
+        }
+        if failures.isEmpty {
+            print("\n✅ Gate passed.")
+        } else {
+            printErr("\n❌ Gate failed: " + failures.joined(separator: "; "))
+            exit(1)
+        }
+    }
+
+    /// Parses `--min-f1=<value>`; returns nil if absent or malformed (malformed is
+    /// ignored rather than fatal so a typo doesn't mask a real regression as a pass).
+    static func parseMinF1(_ flags: [String]) -> Double? {
+        guard let raw = flags.first(where: { $0.hasPrefix("--min-f1=") }) else { return nil }
+        return Double(raw.dropFirst("--min-f1=".count))
+    }
+
+    static func printUsage() {
+        print("""
+        DProvenanceKit CLI Evaluator
+
+        Usage: DProvenanceKitCLI <mode> [flags]
+
+        Modes:
+          evaluate    Run the standard + adversarial corpus and print metrics (default)
+          diagnose    Rank the most systemically impactful failure modes
+          stability   Report evaluation variance across repeated runs
+
+        Flags:
+          --gate            Exit non-zero if any case fails — for CI regression gating
+          --min-f1=<value>  With --gate, also require F1 >= <value> on both datasets
+          -h, --help        Show this help
+        """)
+    }
+
+    static func printErr(_ message: String) {
+        FileHandle.standardError.write(Data((message + "\n").utf8))
     }
 }
