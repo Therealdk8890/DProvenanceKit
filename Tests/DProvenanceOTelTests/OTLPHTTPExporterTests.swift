@@ -331,4 +331,37 @@ final class OTLPHTTPExporterTests: XCTestCase {
             XCTFail("unexpected error \(error)")
         }
     }
+
+    // MARK: - Compression (gzip)
+
+    func testGzipSetsContentEncodingAndBodyRoundTrips() async throws {
+        var configuration = OTLPHTTPExporter<StubEvent>.Configuration.collector(
+            endpoint: URL(string: "http://localhost:4318")!
+        )
+        configuration.compression = .gzip
+        let exporter = makeExporter(configuration, responses: [.init(statusCode: 200)])
+        _ = try await exporter.export([sampleRun()])
+
+        let request = try XCTUnwrap(StubURLProtocol.requests.first)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Encoding"), "gzip")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json",
+                       "the body is gzipped JSON; Content-Type stays application/json")
+
+        let sent = try XCTUnwrap(StubURLProtocol.bodies.first)
+        XCTAssertEqual(Array(sent.prefix(3)), [0x1f, 0x8b, 0x08], "body is a gzip stream")
+        let decoded = try XCTUnwrap(GzipRoundTrip.gunzip(sent))
+        let json = String(decoding: decoded, as: UTF8.self)
+        XCTAssertTrue(json.contains("resourceSpans"), "gzip body must decode back to the OTLP document")
+    }
+
+    func testNoCompressionByDefaultOmitsContentEncoding() async throws {
+        let configuration = OTLPHTTPExporter<StubEvent>.Configuration.collector(
+            endpoint: URL(string: "http://localhost:4318")!
+        )
+        let exporter = makeExporter(configuration, responses: [.init(statusCode: 200)])
+        _ = try await exporter.export([sampleRun()])
+
+        let request = try XCTUnwrap(StubURLProtocol.requests.first)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Content-Encoding"))
+    }
 }

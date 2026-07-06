@@ -199,6 +199,8 @@ Conformance wins; the closure is consulted only when `otelSemantics` returns nil
 
 `GenAIAttributes` covers `gen_ai.operation.name`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.tool.name`, `gen_ai.provider.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, plus an `extra` list for anything else (strings/ints/bools/doubles only — no arrays or kvlists in v1).
 
+**Errors.** Set `GenAIAttributes.errorType` when the operation failed: the span exports with OTLP status `ERROR` and an `error.type` attribute, which is what error-rate dashboards read. A promoted event's own span is marked; a non-promoted error event marks its containing span. The FoundationModels bridge sets this automatically from `generationError`.
+
 **Promotion.** By default (`GenAIPromotion.dedicatedChildSpan`), each semantics-bearing event is materialized as its *own child span* — because Langfuse and other GenAI-aware backends read `gen_ai.*` from span attributes only; on span events they're invisible. Promoted inference spans are `CLIENT` kind; `execute_tool` operations are `INTERNAL` (tool execution happens in-process). `GenAIPromotion.attachedToEventOnly` is the escape hatch that merges the attributes onto the span event instead — correct OTLP, invisible to Langfuse's generation mapping.
 
 ## Export options reference
@@ -223,6 +225,7 @@ Pass options to any exporter init, or use `OTelSpanMapper(options:)` directly fo
 - **Chunking:** runs ship in independent documents of `maxRunsPerRequest` (default 50), POSTed separately.
 - **Timeout:** 30 s per request by default.
 - **Retries:** `retryAttempts` (default 0) applies only to the OTLP retryable set — 429/502/503/504 and transport errors — with exponential backoff, jitter, and `Retry-After` honored. Other 5xx and all other 4xx fail fast *on purpose*: retrying a 500 re-POSTs documents that may have been partially ingested, which duplicates spans on non-upserting backends.
+- **Compression:** set `Configuration.compression = .gzip` to gzip the request body and send `Content-Encoding: gzip`. It's zero-dependency (wraps the OS Compression framework) and falls back to the uncompressed body if compression fails, so it never blocks an export. Default is `.none`.
 - **Partial success:** a 200 whose body carries OTLP `partialSuccess` is not silently a success — rejected-span counts and messages land in the receipt.
 - **Zero-event runs** are skipped and counted (`runsSkipped`), never sent.
 

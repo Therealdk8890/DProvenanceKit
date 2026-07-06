@@ -7,6 +7,13 @@ import DProvenanceKit
 /// relay.
 public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
 
+    /// Wire compression for the request body. OTLP/HTTP servers accept
+    /// `Content-Encoding: gzip`; `none` sends the JSON as-is.
+    public enum Compression: Sendable, Equatable {
+        case none
+        case gzip
+    }
+
     public struct Configuration: Sendable {
         /// Trailing "/" trimmed; "/v1/traces" appended iff not already the
         /// suffix (a trailing slash would otherwise yield "//v1/traces").
@@ -28,12 +35,17 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
         /// honors Retry-After. Default 0.
         public var retryAttempts: Int
 
+        /// Compress the request body with gzip when set. Default `.none` keeps the
+        /// exact prior wire behavior.
+        public var compression: Compression
+
         public init(endpoint: URL) {
             self.endpoint = endpoint
             self.headers = [:]
             self.timeout = 30
             self.maxRunsPerRequest = 50
             self.retryAttempts = 0
+            self.compression = .none
         }
 
         /// Langfuse accepts OTLP HTTP/JSON directly (>= cloud / self-host v3.22.0).
@@ -147,12 +159,20 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
     private func send(_ body: Data, to url: URL) async throws -> (rejectedSpans: Int64, messages: [String]) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.httpBody = body
         request.timeoutInterval = configuration.timeout
         for (field, value) in configuration.headers.sorted(by: { $0.key < $1.key }) {
             request.setValue(value, forHTTPHeaderField: field)
         }
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Optional gzip. Fall back to the uncompressed body (and no header) if
+        // compression is off or fails, so a compression hiccup never blocks export.
+        if configuration.compression == .gzip, let compressed = OTLPGzip.encode(body) {
+            request.httpBody = compressed
+            request.setValue("gzip", forHTTPHeaderField: "Content-Encoding")
+        } else {
+            request.httpBody = body
+        }
 
         let attempts = max(0, configuration.retryAttempts) + 1
         var lastFailure = SendFailure.transport("no attempt made")
