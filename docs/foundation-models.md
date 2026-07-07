@@ -4,6 +4,8 @@ Apple's FoundationModels framework gives you an on-device LLM. `DProvenanceFound
 
 The module is built around one parity invariant: **live capture and post-hoc ingestion of the same transcript produce byte-exact equal payloads.** Payloads carry no volatile data — no entry ids, no call ids, no timestamps, no UUIDs. The trace envelope owns time; linkage is `(turnIndex, invocationIndex)`. That's what makes FM runs diff cleanly across days, devices, and OS releases.
 
+> **New here?** Start with the runnable [regression demo](foundation-models-regression-demo.md) — `swift run FoundationModelsRegressionDemo` — to see the whole loop catch an agent that silently drops a tool call after a model update.
+
 ## The three one-liners
 
 ```swift

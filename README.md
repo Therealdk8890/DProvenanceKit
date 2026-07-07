@@ -299,6 +299,8 @@ try await FMTrace.run(contextID: "onboarding-chat", store: fmStore) {
 
 Every prompt, response, tool call, and generation error is now a queryable trace event. Already have working FoundationModels code? `session.recordProvenance()` ingests the transcript after the fact — zero refactor. Full guide, including redaction and streaming: **[docs/foundation-models.md](docs/foundation-models.md)**.
 
+> **See it catch a real regression:** `swift run FoundationModelsRegressionDemo` — an agent that silently stops calling its tool after a model update, caught as a `HIGH`-risk regression and failed in CI. [Walkthrough →](docs/foundation-models-regression-demo.md)
+
 ### 5. Export to Langfuse or any OTLP backend
 
 ```swift
