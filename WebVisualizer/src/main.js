@@ -40,9 +40,18 @@ function highlight(label, term) {
   )
 }
 
-function countByType(node, acc = { added: 0, removed: 0, changed: 0, unchanged: 0 }) {
-  if (acc[node.type] !== undefined) acc[node.type]++
-  ;(node.children || []).forEach((c) => countByType(c, acc))
+// Counts every node BELOW the given root. The synthetic tree root is not an aligned event
+// (it's a container the Swift exporter types as changed/unchanged), so tallying it would
+// inflate the changed/unchanged chips by one and drift out of sync with metrics.*.
+function countByType(root) {
+  const acc = { added: 0, removed: 0, changed: 0, unchanged: 0 }
+  const walk = (node) => {
+    for (const child of node.children || []) {
+      if (acc[child.type] !== undefined) acc[child.type]++
+      walk(child)
+    }
+  }
+  walk(root)
   return acc
 }
 
@@ -219,8 +228,9 @@ function buildShell() {
     <div class="treewrap"><div class="tree" id="tree"></div></div>
 
     <p class="footnote">
-      Loaded document is <code>mockDiffs.json</code>. This viewer consumes a DPK diff
-      export — see <code>SCHEMA.md</code> for the shape the Swift side must emit.
+      Loaded document is <code>mockDiffs.json</code>. Generate a real one with
+      <code>swift run DProvenanceKitCLI web-export</code> and drop it in via “Load JSON”
+      — schema in <code>SCHEMA.md</code>.
     </p>`
 
   wire()

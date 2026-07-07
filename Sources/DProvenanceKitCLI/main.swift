@@ -27,15 +27,21 @@ struct DProvenanceKitCLI {
             return
         }
 
-        print("DProvenanceKit CLI Evaluator")
-        print("============================")
-
         let mode = positional.first ?? "evaluate"
-        guard ["evaluate", "diagnose", "stability"].contains(mode) else {
+        guard ["evaluate", "diagnose", "stability", "web-export"].contains(mode) else {
             printErr("Unknown mode '\(mode)'.")
             printUsage()
             exit(2)
         }
+
+        // web-export emits pure JSON to stdout (pipeable) — keep the human header off it.
+        if mode == "web-export" {
+            runWebExport(flags: flags)
+            return
+        }
+
+        print("DProvenanceKit CLI Evaluator")
+        print("============================")
 
         let gate = flags.contains("--gate")
         let minF1 = parseMinF1(flags)
@@ -174,6 +180,57 @@ struct DProvenanceKitCLI {
         return Double(raw.dropFirst("--min-f1=".count))
     }
 
+    // MARK: - web-export
+
+    /// Emits a `WebDiffExport` JSON for one corpus case — the exact shape the bundled
+    /// WebVisualizer consumes (`WebVisualizer/SCHEMA.md`). Pure JSON to stdout so it can be
+    /// redirected straight into the viewer; `--out=<path>` writes a file instead.
+    static func runWebExport(flags: [String]) {
+        let cases = DProvenanceCorpus.dataset.cases
+        let requested = parseValue(flags, "--case=")
+        guard let bench = requested.flatMap({ name in cases.first { $0.name == name } }) ?? cases.first else {
+            printErr("No corpus cases available to export.")
+            exit(2)
+        }
+        if let requested, bench.name != requested {
+            printErr("Case '\(requested)' not found; available: \(cases.map(\.name).joined(separator: ", ")). Exporting '\(bench.name)'.")
+        }
+
+        let config = AlignmentConfiguration<DProvenanceCorpus.AgentEvent>(
+            profile: .developerDebugV1,
+            equivalenceEvaluator: DProvenanceCorpus.standardEvaluator
+        )
+        let export = WebDiffExport.make(
+            base: bench.baseRun,
+            comparison: bench.comparisonRun,
+            configuration: config,
+            baseLabel: "Baseline",
+            comparisonLabel: "Candidate",
+            rootLabel: bench.name
+        )
+
+        do {
+            let data = try export.jsonData()
+            if let out = parseValue(flags, "--out=") {
+                try data.write(to: URL(fileURLWithPath: out))
+                printErr("Wrote \(data.count) bytes to \(out)  (case: \(bench.name))")
+            } else {
+                FileHandle.standardOutput.write(data)
+                FileHandle.standardOutput.write(Data("\n".utf8))
+            }
+        } catch {
+            printErr("web-export failed: \(error)")
+            exit(1)
+        }
+    }
+
+    /// Parses `--<key>=<value>`; nil if absent or empty.
+    static func parseValue(_ flags: [String], _ prefix: String) -> String? {
+        guard let raw = flags.first(where: { $0.hasPrefix(prefix) }) else { return nil }
+        let value = String(raw.dropFirst(prefix.count))
+        return value.isEmpty ? nil : value
+    }
+
     static func printUsage() {
         print("""
         DProvenanceKit CLI Evaluator
@@ -184,10 +241,13 @@ struct DProvenanceKitCLI {
           evaluate    Run the standard + adversarial corpus and print metrics (default)
           diagnose    Rank the most systemically impactful failure modes
           stability   Report evaluation variance across repeated runs
+          web-export  Emit WebVisualizer JSON for one corpus case (pure JSON to stdout)
 
         Flags:
           --gate            Exit non-zero if any case fails — for CI regression gating
           --min-f1=<value>  With --gate, also require F1 >= <value> on both datasets
+          --case=<name>     web-export: which corpus case to export (default: first)
+          --out=<path>      web-export: write JSON to a file instead of stdout
           -h, --help        Show this help
         """)
     }
