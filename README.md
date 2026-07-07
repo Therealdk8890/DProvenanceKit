@@ -13,6 +13,35 @@ When an agent's reasoning drifts between runs, DProvenanceKit turns each executi
 
 ---
 
+## See a regression in 30 seconds
+
+Your on-device agent shipped fine. Then an OS/model update landed and it *quietly* stopped calling a tool — no crash, no error, just a fluent wrong answer. Here's the reasoning trace, before vs. after:
+
+```diff
+  instructions
+  prompt        "What's the weather in Paris right now?"
+- tool call     getWeather            ← silently dropped after the update
+- tool output   getWeather
+~ response      "14°C, light rain"  →  "sunny and 22°C"   (made up)
+```
+
+DProvenanceKit diffs the two runs, flags the dropped **critical** step, and **fails your CI build**:
+
+```
+Regression risk:  HIGH — Critical reasoning steps removed: tool call
+CI gate:          ❌ FAILED — reasoning regression detected
+```
+
+Run the whole thing yourself — no live model required:
+
+```sh
+swift run FoundationModelsRegressionDemo --gate
+```
+
+**Your agent changed behavior, and now you know exactly why.** Full walkthrough: **[Catching a Foundation Models regression](docs/foundation-models-regression-demo.md)**.
+
+---
+
 ## Who this is for
 
 If you're building AI in Swift — agents, LLM workflows, tool-using models, or reasoning that runs **on-device** with Apple Foundation Models, MLX, or Core ML — the observability ecosystem has mostly passed you by. LangSmith, Langfuse, Phoenix, OpenTelemetry: Python- and JS-first, built around requests crossing a network.
@@ -188,6 +217,8 @@ Current Corpus:
 - Precision: 1.000
 - Recall: 1.000
 - F1: 1.000
+
+> These are **conformance benchmarks over a curated set of known failure modes** — evidence the engine behaves correctly on the regressions it's designed to catch, not a claim that it detects *every possible* reasoning regression. The perfect scores reflect a controlled diagnostic corpus, not statistical generalization to arbitrary traces.
 
 See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, confusion matrices, runtime analysis, and benchmark corpus details.
 
