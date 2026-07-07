@@ -9,6 +9,8 @@ DerivedData/
 
 # Generated sample trace database (produced by the GenerateSample executable)
 sample_traces.sqlite
+# WebVisualizer export written by the FoundationModelsRegressionDemo executable
+/fm-regression.json
 # SQLite WAL sidecar files — never commit these
 *.sqlite-wal
 *.sqlite-shm

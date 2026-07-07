@@ -14,6 +14,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   sorted keys with `.withoutEscapingSlashes`, and a dependency-free FNV-1a fingerprint).
   `swift run DProvenanceKitCLI web-export [--case=<name>] [--out=<path>]` emits a document for
   any corpus case; contract in `WebVisualizer/SCHEMA.md`.
+- **Foundation Models regression demo** — a runnable executable
+  (`swift run FoundationModelsRegressionDemo [--gate]`) that ingests two weather-agent
+  transcripts (before/after a model update where the agent silently stops calling its tool),
+  catches the dropped critical step as a `HIGH`-risk regression via structural diff + semantic
+  alignment, fails a CI gate (non-zero exit), and writes a `WebDiffExport` artifact. Runs
+  anywhere — no live Apple Intelligence. Walkthrough in `docs/foundation-models-regression-demo.md`.
 
 ## [0.2.0] - 2026-07-06
 

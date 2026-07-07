@@ -42,6 +42,10 @@ let package = Package(
         .executable(
             name: "Quickstart",
             targets: ["Quickstart"]
+        ),
+        .executable(
+            name: "FoundationModelsRegressionDemo",
+            targets: ["FoundationModelsRegressionDemo"]
         )
     ],
     targets: [
@@ -82,6 +86,12 @@ let package = Package(
         .executableTarget(
             name: "Quickstart",
             dependencies: ["DProvenanceKit"]
+        ),
+        // A polished, runnable Foundation Models regression scenario (post-hoc transcript
+        // ingestion) that ends in a failing CI gate and a WebVisualizer export.
+        .executableTarget(
+            name: "FoundationModelsRegressionDemo",
+            dependencies: ["DProvenanceKit", "DProvenanceFoundationModels"]
         ),
         .testTarget(
             name: "DProvenanceKitTests",
