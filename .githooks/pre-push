@@ -1,0 +1,26 @@
+#!/bin/sh
+# Local first line of defense for the free/paid boundary.
+#
+# Blocks a push that would introduce premium-namespaced paths into the public
+# Apache-2.0 tree, mirroring the CI "Free/paid boundary guard" job so a leak is
+# caught here, before it ever leaves your machine. An Apache-2.0 release is
+# irrevocable — code that ships free stays free forever — so this is a
+# structural backstop, not a reminder. See CONTRIBUTING.md "Free vs. paid boundary".
+#
+# Activate once per clone:  git config core.hooksPath .githooks
+# Override (use only if certain):  git push --no-verify
+
+matches=$(git ls-files \
+  | grep -E '(^|/)(Premium|Hosted)[^/]*/|(^|/)Private/|(Premium|Hosted)[^/]*\.swift' \
+  || true)
+
+if [ -n "$matches" ]; then
+  echo "pre-push: premium-namespaced path(s) in the public Apache-2.0 repo:" >&2
+  echo "$matches" >&2
+  echo "" >&2
+  echo "Move this code to the private premium repo under its commercial license." >&2
+  echo "Apache-2.0 releases cannot be clawed back — see CONTRIBUTING.md." >&2
+  exit 1
+fi
+
+exit 0

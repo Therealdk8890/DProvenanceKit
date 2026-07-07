@@ -36,6 +36,37 @@ swift run DProvenanceKitCLI evaluate --gate --min-f1=0.95   # also require an F1
   OTel bridge is zero-dependency. Cross-module glue (e.g. FoundationModels ↔ OTel) lives
   in its own bridge target so neither base module takes on the other's dependency.
 
+## Free vs. paid boundary
+
+This repository is the **public, Apache-2.0 core** — in-process, single-machine features
+only. Its license grant is *perpetual and irrevocable*: anything merged and released here is
+free forever and cannot be relicensed or clawed back. The boundary is therefore enforced
+*before* code lands, not after.
+
+Apply the same test [COMMERCIAL.md](COMMERCIAL.md) uses:
+
+> **Does it deliver its value standalone, in the user's own process, as part of the core
+> library?**
+
+- **Yes → it belongs here**, free under Apache 2.0.
+- **No — its value only exists hosted, cross-machine, or managed**, *or* it's something
+  we intend to sell as software you run (on-prem/custom) → it belongs in the private premium
+  repository under a separate commercial license. **Never commit it here.**
+
+Reserved namespaces — do **not** add matching paths to this repo; CI (the *Free/paid boundary
+guard* job) rejects them so an accidental `git add` fails the build instead of shipping paid
+code for free:
+
+- `Sources/**/Premium*` and `Sources/**/Hosted*` (directories or files)
+- any `*Premium*.swift` / `*Hosted*.swift`
+- a top-level `Private/`
+
+A tracked pre-push hook enforces the same rule locally. Activate it once per clone:
+
+```bash
+git config core.hooksPath .githooks   # .githooks/pre-push blocks a leak before it's pushed
+```
+
 ## Pull requests
 
 - Branch from `main`; keep changes focused.

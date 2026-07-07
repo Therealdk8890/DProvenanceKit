@@ -90,3 +90,29 @@ jobs:
       # Scope to the burst/chaos/buffer suites so the race check stays fast.
       - name: Test concurrency suites under ThreadSanitizer
         run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker'
+
+  boundary-guard:
+    name: Free/paid boundary guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      # This repo is the public, Apache-2.0 core: in-process, single-machine code only.
+      # Paid, hosted, or cross-machine ("service") code, and separately-licensed premium
+      # components, live in the private premium repo — never here. An Apache-2.0 release is
+      # irrevocable, so we reject reserved premium namespaces BEFORE they can be merged and
+      # shipped for free. See CONTRIBUTING.md "Free vs. paid boundary" and COMMERCIAL.md.
+      - name: Reject premium-namespaced paths in the public Apache-2.0 tree
+        run: |
+          matches=$(git ls-files \
+            | grep -E '(^|/)(Premium|Hosted)[^/]*/|(^|/)Private/|(Premium|Hosted)[^/]*\.swift' \
+            || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Premium-namespaced path(s) found in the public Apache-2.0 repo:"
+            echo "$matches"
+            echo "Move this code to the private premium repo under its commercial license."
+            echo "Apache-2.0 releases cannot be clawed back — see CONTRIBUTING.md."
+            exit 1
+          fi
+          echo "OK: no premium-namespaced paths in the public tree."
