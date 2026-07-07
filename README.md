@@ -387,9 +387,9 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 **Experimental — core engine complete, actively evolving.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent, a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), and [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector.
+**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent — including events lost to a failed batch insert — a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector, and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer fed by [`WebDiffExport`](WebVisualizer/SCHEMA.md) JSON.
 
-**Planned:** counting events lost to a failed batch insert, richer visualization, distributed trace federation.
+**Planned:** richer graph/lineage visualization, distributed trace federation, hosted/team trace workflows.
 
 **Scope:** Apple platforms (macOS / iOS). The library depends on system SQLite and CryptoKit, so it targets Apple OSes rather than Linux — by design, since the goal is reasoning observability for Swift and on-device AI.
 
