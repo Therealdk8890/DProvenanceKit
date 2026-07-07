@@ -22,7 +22,8 @@ observability in production tend to need.
   deployment type (self-hosted vs. hosted), and contract length.
 - Multi-year discounts and usage-based options are available.
 - Paid tiers include access to private repositories for premium features and early access
-  to new capabilities.
+  to new capabilities. Premium components delivered this way are **separately licensed
+  (commercial, not Apache 2.0)**; the open-source library in this repository stays Apache 2.0.
 - The in-process OTel exporter (`DProvenanceOTel`, [docs/otel-bridge.md](docs/otel-bridge.md))
   is free and open source under Apache 2.0, like the rest of the library. The Pro tier's
   **managed OTel export pipeline** is the hosted layer on top — shared team traces, CI
@@ -42,19 +43,32 @@ One line, applied consistently so the boundary never surprises a user or a contr
 
 > **The library is free. The service is paid.**
 
-- **Free, always** — anything that runs *in your process, on your machine*: capture, query,
-  diff, regression detection, lineage recording, and exporting your traces to a backend
-  *you* run. Paywalling these would only slow adoption, and adoption is the whole strategy in
-  an empty niche.
-- **Paid** — anything DProvenanceKit runs *for you, across machines*: hosted trace and lineage
-  sharing, a managed CI regression gate, cross-run/cross-machine analytics dashboards,
-  production monitoring, plus support, SLAs, indemnity, and compliance.
+Concretely, three categories:
 
-The test for any new feature: *does it deliver its value standalone, in the user's own
-process?* If yes, it ships free and widens the top of the funnel. If its value only exists as
-a hosted, multi-machine, or managed service, it belongs in a paid tier. A strong free library
-makes the paid service **more** valuable, not less: the more teams capture and record locally,
-the more they want it shared, gated in CI, and monitored in production.
+- **Free, always — the open-source library.** Anything in the Apache-2.0 library that runs
+  *in your process, on your machine*: capture, query, diff, regression detection, lineage
+  recording, and exporting your traces to a backend *you* run. Paywalling these would only
+  slow adoption, and adoption is the whole strategy in an empty niche.
+- **Paid — hosted services.** Anything DProvenanceKit runs *for you, across machines*: hosted
+  trace and lineage sharing, a managed CI regression gate, cross-run/cross-machine analytics
+  dashboards, production monitoring, plus support, SLAs, indemnity, and compliance. This code
+  runs on our infrastructure and is never distributed, so it is not part of the open-source
+  library.
+- **Paid — separately-licensed premium components.** A small set of enterprise capabilities
+  (air-gapped / on-prem builds, and bespoke custom features) *do* run in your environment, but
+  they are **not** part of the Apache-2.0 library. They are delivered through private
+  repositories under a **separate commercial license — not Apache 2.0** — and are never merged
+  into the public tree. Running in your process is what makes the *library* free; a commercial
+  license is what makes these premium components paid.
+
+The test for any new feature: *does it deliver its value standalone, in the user's own process,
+as part of the core library?* If yes, it ships free in the Apache-2.0 library and widens the top
+of the funnel. If its value only exists as a hosted, multi-machine, or managed service, it
+belongs in a paid tier. And anything meant to be sold as software you run — on-prem or custom —
+is built in the private premium repository under a commercial license from the start, never
+committed to the open-source tree, because an Apache-2.0 release is irrevocable. A strong free
+library makes the paid offering **more** valuable, not less: the more teams capture and record
+locally, the more they want it shared, gated in CI, and monitored in production.
 
 ## What a commercial agreement includes
 
