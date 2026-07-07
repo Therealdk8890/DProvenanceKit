@@ -203,6 +203,7 @@ body {
 .metric.risk-medium::before { background: var(--changed); }
 .metric.risk-high::before { background: var(--removed); }
 .metric.risk-low::before { background: var(--added); }
+.metric.risk-none::before { background: var(--unchanged); }
 
 .metric .k { display: block; margin-bottom: 10px; }
 .metric .v {
@@ -228,6 +229,7 @@ body {
 .risk-pill.medium { color: var(--changed); background: var(--changed-bg); }
 .risk-pill.high { color: var(--removed); background: var(--removed-bg); }
 .risk-pill.low { color: var(--added); background: var(--added-bg); }
+.risk-pill.none { color: var(--text-dim); background: var(--unchanged-bg); }
 
 /* mini diff-count cluster inside a metric */
 .countset { display: flex; gap: 14px; align-items: baseline; }

@@ -4,10 +4,11 @@ The explorer renders **one already-diffed reasoning tree** plus summary/metric/t
 context. It consumes a single JSON document (today: `mockDiffs.json`). This file is the
 contract the Swift side must emit so real runs load without touching the front-end.
 
-> **Status:** the mock is hand-authored. **Nothing in `Sources/` produces this shape yet.**
-> The library's diff is `TraceDiffEngine.TraceDiffResult` (a flat list of `.added` / `.removed`
-> `Change`s keyed by two run UUIDs); `regressionRisk` comes from `TraceAlignmentEngine`. A small
-> Swift transformer must fold those into the envelope below. This doc is that transformer's spec.
+> **Status:** shipped. `WebDiffExport` (in `DProvenanceKit`) produces this exact shape from a
+> `TraceAlignmentResult` — the alignment is a superset of the structural diff, so its per-event
+> `state` supplies `added`/`removed` (structural) *and* `changed`/`unchanged` (semantic). Generate
+> a real document with `swift run DProvenanceKitCLI web-export > run.json` and load it here, or
+> call `WebDiffExport.make(...).jsonData()` directly. This doc remains the field-level contract.
 
 ## Document shape
 
@@ -15,7 +16,7 @@ contract the Swift side must emit so real runs load without touching the front-e
 {
   "summary": {
     "runs": "2,847",                    // string; display-formatted corpus size
-    "regressionRisk": "Medium",         // "Low" | "Medium" | "High"  (RegressionRisk.Level, capitalized)
+    "regressionRisk": "Medium",         // "None" | "Low" | "Medium" | "High"  (RegressionRisk.Level, capitalized)
     "changedLogicPaths": 14,            // int; root→leaf paths touched by a change
     "structuralFingerprint": "8F2A...C91B" // short hash of the comparison run's structure
   },
@@ -67,21 +68,37 @@ contract the Swift side must emit so real runs load without touching the front-e
 - **`driftScore`** is a 0–100 display metric; define it however the transformer likes
   (e.g. `100 * changed+added+removed / totalNodes`), but keep it bounded.
 
-## Suggested Swift surface
+## Swift surface (`Sources/DProvenanceKit/WebDiffExport.swift`)
 
 ```swift
-// DProvenanceKit (new, e.g. Sources/DProvenanceKit/WebDiffExport.swift)
-public struct WebDiffExport: Codable, Sendable { /* summary, metrics, timeline, tree */ }
+public struct WebDiffExport: Codable, Sendable, Equatable {
+    // summary, metrics, timeline, tree — mirrors this document exactly.
 
-public extension TraceDiffResult {
-    /// Fold a structural diff + alignment result into the WebVisualizer envelope.
-    static func webExport(
-        base: TraceRun<some TraceableEvent>,
-        comparison: TraceRun<some TraceableEvent>,
-        alignment: TraceAlignmentResult
+    /// Build from an existing alignment result.
+    static func make<T: TraceableEvent>(
+        base: TraceRun<T>, comparison: TraceRun<T>, alignment: TraceAlignmentResult<T>,
+        baseLabel: String = "Run A", comparisonLabel: String = "Run B",
+        corpusRuns: Int? = nil, timeZone: TimeZone = .init(identifier: "UTC")!, rootLabel: String? = nil
     ) -> WebDiffExport
+
+    /// Convenience: run the alignment engine, then build.
+    static func make<T: TraceableEvent>(
+        base: TraceRun<T>, comparison: TraceRun<T>, configuration: AlignmentConfiguration<T>, /* … */
+    ) -> WebDiffExport
+
+    /// Deterministic JSON (sorted keys) — feed straight to the uploader.
+    func jsonData(prettyPrinted: Bool = true) throws -> Data
 }
 ```
 
-Emit with `JSONEncoder` (`.sortedKeys` for determinism) and drop the file next to the
-built app, or wire a `--web-export` flag onto `DProvenanceKitCLI`.
+Node ids are positional, dates format in a fixed time zone, and `jsonData()` sorts keys, so the
+same comparison always encodes to identical bytes.
+
+### Generate a document
+
+```sh
+# any corpus case (default: first); --case=<name> to pick, --out=<path> to write a file
+swift run DProvenanceKitCLI web-export > run.json
+```
+
+Or in code: `let data = try WebDiffExport.make(base: a, comparison: b, configuration: cfg).jsonData()`.

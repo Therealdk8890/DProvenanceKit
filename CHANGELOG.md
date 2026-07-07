@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`WebDiffExport`** — a `Codable` projection of a run comparison into the exact JSON the
+  bundled WebVisualizer consumes (summary, metrics, timeline, and a color-coded reasoning tree).
+  Built from a `TraceAlignmentResult` — its per-event `state` supplies added/removed *and*
+  changed/unchanged — with deterministic output (positional node ids, fixed-time-zone dates,
+  sorted keys with `.withoutEscapingSlashes`, and a dependency-free FNV-1a fingerprint).
+  `swift run DProvenanceKitCLI web-export [--case=<name>] [--out=<path>]` emits a document for
+  any corpus case; contract in `WebVisualizer/SCHEMA.md`.
+
 ## [0.2.0] - 2026-07-06
 
 ### Added
