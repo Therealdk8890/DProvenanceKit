@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>404 — no such span · DProvenanceKit</title>
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#0a0c10" />
+<style>
+  :root {
+    color-scheme: dark light;
+    --bg:#0a0c10; --surface:#12151d; --surface-2:#171b24;
+    --border:#242a35; --border-lit:#333b49;
+    --text:#e7ebf3; --text-mut:#9aa4b4; --text-dim:#6b7484;
+    --accent:#6d5efc; --accent-2:#8b7dff; --accent-dim:#2a2550;
+    --red:#f85149; --amber:#d9a441;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --radius:14px;
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 12px 40px -12px rgba(0,0,0,.6);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f9;
+      --border:#e3e7ee; --border-lit:#d3d9e3;
+      --text:#10141b; --text-mut:#4c5566; --text-dim:#7b8494;
+      --accent:#5a4be0; --accent-2:#6d5efc; --accent-dim:#e9e6ff;
+      --red:#cf222e; --amber:#9a6700;
+      --shadow: 0 1px 0 rgba(0,0,0,.02) inset, 0 12px 40px -18px rgba(20,30,60,.22);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg:#ffffff; --surface:#ffffff; --surface-2:#f4f6f9;
+    --border:#e3e7ee; --border-lit:#d3d9e3;
+    --text:#10141b; --text-mut:#4c5566; --text-dim:#7b8494;
+    --accent:#5a4be0; --accent-2:#6d5efc; --accent-dim:#e9e6ff;
+    --red:#cf222e; --amber:#9a6700;
+    --shadow: 0 1px 0 rgba(0,0,0,.02) inset, 0 12px 40px -18px rgba(20,30,60,.22);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background:
+      radial-gradient(60% 55% at 82% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+  }
+  main { width: 100%; max-width: 560px; text-align: center; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 700; letter-spacing: -0.02em; color: var(--text);
+    text-decoration: none; margin-bottom: 40px;
+  }
+  .logo { width: 26px; height: 26px; }
+  .code {
+    font-family: var(--mono); font-weight: 700;
+    font-size: clamp(4.5rem, 18vw, 7.5rem); line-height: 1;
+    letter-spacing: -0.03em; margin: 0;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h1 { font-size: clamp(1.3rem, 4vw, 1.7rem); letter-spacing: -0.02em; margin: 14px 0 10px; }
+  p.lede { color: var(--text-mut); margin: 0 auto 28px; max-width: 44ch; }
+  .trace {
+    font-family: var(--mono); font-size: .9rem; text-align: left;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 18px; margin: 0 auto 32px; max-width: 440px;
+    color: var(--text-mut); overflow-x: auto;
+  }
+  .trace .rm { color: var(--red); }
+  .trace .dim { color: var(--text-dim); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 11px 20px; border-radius: 10px; font-weight: 600; font-size: .95rem;
+    text-decoration: none; border: 1px solid var(--border-lit); transition: .15s ease;
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ghost { color: var(--text); background: var(--surface-2); }
+  .btn.ghost:hover { border-color: var(--accent); color: var(--accent-2); }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/">
+    <svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#lg404)"/>
+      <path d="M9 22V10h4.6c3.7 0 6 2.3 6 6s-2.3 6-6 6H9Z" stroke="#fff" stroke-width="2.1" fill="none"/>
+      <circle cx="22.5" cy="10" r="2.4" fill="#fff"/>
+      <path d="M22.5 12.2v7.2" stroke="#fff" stroke-width="1.8"/>
+      <defs><linearGradient id="lg404" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#8b7dff"/><stop offset="1" stop-color="#5a4be0"/></linearGradient></defs>
+    </svg>
+    DProvenanceKit
+  </a>
+
+  <p class="code">404</p>
+  <h1>No such span in this trace.</h1>
+  <p class="lede">The page you're looking for isn't part of this run. It may have moved, or the link dropped a step along the way.</p>
+
+  <div class="trace" aria-hidden="true">
+    <div><span class="dim">query</span> event(path: <span class="dim">location.pathname</span>)</div>
+    <div><span class="rm">−  match: none &nbsp;·&nbsp; 0 results</span></div>
+  </div>
+
+  <div class="actions">
+    <a class="btn primary" href="/">Back to the trace</a>
+    <a class="btn ghost" href="https://github.com/Therealdk8890/DProvenanceKit">View on GitHub</a>
+  </div>
+</main>
+</body>
+</html>
