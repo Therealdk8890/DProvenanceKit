@@ -1,7 +1,13 @@
 name: Deploy landing page
 
-# Publishes site/ to GitHub Pages (custom domain: dprovenance.dev via site/CNAME).
-# One-time setup: repo Settings → Pages → Source = "GitHub Actions".
+# Publishes site/ to GitHub Pages. Source must be "GitHub Actions", enabled
+# once in repo Settings → Pages (done). That one-time enablement is all the
+# first deploy needs and it persists — configure-pages' `enablement: true`
+# can't do it here because enabling Pages requires a token other than the
+# default GITHUB_TOKEN (a PAT/App token), which this workflow doesn't carry.
+# Custom domain dprovenance.dev lives in Pages settings (set via the API), not
+# in this file. site/CNAME is ignored for Actions-based deploys — kept only as
+# a fallback if the source is ever switched to "Deploy from a branch".
 
 on:
   push:
