@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Commercial / support inquiry (email)
+    url: mailto:therealdk8890+lineage@gmail.com
+    about: For SLAs, enterprise, on-prem, or anything you'd rather not file publicly.
+  - name: 📖 Documentation
+    url: https://github.com/Therealdk8890/DProvenanceKit#readme
+    about: Quickstart, Foundation Models adapter, OTel bridge, and design docs.

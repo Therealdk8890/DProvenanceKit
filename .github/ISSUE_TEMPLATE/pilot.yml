@@ -1,0 +1,62 @@
+name: "🚀 Pilot / design-partner interest"
+description: Apply to the DProvenanceKit team pilot (hosted traces, CI regression gate, cross-machine lineage). Free/discounted for design partners.
+title: "[Pilot] <your company>"
+labels: ["pilot", "commercial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest! The open-source library is and stays free (Apache 2.0).
+        This is for the **hosted / team layer** — shared traces across machines and CI, a managed
+        regression gate that comments on PRs, and cross-machine lineage & analytics.
+        Design-partner pilots are free or discounted in exchange for feedback and roadmap input.
+        We typically reply within 1–2 business days.
+  - type: input
+    id: company
+    attributes:
+      label: Company / project
+      placeholder: Acme AI, or "personal / indie"
+    validations:
+      required: true
+  - type: dropdown
+    id: stack
+    attributes:
+      label: What are you building AI in?
+      multiple: true
+      options:
+        - Apple Foundation Models (on-device)
+        - Swift (MLX / Core ML / custom)
+        - Python
+        - Other / mixed
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: What are you building, and where does reasoning drift hurt today?
+      placeholder: "e.g. an on-device agent that silently changed behavior after a model update; we found out from a user."
+    validations:
+      required: true
+  - type: dropdown
+    id: team
+    attributes:
+      label: Approximate team size
+      options: ["Just me", "2–5", "6–20", "21–100", "100+"]
+    validations:
+      required: true
+  - type: checkboxes
+    id: interest
+    attributes:
+      label: What would you want from a team / hosted version? (check all that apply)
+      options:
+        - label: Traces & lineage shared across machines and CI
+        - label: A managed regression gate that fails / comments on PRs
+        - label: Cross-run / cross-machine analytics dashboard
+        - label: Production monitoring
+        - label: On-prem / air-gapped deployment
+        - label: Support, SLAs, indemnity, compliance (SOC 2 / HIPAA)
+  - type: input
+    id: contact
+    attributes:
+      label: Best contact (email or handle) — optional
+      placeholder: you@company.com
