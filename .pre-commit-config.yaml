@@ -1,0 +1,13 @@
+# Local secret-leak guard. Mirrors the `secret-scan` CI job so a Stripe key
+# (sk_/rk_/whsec_) or other credential is caught BEFORE it is committed to this
+# public repo. See docs/BILLING_SETUP.md → "Preventing secret leaks".
+#
+# One-time setup for contributors:
+#   pipx install pre-commit   # or: brew install pre-commit
+#   pre-commit install
+# Bump the pinned version any time with:  pre-commit autoupdate
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks

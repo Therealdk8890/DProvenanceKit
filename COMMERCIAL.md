@@ -10,11 +10,16 @@ observability in production tend to need.
 
 ## What's available
 
-| Tier              | Best for                              | Annual pricing (USD)     | Includes |
+| Tier              | Best for                              | Pricing (USD)            | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
-| **Starter**       | Small teams, indie developers         | $2,400 – $6,000          | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $12,000 – $36,000        | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), cross-machine lineage graph & analytics dashboard, up to 5 seats |
+| **Starter**       | Small teams, indie developers         | $250/mo or $2,400/yr     | Email support, 1 named contact, prioritized bug fixes |
+| **Pro**           | Growing AI startups and products      | $1,500/mo or $15,000/yr  | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), cross-machine lineage graph & analytics dashboard, up to 5 seats |
 | **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom features, on-prem/air-gapped deployment, audit logs, indemnity, SOC 2 / HIPAA-ready documentation, unlimited seats |
+
+A 30-day paid **Pilot** ($1,500, one workflow) is also available as a low-commitment entry point.
+For a buyer-facing version of the offer, pricing anchors, and pilot scope, see
+[docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md). For the Stripe catalog and fulfillment
+checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
 
 **Notes**
 
@@ -86,7 +91,8 @@ gate on the open-source code.
 ## How to get in touch
 
 1. Open a GitHub issue with the label **`commercial`**
-   or email **DanielPaulKissel@gmail.com**
+   using the **Commercial support or team plan** template, or email
+   **therealdk8890+lineage@gmail.com**
 
 2. Provide the following information:
    - Company / Organization name
