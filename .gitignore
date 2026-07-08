@@ -19,3 +19,6 @@ sample_traces.sqlite
 /test.swift
 /test_loop.swift
 /run_test.swift
+
+# Internal go-to-market / sales ops material — local only, never publish
+/go-to-market/

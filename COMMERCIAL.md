@@ -8,7 +8,59 @@ What's offered commercially is **not** a license to use the code — the code is
 free. It's the support, operational features, and assurances that teams running reasoning
 observability in production tend to need.
 
-## What's available
+---
+
+## Start here
+
+| I want to… | Do this |
+|------------|---------|
+| **Join the pilot** (free/discounted design partner) | [Open the pilot form →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) |
+| **Ask about a paid tier / SLA / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.2.0")`. Nothing to sign. |
+
+We typically respond within 1–2 business days.
+
+---
+
+## 🚀 Design Partner / Pilot Program (open now)
+
+Before the hosted/team layer is generally available, a small number of **design partners**
+get it early — **free or heavily discounted** — in exchange for feedback that shapes what
+ships. If you're building on-device or Swift AI and reasoning drift is a real risk for you,
+this is the fastest way to get the team features and steer the roadmap.
+
+**What a design partner gets**
+
+- Early access to the **hosted team layer**: traces & lineage shared across machines and CI,
+  a managed regression gate that comments on your pull requests, and a cross-machine
+  analytics dashboard — at **no or reduced cost** for the pilot term.
+- A **direct line** to the maintainer (private channel) and priority on bug fixes.
+- **Roadmap input** — pilots vote on what gets built next, and integration help getting
+  DProvenanceKit wired into your app and CI.
+- Optional: a logo / short case study once you're getting value (never required).
+
+**What we ask in return**
+
+- ~30 minutes of feedback every couple of weeks during the pilot.
+- Permission to use anonymized learnings to improve the product.
+- Honesty — including telling us what's missing or broken.
+
+**Who it's for:** teams or solo developers shipping AI in **Apple Foundation Models, Swift
+(MLX / Core ML / custom), or Python**, where an agent silently changing behavior after a
+model/OS update would actually hurt.
+
+**Slots are limited** so each partner gets real attention.
+👉 **[Apply to the pilot](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)** (2-minute form) — or email
+**[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20pilot%20interest&body=Company%3A%0AWhat%20you're%20building%3A%0ATeam%20size%3A%0AWhat%20you'd%20want%20from%20a%20team%2Fhosted%20version%3A%0A)** with what you're building.
+
+> **Design partner vs. paid pilot:** a *design partnership* trades your feedback for free or
+> discounted early access to the hosted layer. If you'd rather evaluate on a defined paid
+> engagement, there's also a **paid 30-day Pilot ($1,500, one workflow)** under
+> [Paid tiers](#paid-tiers) below. Pick whichever fits — both are low-commitment ways in.
+
+---
+
+## Paid tiers
 
 | Tier              | Best for                              | Pricing (USD)            | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
@@ -23,6 +75,8 @@ checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
 
 **Notes**
 
+- Design-partner pilots are **free or discounted** during the pilot term; the prices above
+  are the standard post-pilot rates.
 - Pricing is flexible and based on factors such as number of developers, event volume,
   deployment type (self-hosted vs. hosted), and contract length.
 - Multi-year discounts and usage-based options are available.
@@ -90,16 +144,19 @@ gate on the open-source code.
 
 ## How to get in touch
 
-1. Open a GitHub issue with the label **`commercial`**
-   using the **Commercial support or team plan** template, or email
-   **therealdk8890+lineage@gmail.com**
+**Fastest — use a form/link:**
 
-2. Provide the following information:
-   - Company / Organization name
-   - Approximate number of developers or users
-   - Intended use case (internal tool, product, SaaS, etc.)
-   - Expected scale (events per month, number of deployments)
-   - Any specific requirements (compliance, on-prem, custom features)
+- **Pilot:** [github.com/Therealdk8890/DProvenanceKit → new pilot issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
+- **Commercial / SLA / enterprise:** [new `commercial` issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+  or email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)**
+
+**When you reach out, it helps to include:**
+
+- Company / Organization name
+- Approximate number of developers or users
+- Intended use case (internal tool, product, SaaS, etc.)
+- Expected scale (events per month, number of deployments)
+- Any specific requirements (compliance, on-prem, custom features)
 
 We typically respond within 1–2 business days and can provide a custom quote quickly.
 
@@ -109,6 +166,11 @@ We typically respond within 1–2 business days and can provide a custom quote q
 Yes. Under Apache 2.0 you may use it in production and in commercial products at no cost and
 with no restrictions. Commercial agreements cover support, SLAs, indemnity, and
 enterprise/hosted features — not permission to use the code.
+
+**What does a pilot cost?**
+Design-partner pilots are free or discounted for the pilot term. In exchange we ask for
+feedback and permission to learn from anonymized usage. Standard rates apply after the pilot
+if you convert to a paid tier — with no obligation to.
 
 **Do you offer sponsorship or open-source support?**
 Yes — we welcome GitHub Sponsors and can discuss reduced rates for qualifying open-source
