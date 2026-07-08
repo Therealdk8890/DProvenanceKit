@@ -407,6 +407,10 @@ Docs, hosted trace visualizer, and more at **[dprovenance.dev](https://dprovenan
 
 The whole library is free and open source under Apache 2.0 — including for production and commercial use. That covers everything that runs on your machine: recording, querying, diffing, **provenance/lineage**, the FoundationModels adapter, and exporting to your own Langfuse or OTel backend. If you want a **team version** — traces and lineage shared across machines and CI, a regression gate that fails a pull request when reasoning drifts, cross-machine analytics, and production monitoring — or commercial support and SLAs, reach out: **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**. See [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md) for details.
 
+If you want to buy or evaluate support, start with the packaged offer in
+[docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md), the Stripe-ready catalog in
+[docs/BILLING_SETUP.md](docs/BILLING_SETUP.md), or the GitHub commercial inquiry template.
+
 ---
 
 # License

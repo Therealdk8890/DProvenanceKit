@@ -1,0 +1,70 @@
+name: Commercial support or team plan
+description: Request support, a pilot, or a paid team/enterprise plan.
+title: "Commercial inquiry: "
+labels: ["commercial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in DProvenanceKit. The open-source library is free under Apache 2.0; commercial plans cover support, SLAs, managed workflows, and private add-ons.
+  - type: input
+    id: organization
+    attributes:
+      label: Organization
+      description: Company, project, clinic, firm, or team name.
+      placeholder: Acme AI Legal Tools
+    validations:
+      required: true
+  - type: dropdown
+    id: plan
+    attributes:
+      label: Interested plan
+      options:
+        - Starter support
+        - Pro assurance
+        - Enterprise / on-prem
+        - Pilot / evaluation
+        - Not sure yet
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Primary workflow
+      options:
+        - Legal AI drafting or review
+        - On-device Foundation Models app
+        - Agent regression testing
+        - CI reasoning gate
+        - OTel / Langfuse trace export
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What are you trying to prove, monitor, or de-risk?
+      placeholder: We need to prove which source facts supported each generated draft before filing.
+    validations:
+      required: true
+  - type: input
+    id: scale
+    attributes:
+      label: Expected scale
+      description: Seats, apps, CI runs, traces per month, or rough workload.
+      placeholder: 5 developers, 2 apps, 20k traces/month
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: Security, privacy, local-only, compliance, support, procurement, or deployment needs.
+      placeholder: Local-only data, private Slack support, annual invoice, SOC 2 questionnaire.
+  - type: input
+    id: contact
+    attributes:
+      label: Preferred contact
+      description: Email or GitHub handle.
+      placeholder: name@example.com
+    validations:
+      required: true

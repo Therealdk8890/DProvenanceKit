@@ -116,3 +116,21 @@ jobs:
             exit 1
           fi
           echo "OK: no premium-namespaced paths in the public tree."
+
+  secret-scan:
+    name: Secret scan (no keys in the public tree)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # This repo is public and the billing setup (docs/BILLING_SETUP.md) deliberately keeps
+      # Stripe secret keys, restricted keys, and webhook signing secrets OUT of the tree. Key
+      # exposure via a public repo is the top cause of Stripe key compromise, so enforce it in
+      # CI rather than relying on the written rule alone. gitleaks-action is free for public and
+      # personal repos (no GITLEAKS_LICENSE needed). fetch-depth: 0 lets it scan full history.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Scan for committed secrets (sk_/rk_/whsec_, etc.)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
