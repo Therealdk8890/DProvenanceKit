@@ -13,6 +13,8 @@ const TYPES = ['added', 'removed', 'changed', 'unchanged']
 
 const state = {
   data: mockDiffs,
+  sourceLabel: 'Sample data',
+  sourceKind: 'sample',
   search: '',
   types: new Set(TYPES),
   collapsed: new Set(),
@@ -59,6 +61,29 @@ function collectIds(node, withChildrenOnly, out = []) {
   if (!withChildrenOnly || (node.children && node.children.length)) out.push(node.id)
   ;(node.children || []).forEach((c) => collectIds(c, withChildrenOnly, out))
   return out
+}
+
+function loadData(data, { label = 'Loaded JSON', kind = 'custom' } = {}) {
+  state.data = data
+  state.sourceLabel = label
+  state.sourceKind = kind
+  state.search = ''
+  state.types = new Set(TYPES)
+  state.collapsed = new Set()
+  buildShell()
+}
+
+function downloadCurrentJSON() {
+  const json = JSON.stringify(state.data, null, 2)
+  const blob = new Blob([json + '\n'], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = state.sourceKind === 'sample' ? 'dprovenance-sample-diff.json' : 'dprovenance-diff.json'
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 /* A node is "self-visible" if its type is active AND it matches the search.
@@ -205,6 +230,9 @@ function buildShell() {
         <span class="eyebrow">reasoning-trace regression explorer</span>
       </div>
       ${fp ? `<div class="fingerprint">fingerprint <b>${esc(fp)}</b></div>` : ''}
+      <div class="source-pill ${esc(state.sourceKind)}">${esc(state.sourceLabel)}</div>
+      <button class="btn secondary" id="sample-btn">Load sample</button>
+      <button class="btn secondary" id="download-btn">Download current</button>
       <button class="btn" id="load-btn">Load JSON</button>
       <input id="file" type="file" accept="application/json,.json" hidden />
     </header>
@@ -228,9 +256,9 @@ function buildShell() {
     <div class="treewrap"><div class="tree" id="tree"></div></div>
 
     <p class="footnote">
-      Loaded document is <code>mockDiffs.json</code>. Generate a real one with
-      <code>swift run DProvenanceKitCLI web-export</code> and drop it in via “Load JSON”
-      — schema in <code>SCHEMA.md</code>.
+      Open the bundled sample instantly, download the current JSON to inspect the schema, or generate a real
+      export with <code>swift run DProvenanceKitCLI web-export --out=run.json</code> and drop it in via “Load JSON”.
+      Schema lives in <code>SCHEMA.md</code>.
     </p>`
 
   wire()
@@ -268,6 +296,12 @@ function wire() {
     paintTree()
   })
 
+  // demo/sample controls
+  document.querySelector('#sample-btn').addEventListener('click', () => {
+    loadData(mockDiffs, { label: 'Sample data', kind: 'sample' })
+  })
+  document.querySelector('#download-btn').addEventListener('click', downloadCurrentJSON)
+
   // per-node caret toggle (delegated)
   document.querySelector('#tree').addEventListener('click', (e) => {
     const btn = e.target.closest('.caret[data-toggle]')
@@ -289,11 +323,7 @@ function wire() {
       if (!parsed || typeof parsed !== 'object' || !parsed.tree || !parsed.tree.type) {
         throw new Error('missing a top-level "tree" node')
       }
-      state.data = parsed
-      state.search = ''
-      state.types = new Set(TYPES)
-      state.collapsed = new Set()
-      buildShell()
+      loadData(parsed, { label: file.name, kind: 'custom' })
     } catch (err) {
       alert(`Could not load "${file.name}": ${err.message}\n\nExpected a DPK diff export (see SCHEMA.md).`)
     } finally {

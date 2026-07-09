@@ -15,9 +15,9 @@ final class LiveCollectorSmokeTests: XCTestCase {
         }
 
         let store = InMemoryTraceStore<StubEvent>()
-        await DProvenanceKit<StubEvent>.run(contextID: "smoke", store: store) {
+        _ = await DProvenanceKit<StubEvent>.run(contextID: "smoke", store: store) {
             DProvenanceKit<StubEvent>.record(StubEvent("smoke.start", priority: .critical))
-            await DProvenanceKit<StubEvent>.withSpan(named: "smoke-span") {
+            _ = await DProvenanceKit<StubEvent>.withSpan(named: "smoke-span") {
                 DProvenanceKit<StubEvent>.record(StubEvent("smoke.step"))
             }
             DProvenanceKit<StubEvent>.record(StubEvent("smoke.end", priority: .critical))

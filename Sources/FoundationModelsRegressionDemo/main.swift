@@ -115,7 +115,7 @@ struct FoundationModelsRegressionDemo {
         contextID: String
     ) async throws -> TraceRun<FoundationModelTraceEvent> {
         let store = InMemoryTraceStore<FoundationModelTraceEvent>()
-        DProvenanceKit<FoundationModelTraceEvent>.runSync(contextID: contextID, store: store) {
+        _ = DProvenanceKit<FoundationModelTraceEvent>.runSync(contextID: contextID, store: store) {
             FMSnapshotIngestion.record(snapshot)
         }
         guard let run = try await store.queryRuns(TraceQueryDSL()).first else {
