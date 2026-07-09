@@ -39,7 +39,7 @@ Two layers, deliberately split:
 | Layer | Availability | Contents |
 | ----- | ------------ | -------- |
 | Decision layer (ungated) | macOS 13 / iOS 16 — the package floor, no FoundationModels SDK needed | Event vocabulary, payloads, redaction, `FMTranscriptSnapshot` IR, `FMSnapshotMapper`, `FMSnapshotIngestion`, span-path grammar, alignment evaluator |
-| SDK bridge (gated) | iOS 26 / macOS 26 / visionOS 26, behind `#if canImport(FoundationModels)`; unavailable on tvOS and watchOS | `TracedLanguageModelSession`, `TracedTool`, `recordProvenance()`, transcript bridging, availability recording |
+| SDK bridge (gated) | iOS 26 / macOS 26, behind `#if canImport(FoundationModels)`; unavailable when the SDK is absent | `TracedLanguageModelSession`, `TracedTool`, `recordProvenance()`, transcript bridging, availability recording |
 
 The split means every mapping, redaction, and pairing decision is testable — and usable, e.g. against serialized transcripts — on machines that have never seen the FoundationModels SDK.
 

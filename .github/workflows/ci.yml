@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -122,10 +122,6 @@ jobs:
     name: Thread sanitizer (concurrency tests)
     runs-on: macos-26
     timeout-minutes: 30
-    # Advisory for now: this is a newly added sanitizer over pre-existing hand-locked
-    # @unchecked Sendable classes, so a first run may surface latent races that need
-    # triage. It reports without blocking merges; flip to blocking once it's green.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 
@@ -177,6 +173,6 @@ jobs:
         with:
           fetch-depth: 0
       - name: Scan for committed secrets (sk_/rk_/whsec_, etc.)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

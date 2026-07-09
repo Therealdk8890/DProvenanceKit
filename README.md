@@ -376,7 +376,7 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 | [Snapshot diffing](docs/SNAPSHOTS.md) | Diff two replay states: span changes, event changes, the exact divergence point |
 | [Live queries](docs/LIVE_QUERIES.md) | Register a query once, get a callback the moment a run starts matching |
 | [Cloud ingestion (experimental)](docs/CLOUD.md) | Buffered, offline-first HTTP trace shipping with drop accounting |
-| [Trace inspector UI](docs/UI.md) | Drop-in SwiftUI viewer for macOS: run list, timeline scrubber, diff overlay |
+| [Trace inspector UI](docs/UI.md) | SwiftUI trace inspector for Apple platforms; macOS includes a native database picker |
 | [DESIGN.md](DESIGN.md) | Engine internals: the concurrency tradeoff, backpressure, durability, known limitations |
 | [SEMANTICS.md](SEMANTICS.md) | The formal semantic model behind alignment and behavioral equivalence |
 | [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, confusion matrices |
@@ -388,7 +388,7 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 **Experimental — core engine complete, actively evolving.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent — including events lost to a failed batch insert — a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector, and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer fed by [`WebDiffExport`](WebVisualizer/SCHEMA.md) JSON.
+**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent — including payload encode failures and events lost to a failed batch insert — a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector, and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer fed by [`WebDiffExport`](WebVisualizer/SCHEMA.md) JSON.
 
 **Planned:** richer graph/lineage visualization, distributed trace federation, hosted/team trace workflows.
 

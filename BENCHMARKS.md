@@ -30,15 +30,21 @@ DProvenanceKit is a diagnostic validation suite, not a statistical generalizatio
 - **Multi-tool Collapse**: Replacing multiple granular steps with a single opaque step, stressing structural mapping.
 - **Semantic Drift**: Output matches structurally, but payload semantics drift beyond the defined threshold.
 
-## Current Benchmark Results
+## Current Benchmark Contract
 
-Below is the evaluation output from `DProvenanceKitCLI evaluate`, separated into standard and adversarial suites:
+CI runs `swift run DProvenanceKitCLI evaluate --gate` on every pull request. The contract is:
+
+- Standard corpus: 8/8 cases pass with Precision/Recall/F1 = 1.000.
+- Adversarial robustness suite: 5/5 cases pass with Precision/Recall/F1 = 1.000.
+- Total: 13/13 cases pass.
+
+Representative output from `DProvenanceKitCLI evaluate`:
 
 ```text
 === STANDARD DATASET ===
 Dataset: DProvenance Standard Corpus  (8 cases, 8 passed)
 Precision: 1.000  Recall: 1.000  F1: 1.000
-Avg fidelity: 1.000  Avg runtime: 0.13ms  p95: 0.46ms
+Avg fidelity: 1.000
   [PASS] Coding Agent Regression  TP=2 FP=0 FN=0  fidelity=1.00
   [PASS] Semantic Evolution  TP=1 FP=0 FN=0  fidelity=1.00
   [PASS] Reordered Execution  TP=2 FP=0 FN=0  fidelity=1.00
@@ -51,7 +57,7 @@ Avg fidelity: 1.000  Avg runtime: 0.13ms  p95: 0.46ms
 === ADVERSARIAL DATASET ===
 Dataset: DProvenance Adversarial Robustness Suite  (5 cases, 5 passed)
 Precision: 1.000  Recall: 1.000  F1: 1.000
-Avg fidelity: 1.000  Avg runtime: 0.07ms  p95: 0.10ms
+Avg fidelity: 1.000
   [PASS] Dependency Inversion Trap  TP=3 FP=0 FN=0  fidelity=1.00
   [PASS] Causal Ambiguity Trap  TP=0 FP=0 FN=0  fidelity=1.00
   [PASS] Partial Trace Truncation  TP=2 FP=0 FN=0  fidelity=1.00
@@ -62,6 +68,8 @@ Avg fidelity: 1.000  Avg runtime: 0.07ms  p95: 0.10ms
 Total Cases: 13
 Total Passed: 13 (100.0%)
 ```
+
+Runtime timings are intentionally omitted from the public contract because they vary by machine and runner load; use the CLI output from the run you care about when measuring local performance.
 
 *(Note: The adversarial dataset runs under a stricter `AlignmentProfile` with a higher semantic threshold and tighter bounds to stress edge cases such as dependency inversion and partial truncation. **Adversarial configuration adjustments do not alter equivalence semantics; they adjust sensitivity thresholds for stress evaluation only.**)*
 

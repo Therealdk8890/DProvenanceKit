@@ -7,7 +7,7 @@ contract the Swift side must emit so real runs load without touching the front-e
 > **Status:** shipped. `WebDiffExport` (in `DProvenanceKit`) produces this exact shape from a
 > `TraceAlignmentResult` — the alignment is a superset of the structural diff, so its per-event
 > `state` supplies `added`/`removed` (structural) *and* `changed`/`unchanged` (semantic). Generate
-> a real document with `swift run DProvenanceKitCLI web-export > run.json` and load it here, or
+> a real document with `swift run DProvenanceKitCLI web-export --out=run.json` and load it here, or
 > call `WebDiffExport.make(...).jsonData()` directly. This doc remains the field-level contract.
 > CI validates both the CLI export and the Foundation Models regression-demo export against this
 > viewer contract.
@@ -100,7 +100,7 @@ same comparison always encodes to identical bytes.
 
 ```sh
 # any corpus case (default: first); --case=<name> to pick, --out=<path> to write a file
-swift run DProvenanceKitCLI web-export > run.json
+swift run DProvenanceKitCLI web-export --out=run.json
 ```
 
 Or in code: `let data = try WebDiffExport.make(base: a, comparison: b, configuration: cfg).jsonData()`.

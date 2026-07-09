@@ -184,6 +184,6 @@ The module also ships the alignment-debugging views (`AlignmentInvestigationView
 
 ## A note on `WebVisualizer/`
 
-The `WebVisualizer/` directory at the repository root is a browser-based diff explorer for [`WebDiffExport`](../WebVisualizer/SCHEMA.md) JSON. It opens with `mockDiffs.json` as sample data, then accepts real exports through **Load JSON**. Generate one with `swift run DProvenanceKitCLI web-export > run.json` or by running `swift run FoundationModelsRegressionDemo`, which writes `fm-regression.json`.
+The `WebVisualizer/` directory at the repository root is a browser-based diff explorer for [`WebDiffExport`](../WebVisualizer/SCHEMA.md) JSON. It opens with `mockDiffs.json` as sample data, then accepts real exports through **Load JSON**. Generate one with `swift run DProvenanceKitCLI web-export --out=run.json` or by running `swift run FoundationModelsRegressionDemo`, which writes `fm-regression.json`.
 
 `DProvenanceUI` remains the supported native SwiftUI inspector for trace databases; `WebVisualizer` is the portable artifact viewer for already-diffed runs.
