@@ -14,9 +14,12 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: GV7F762399
 
+# The package lives one level up (repo root). The generated .xcodeproj stays in
+# this subdirectory so it does not shadow the SwiftPM package for
+# `xcodebuild -scheme DProvenanceKit ...` at the repo root (which CI relies on).
 packages:
   DProvenanceKit:
-    path: .
+    path: ..
 
 schemes:
   DProvenanceKitCloud:
@@ -34,7 +37,7 @@ targets:
     platform: macOS
     deploymentTarget: "13.0"
     sources:
-      - path: XcodeCloudWrapper
+      - path: DProvenanceKitCloudApp.swift
     dependencies:
       - package: DProvenanceKit
         product: DProvenanceKit
@@ -45,7 +48,7 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
     info:
-      path: XcodeCloudWrapper/Info.plist
+      path: Info.plist
       properties:
         CFBundleName: DProvenanceKitCloud
         CFBundleDisplayName: DProvenanceKitCloud

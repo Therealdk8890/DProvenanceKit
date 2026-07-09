@@ -7,15 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		679C5D22EF6199A5879F5CEF /* DProvenanceKitCloudApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB8C311E146D0B523796A53A /* DProvenanceKitCloudApp.swift */; };
+		04C685CFEBCB48ACE2BDBA9C /* DProvenanceKitCloudApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3053549BF24A9F1C9F101FA9 /* DProvenanceKitCloudApp.swift */; };
 		98C6DCE4040566C717E5A119 /* DProvenanceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4F9E2E7F72F2FEE67FA2BD64 /* DProvenanceKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2C127C2105FE7043DD54EF38 /* DProvenanceKit-pr34 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "DProvenanceKit-pr34"; path = ..; sourceTree = SOURCE_ROOT; };
+		3053549BF24A9F1C9F101FA9 /* DProvenanceKitCloudApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DProvenanceKitCloudApp.swift; sourceTree = "<group>"; };
 		B68E61575851ADCC447F4BA9 /* DProvenanceKitCloud.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DProvenanceKitCloud.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C7FF73C8C68F1A063131CCC5 /* DProvenanceKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DProvenanceKit; path = .; sourceTree = SOURCE_ROOT; };
-		DB8C311E146D0B523796A53A /* DProvenanceKitCloudApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DProvenanceKitCloudApp.swift; sourceTree = "<group>"; };
-		E2936C24AFDF188E410A3F5B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,7 +32,7 @@
 		07661CE7A13DE3372ED82E24 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				C7FF73C8C68F1A063131CCC5 /* DProvenanceKit */,
+				2C127C2105FE7043DD54EF38 /* DProvenanceKit-pr34 */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -42,18 +41,9 @@
 			isa = PBXGroup;
 			children = (
 				07661CE7A13DE3372ED82E24 /* Packages */,
-				684B9622792F345C164F4F20 /* XcodeCloudWrapper */,
+				3053549BF24A9F1C9F101FA9 /* DProvenanceKitCloudApp.swift */,
 				89153423ADB8CC1AE6090D12 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		684B9622792F345C164F4F20 /* XcodeCloudWrapper */ = {
-			isa = PBXGroup;
-			children = (
-				DB8C311E146D0B523796A53A /* DProvenanceKitCloudApp.swift */,
-				E2936C24AFDF188E410A3F5B /* Info.plist */,
-			);
-			path = XcodeCloudWrapper;
 			sourceTree = "<group>";
 		};
 		89153423ADB8CC1AE6090D12 /* Products */ = {
@@ -111,7 +101,7 @@
 			mainGroup = 3EDA2D85CE7CFA85EF802755;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C59F8F798465E3BDAAFEB0F3 /* XCLocalSwiftPackageReference "." */,
+				403C1511844A2A409CA93037 /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 89153423ADB8CC1AE6090D12 /* Products */;
@@ -128,7 +118,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				679C5D22EF6199A5879F5CEF /* DProvenanceKitCloudApp.swift in Sources */,
+				04C685CFEBCB48ACE2BDBA9C /* DProvenanceKitCloudApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,7 +131,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = XcodeCloudWrapper/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -219,7 +209,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = XcodeCloudWrapper/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -322,9 +312,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		C59F8F798465E3BDAAFEB0F3 /* XCLocalSwiftPackageReference "." */ = {
+		403C1511844A2A409CA93037 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = .;
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 
