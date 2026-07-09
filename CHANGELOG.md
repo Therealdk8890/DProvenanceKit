@@ -9,6 +9,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.3.1] - 2026-07-09
 
 ### Changed
+- Fidelity scoring now uses typed expected/actual evidence pairs, keeping each evidence item
+  tied to its semantic category so diagnostics do not cross-match unrelated finding types.
 - Updated the README install snippet to point at the published patch release and called out
   the Apple platform floor (`.macOS(.v13)` / `.iOS(.v16)`) for clean SwiftPM adoption.
 - Made the bundled WebVisualizer easier to try from a release: visible sample state,
