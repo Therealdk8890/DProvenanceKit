@@ -251,7 +251,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.3.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.3.1")
 ]
 ```
 
