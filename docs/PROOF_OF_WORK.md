@@ -227,7 +227,7 @@ structural diff key                 : "<typeIdentifier>::<engineName>"     (payl
 license                             : Apache License 2.0
 benchmarks                          : standard corpus 8/8 (P/R/F1 = 1.000);
                                       adversarial suite 5/5 (P/R/F1 = 1.000);
-                                      total 13/13 (100%)   [BENCHMARKS.md, post-PR #15]
+                                      total 13/13 (100%)   [BENCHMARKS.md; CI runs `swift run DProvenanceKitCLI evaluate --gate`]
 ```
 
 ---

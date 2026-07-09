@@ -1,5 +1,6 @@
 .DS_Store
 /.build
+/build/
 /Packages
 xcuserdata/
 DerivedData/
@@ -11,6 +12,8 @@ DerivedData/
 sample_traces.sqlite
 # WebVisualizer export written by the FoundationModelsRegressionDemo executable
 /fm-regression.json
+WebVisualizer/test-results/
+WebVisualizer/playwright-report/
 # SQLite WAL sidecar files — never commit these
 *.sqlite-wal
 *.sqlite-shm

@@ -49,6 +49,76 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceFoundationModelsOTel"
+               BuildableName = "DProvenanceFoundationModelsOTel"
+               BlueprintName = "DProvenanceFoundationModelsOTel"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceOTel"
+               BuildableName = "DProvenanceOTel"
+               BlueprintName = "DProvenanceOTel"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceKitCLI"
+               BuildableName = "DProvenanceKitCLI"
+               BlueprintName = "DProvenanceKitCLI"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FoundationModelsRegressionDemo"
+               BuildableName = "FoundationModelsRegressionDemo"
+               BlueprintName = "FoundationModelsRegressionDemo"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "Quickstart"
+               BuildableName = "Quickstart"
+               BlueprintName = "Quickstart"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -65,6 +135,46 @@
                BlueprintIdentifier = "DProvenanceKitTests"
                BuildableName = "DProvenanceKitTests"
                BlueprintName = "DProvenanceKitTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceFoundationModelsOTelTests"
+               BuildableName = "DProvenanceFoundationModelsOTelTests"
+               BlueprintName = "DProvenanceFoundationModelsOTelTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceFoundationModelsTests"
+               BuildableName = "DProvenanceFoundationModelsTests"
+               BlueprintName = "DProvenanceFoundationModelsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceOTelTests"
+               BuildableName = "DProvenanceOTelTests"
+               BlueprintName = "DProvenanceOTelTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DProvenanceUITests"
+               BuildableName = "DProvenanceUITests"
+               BlueprintName = "DProvenanceUITests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -85,9 +195,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "GenerateSample"
-            BuildableName = "GenerateSample"
-            BlueprintName = "GenerateSample"
+            BlueprintIdentifier = "Quickstart"
+            BuildableName = "Quickstart"
+            BlueprintName = "Quickstart"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -111,9 +221,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "GenerateSample"
-            BuildableName = "GenerateSample"
-            BlueprintName = "GenerateSample"
+            BlueprintIdentifier = "Quickstart"
+            BuildableName = "Quickstart"
+            BlueprintName = "Quickstart"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>

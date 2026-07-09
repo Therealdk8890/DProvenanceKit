@@ -55,7 +55,7 @@ if !drops.preservedIntegrity {
 }
 ```
 
-One known exception to the accounting: a payload that fails `JSONEncoder` inside `record` is dropped silently and **not** counted in `dropStats`. Keep payloads reliably `Encodable`.
+Payloads that fail `JSONEncoder` inside `record` are counted by priority tier in `dropStats`, just like buffer shedding and failed SQLite batch inserts. A structural or critical encode failure flips `preservedIntegrity` to `false`, so a run with diff-relevant loss is not presented as trustworthy.
 
 ## Failure handling
 

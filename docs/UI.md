@@ -1,6 +1,6 @@
 # DProvenanceUI — the trace inspector
 
-Traces you can't see are traces you won't read. `DProvenanceUI` is a second library product in this package: a drop-in SwiftUI trace inspector for macOS with a run list, a **replay timeline scrubber**, a live **diff mode**, and a span tree that renders reconstructed runs with quarantine warnings and change highlighting. Point it at any `Traces.sqlite` produced by `SQLiteTraceStore` — it reads traces generically, without knowing your payload type.
+Traces you can't see are traces you won't read. `DProvenanceUI` is a second library product in this package: a SwiftUI trace inspector for Apple platforms with a run list, a **replay timeline scrubber**, a live **diff mode**, and a span tree that renders reconstructed runs with quarantine warnings and change highlighting. Point it at any `Traces.sqlite` produced by `SQLiteTraceStore` — it reads traces generically, without knowing your payload type.
 
 It is the visual front end for [trace replay](REPLAY.md) and [snapshot diffing](SNAPSHOTS.md).
 
@@ -29,7 +29,7 @@ struct TraceInspectorApp: App {
 }
 ```
 
-`TraceViewer` shows an "Open Traces.sqlite" button (an `NSOpenPanel`) when no database is loaded. To load one programmatically:
+On macOS, `TraceViewer` shows an "Open Traces.sqlite" button (an `NSOpenPanel`) when no database is loaded. On iOS, host apps provide their own document picker or file URL and load programmatically:
 
 ```swift
 storeManager.loadDatabase(at: URL(fileURLWithPath: "/path/to/Traces.sqlite"))
@@ -117,7 +117,9 @@ public final class StoreManager: ObservableObject {
     @Published public var isLoading: Bool
     @Published public var errorMessage: String?
     public init()
+    #if canImport(AppKit)
     public func openDatabase()            // NSOpenPanel
+    #endif
     public func loadDatabase(at url: URL)
 }
 
@@ -173,7 +175,7 @@ The module also ships the alignment-debugging views (`AlignmentInvestigationView
 
 ## Constraints and limitations
 
-- **macOS only, in practice.** `StoreManager` uses AppKit (`NSOpenPanel`) and several views use `NSColor`, so the module does not compile for iOS even though the package manifest declares an iOS platform. Treat `DProvenanceUI` as macOS 13+.
+- **Native file picker is macOS-only.** The UI target compiles for iOS, but `openDatabase()` is available only when AppKit is present. iOS apps should present their own document picker and call `StoreManager.loadDatabase(at:)`.
 - **`RenderHints`: only `collapsedByDefault` does anything today.** `importantEventTypes`, `highlightQuarantine`, and `diffMode` are accepted but not yet consumed by any view — reserved for future rendering behavior. Don't build on them.
 - **Collapse is static.** `RenderHints.collapsedByDefault` (via the view-model layer) and the `dynamicCollapsed` parameter control visibility, but `SpanTreeView` itself wires no click-to-collapse gesture — the chevrons are indicators. Interactive collapse means managing your own `Set<String>` and re-flattening.
 - **`RunDetailView` is not a public entry point.** The type is public but has no public initializer; consume it through `TraceViewer`.
@@ -182,4 +184,6 @@ The module also ships the alignment-debugging views (`AlignmentInvestigationView
 
 ## A note on `WebVisualizer/`
 
-The `WebVisualizer/` directory at the repository root is a **static design prototype** of a possible future web-based diff explorer — a Vite page rendering hardcoded mock data. Nothing in the Swift library produces its data format, and it is not part of the supported product surface. The supported visualization surface is `DProvenanceUI`.
+The `WebVisualizer/` directory at the repository root is a browser-based diff explorer for [`WebDiffExport`](../WebVisualizer/SCHEMA.md) JSON. It opens with `mockDiffs.json` as sample data, then accepts real exports through **Load JSON**. Generate one with `swift run DProvenanceKitCLI web-export --out=run.json` or by running `swift run FoundationModelsRegressionDemo`, which writes `fm-regression.json`.
+
+`DProvenanceUI` remains the supported native SwiftUI inspector for trace databases; `WebVisualizer` is the portable artifact viewer for already-diffed runs.
