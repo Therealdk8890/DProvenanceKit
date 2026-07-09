@@ -10,11 +10,11 @@ public struct CompletenessInvariant: FidelityInvariant {
     public init() {}
 
     public func evaluate(_ map: FormalizationMap) -> Double {
-        let matched = map.interpretations.filter { $0.baseID != nil && $0.comparisonID != nil }
-        guard !matched.isEmpty else { return 1.0 }
+        let matchedPairs = map.interpretations.compactMap(\.formalizationPair)
+        guard !matchedPairs.isEmpty else { return 1.0 }
 
-        let decisionPairs = Set(map.decisions.map { "\($0.lhs)\u{1}\($0.rhs)" })
-        let evaluated = matched.filter { decisionPairs.contains("\($0.baseID!)\u{1}\($0.comparisonID!)") }.count
-        return Double(evaluated) / Double(matched.count)
+        let decisionPairs = Set(map.decisions.map(\.formalizationPair))
+        let evaluated = matchedPairs.filter { decisionPairs.contains($0) }.count
+        return Double(evaluated) / Double(matchedPairs.count)
     }
 }

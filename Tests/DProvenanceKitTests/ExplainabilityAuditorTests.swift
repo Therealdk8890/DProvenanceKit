@@ -87,6 +87,26 @@ final class ExplainabilityAuditorTests: XCTestCase {
         XCTAssertEqual(auditor.audit(map).noHallucinations, 1.0)
     }
 
+    func testPairMatchingDoesNotCollideWhenIDsContainSeparator() {
+        let separator = "\u{1}"
+        let reportedBase = "a\(separator)b"
+        let reportedComparison = "c"
+        let differentBase = "a"
+        let differentComparison = "b\(separator)c"
+        let map = FormalizationMap(
+            bindings: [binding(differentBase, differentComparison)],
+            decisions: [decision(differentBase, differentComparison, equivalent: true)],
+            interpretations: [
+                step(base: reportedBase, comp: reportedComparison, state: "semanticMatch(strength: 0.9)", bseq: 0, cseq: 0)
+            ]
+        )
+
+        let v = auditor.audit(map)
+        XCTAssertEqual(v.coverage, 0.0)
+        XCTAssertEqual(v.completeness, 0.0)
+        XCTAssertEqual(v.noHallucinations, 0.0)
+    }
+
     // Order-preserving alignment is faithful.
     func testOrderPreservingAlignmentIsFaithful() {
         let map = FormalizationMap(

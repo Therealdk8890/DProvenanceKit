@@ -217,9 +217,12 @@ private extension WebDiffExport {
 
         case .semanticMatch:
             // A genuine label change carries a before→after; a same-type semantic drift does not.
-            let details = (baseType != nil && compType != nil && baseType != compType)
-                ? Node.Details(runA: baseType!, runB: compType!)
-                : nil
+            let details: Node.Details?
+            if let baseType, let compType, baseType != compType {
+                details = Node.Details(runA: baseType, runB: compType)
+            } else {
+                details = nil
+            }
             return Node(id: id, label: label, type: .changed, details: details)
 
         case let .reordered(originalSequence, newSequence):

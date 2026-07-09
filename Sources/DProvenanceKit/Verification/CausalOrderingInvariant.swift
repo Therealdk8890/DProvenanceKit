@@ -13,8 +13,8 @@ public struct CausalOrderingInvariant: FidelityInvariant {
 
     public func evaluate(_ map: FormalizationMap) -> Double {
         let matched = map.interpretations
-            .filter { $0.baseSequence != nil && $0.comparisonSequence != nil }
-            .sorted { ($0.baseSequence ?? 0) < ($1.baseSequence ?? 0) }
+            .compactMap(\.sequencedInterpretation)
+            .sorted { $0.baseSequence < $1.baseSequence }
 
         // Fewer than two pairs cannot be out of order.
         guard matched.count >= 2 else { return 1.0 }
@@ -24,7 +24,7 @@ public struct CausalOrderingInvariant: FidelityInvariant {
         var outOfOrder = Set<Int>()
         for i in 0..<matched.count {
             for j in (i + 1)..<matched.count
-            where (matched[i].comparisonSequence ?? 0) > (matched[j].comparisonSequence ?? 0) {
+            where matched[i].comparisonSequence > matched[j].comparisonSequence {
                 outOfOrder.insert(i)
                 outOfOrder.insert(j)
             }
