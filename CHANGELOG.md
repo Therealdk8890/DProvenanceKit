@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-09
+
 ### Added
 - **`WebDiffExport`** — a `Codable` projection of a run comparison into the exact JSON the
   bundled WebVisualizer consumes (summary, metrics, timeline, and a color-coded reasoning tree).
@@ -20,6 +22,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   catches the dropped critical step as a `HIGH`-risk regression via structural diff + semantic
   alignment, fails a CI gate (non-zero exit), and writes a `WebDiffExport` artifact. Runs
   anywhere — no live Apple Intelligence. Walkthrough in `docs/foundation-models-regression-demo.md`.
+
+### Changed
+- **CI trust surface** — CI now validates Foundation Models and CLI WebVisualizer exports,
+  smoke-tests the browser uploader with Playwright, and makes the ThreadSanitizer concurrency
+  suite blocking after a green run.
+- **GitHub Actions runtime hygiene** — updated `actions/setup-node` and `gitleaks-action`
+  to Node 24-backed major versions to avoid Node 20 deprecation annotations.
+- **Public claims discipline** — refreshed platform, benchmark, CloudTraceStore accounting,
+  and WebVisualizer command docs so public statements line up with executable checks.
 
 ## [0.2.0] - 2026-07-06
 
@@ -109,6 +120,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.1.0
