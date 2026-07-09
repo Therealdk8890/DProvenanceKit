@@ -22,13 +22,13 @@ final class StoreExportIntegrationTests: XCTestCase {
 
     func testNestedWithSpanTreeParentLinkage() async throws {
         let store = InMemoryTraceStore<StubEvent>()
-        await DProvenanceKit<StubEvent>.run(contextID: "case-42", store: store) {
+        _ = await DProvenanceKit<StubEvent>.run(contextID: "case-42", store: store) {
             DProvenanceKit<StubEvent>.record(StubEvent("run.start", priority: .critical))
-            await DProvenanceKit<StubEvent>.withSpan(named: "outer") {
+            _ = await DProvenanceKit<StubEvent>.withSpan(named: "outer") {
                 DProvenanceKit<StubEvent>.record(StubEvent("outer.step"))
-                await DProvenanceKit<StubEvent>.withSpan(named: "inner") {
+                _ = await DProvenanceKit<StubEvent>.withSpan(named: "inner") {
                     DProvenanceKit<StubEvent>.record(StubEvent("inner.step"))
-                    await DProvenanceKit<StubEvent>.withSpan(named: "leaf") {
+                    _ = await DProvenanceKit<StubEvent>.withSpan(named: "leaf") {
                         DProvenanceKit<StubEvent>.record(StubEvent("leaf.step"))
                     }
                 }
@@ -70,9 +70,9 @@ final class StoreExportIntegrationTests: XCTestCase {
     /// recorded nesting preserved.
     func testWrapperOnlySpanViaRealRecorder() async throws {
         let store = InMemoryTraceStore<StubEvent>()
-        await DProvenanceKit<StubEvent>.run(contextID: "wrapper-case", store: store) {
-            await DProvenanceKit<StubEvent>.withSpan(named: "outer") {
-                await DProvenanceKit<StubEvent>.withSpan(named: "inner") {
+        _ = await DProvenanceKit<StubEvent>.run(contextID: "wrapper-case", store: store) {
+            _ = await DProvenanceKit<StubEvent>.withSpan(named: "outer") {
+                _ = await DProvenanceKit<StubEvent>.withSpan(named: "inner") {
                     DProvenanceKit<StubEvent>.record(StubEvent("only.step"))
                 }
             }

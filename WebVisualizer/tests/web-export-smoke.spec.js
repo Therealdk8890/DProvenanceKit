@@ -45,12 +45,17 @@ function exportPath() {
 test('loads a WebDiffExport JSON artifact through the browser uploader', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Reasoning Engine')).toBeVisible()
+  await expect(page.getByText('Sample data')).toBeVisible()
 
   const fileChooser = page.waitForEvent('filechooser')
-  await page.getByRole('button', { name: 'Load JSON' }).click()
+  await page.getByRole('button', { name: 'Load JSON', exact: true }).click()
   await (await fileChooser).setFiles(exportPath())
 
   await expect(page.getByText('Coding Agent Regression')).toBeVisible()
   await expect(page.getByText('fileIO')).toBeVisible()
   await expect(page.getByText('High')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Load sample' }).click()
+  await expect(page.getByText('Reasoning Engine')).toBeVisible()
+  await expect(page.getByText('Sample data')).toBeVisible()
 })

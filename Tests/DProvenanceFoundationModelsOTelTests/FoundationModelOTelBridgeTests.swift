@@ -30,8 +30,7 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
             options: FMGenerationOptionsSnapshot(temperature: 0.7, maximumResponseTokens: 256, sampling: .random),
             turnIndex: 0))
 
-        // The runtime cast is what the mapper does — it must succeed via the bridge.
-        let semantics = (prompt as? OTelSemanticsProviding)?.otelSemantics
+        let semantics = prompt.otelSemantics
         XCTAssertEqual(semantics?.operationName, "chat")
         XCTAssertEqual(semantics?.providerName, "apple.foundationmodels")
         XCTAssertEqual(semantics?.requestModel, "apple.foundationmodels.system")
@@ -42,7 +41,7 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
     func testToolCallMapsToExecuteTool() {
         let call = FoundationModelTraceEvent.toolCall(
             FMToolCallPayload(toolName: "WeatherTool", arguments: .omitted, turnIndex: 0, invocationIndex: 0))
-        let semantics = (call as? OTelSemanticsProviding)?.otelSemantics
+        let semantics = call.otelSemantics
         XCTAssertEqual(semantics?.operationName, "execute_tool")
         XCTAssertEqual(semantics?.toolName, "WeatherTool")
         XCTAssertEqual(semantics?.providerName, "apple.foundationmodels")
@@ -50,17 +49,17 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
 
     func testNonGenerativeEventsAreNotPromoted() {
         let avail = FoundationModelTraceEvent.modelAvailability(FMModelAvailabilityPayload(isAvailable: true))
-        XCTAssertNil((avail as? OTelSemanticsProviding)?.otelSemantics)
+        XCTAssertNil(avail.otelSemantics)
 
         let stream = FoundationModelTraceEvent.streamSnapshot(
             FMStreamSnapshotPayload(snapshotIndex: 0, contentUTF8Count: 3, turnIndex: 0))
-        XCTAssertNil((stream as? OTelSemanticsProviding)?.otelSemantics)
+        XCTAssertNil(stream.otelSemantics)
     }
 
     func testPromptWithoutOptionsEmitsNoRequestParamExtras() {
         let prompt = FoundationModelTraceEvent.prompt(
             FMPromptPayload(content: .omitted, turnIndex: 0))
-        let semantics = (prompt as? OTelSemanticsProviding)?.otelSemantics
+        let semantics = prompt.otelSemantics
         XCTAssertEqual(semantics?.operationName, "chat")
         XCTAssertEqual(semantics?.extra.count, 0)
     }
@@ -95,7 +94,7 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
     func testChatErrorClassifiesAndCarriesErrorType() {
         let err = FoundationModelTraceEvent.generationError(
             FMGenerationErrorPayload(kind: .guardrailViolation, message: .omitted, turnIndex: 0))
-        let semantics = (err as? OTelSemanticsProviding)?.otelSemantics
+        let semantics = err.otelSemantics
         XCTAssertEqual(semantics?.operationName, "chat")
         XCTAssertEqual(semantics?.errorType, "guardrailViolation")
     }
@@ -103,7 +102,7 @@ final class FoundationModelOTelBridgeTests: XCTestCase {
     func testToolCallErrorClassifiesAsExecuteTool() {
         let err = FoundationModelTraceEvent.generationError(
             FMGenerationErrorPayload(kind: .toolCallError, message: .omitted, toolName: "WeatherTool", turnIndex: 0))
-        let semantics = (err as? OTelSemanticsProviding)?.otelSemantics
+        let semantics = err.otelSemantics
         XCTAssertEqual(semantics?.operationName, "execute_tool")
         XCTAssertEqual(semantics?.toolName, "WeatherTool")
         XCTAssertEqual(semantics?.errorType, "toolCallError")

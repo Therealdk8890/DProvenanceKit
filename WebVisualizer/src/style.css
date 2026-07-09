@@ -158,6 +158,25 @@ body {
 }
 .fingerprint b { color: var(--text); font-weight: 500; }
 
+.source-pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.source-pill.sample {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+}
+
 .btn {
   font-family: var(--mono);
   font-size: 12px;
@@ -174,6 +193,11 @@ body {
 .btn:hover { border-color: var(--accent-line); background: var(--accent-bg); }
 .btn:active { transform: translateY(1px); }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.secondary {
+  color: var(--text);
+  background: var(--panel);
+  border-color: var(--border);
+}
 
 /* --- metrics --------------------------------------------------------- */
 .metrics {
@@ -478,5 +502,10 @@ body {
 @media (max-width: 640px) {
   .nid { display: none; }
   .cmdbar { flex-wrap: wrap; }
-  .fingerprint { order: 3; width: 100%; }
+  .fingerprint,
+  .source-pill {
+    order: 3;
+    width: 100%;
+    max-width: none;
+  }
 }
