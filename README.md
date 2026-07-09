@@ -35,10 +35,11 @@ CI gate:          ❌ FAILED — reasoning regression detected
 Run the whole thing yourself — no live model required:
 
 ```sh
-swift run FoundationModelsRegressionDemo --gate
+swift run FoundationModelsRegressionDemo
+swift run FoundationModelsRegressionDemo --gate   # CI mode: exits non-zero when it catches the regression
 ```
 
-**Your agent changed behavior, and now you know exactly why.** Full walkthrough: **[Catching a Foundation Models regression](docs/foundation-models-regression-demo.md)**.
+The demo writes `fm-regression.json`, a WebVisualizer-ready artifact. **Your agent changed behavior, and now you know exactly why.** Full walkthrough: **[Catching a Foundation Models regression](docs/foundation-models-regression-demo.md)**.
 
 ---
 

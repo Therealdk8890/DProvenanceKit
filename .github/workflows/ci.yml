@@ -52,6 +52,42 @@ jobs:
       - name: Run Quickstart (compile-check of the documented API)
         run: swift run Quickstart
 
+      - name: Run Foundation Models regression demo
+        run: swift run FoundationModelsRegressionDemo --out="$RUNNER_TEMP/fm-regression.json"
+
+      - name: Generate WebVisualizer export
+        run: swift run DProvenanceKitCLI web-export --out="$RUNNER_TEMP/web-export.json"
+
+      - name: Validate WebVisualizer artifacts
+        run: |
+          node - "$RUNNER_TEMP/fm-regression.json" "$RUNNER_TEMP/web-export.json" <<'NODE'
+          const fs = require("node:fs");
+          const allowedTypes = new Set(["added", "removed", "changed", "unchanged"]);
+
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          function walk(node, path = "tree") {
+            assert(node && typeof node === "object", `${path} must be an object`);
+            assert(typeof node.id === "string" && node.id.length > 0, `${path}.id must be a non-empty string`);
+            assert(typeof node.label === "string" && node.label.length > 0, `${path}.label must be a non-empty string`);
+            assert(allowedTypes.has(node.type), `${path}.type must be one of ${Array.from(allowedTypes).join(", ")}`);
+
+            const children = node.children ?? [];
+            assert(Array.isArray(children), `${path}.children must be an array when present`);
+            children.forEach((child, index) => walk(child, `${path}.children[${index}]`));
+          }
+
+          for (const file of process.argv.slice(2)) {
+            const document = JSON.parse(fs.readFileSync(file, "utf8"));
+            assert(document.summary && typeof document.summary.regressionRisk === "string", `${file}: summary.regressionRisk is required`);
+            assert(document.metrics && Number.isFinite(Number(document.metrics.driftScore)), `${file}: metrics.driftScore must be numeric`);
+            walk(document.tree);
+            console.log(`Validated ${file}`);
+          }
+          NODE
+
       - name: Run conformance harness
         run: swift run --package-path ConformanceHarness
 
@@ -68,9 +104,19 @@ jobs:
         working-directory: WebVisualizer
         run: npm ci
 
+      - name: Install Playwright browser
+        working-directory: WebVisualizer
+        run: npx playwright install chromium
+
       - name: Build WebVisualizer
         working-directory: WebVisualizer
         run: npm run build
+
+      - name: Smoke test WebVisualizer export loading
+        working-directory: WebVisualizer
+        env:
+          DPK_WEB_EXPORT_JSON: ${{ runner.temp }}/web-export.json
+        run: npm run test:smoke
 
   thread-sanitizer:
     name: Thread sanitizer (concurrency tests)

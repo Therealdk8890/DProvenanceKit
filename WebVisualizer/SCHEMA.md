@@ -9,6 +9,8 @@ contract the Swift side must emit so real runs load without touching the front-e
 > `state` supplies `added`/`removed` (structural) *and* `changed`/`unchanged` (semantic). Generate
 > a real document with `swift run DProvenanceKitCLI web-export > run.json` and load it here, or
 > call `WebDiffExport.make(...).jsonData()` directly. This doc remains the field-level contract.
+> CI validates both the CLI export and the Foundation Models regression-demo export against this
+> viewer contract.
 
 ## Document shape
 
