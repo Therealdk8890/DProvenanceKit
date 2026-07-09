@@ -10,11 +10,11 @@ public struct CoverageInvariant: FidelityInvariant {
     public init() {}
 
     public func evaluate(_ map: FormalizationMap) -> Double {
-        let matched = map.interpretations.filter { $0.baseID != nil && $0.comparisonID != nil }
-        guard !matched.isEmpty else { return 1.0 }
+        let matchedPairs = map.interpretations.compactMap(\.formalizationPair)
+        guard !matchedPairs.isEmpty else { return 1.0 }
 
-        let boundPairs = Set(map.bindings.map { "\($0.baseID)\u{1}\($0.comparisonID)" })
-        let grounded = matched.filter { boundPairs.contains("\($0.baseID!)\u{1}\($0.comparisonID!)") }.count
-        return Double(grounded) / Double(matched.count)
+        let boundPairs = Set(map.bindings.map(\.formalizationPair))
+        let grounded = matchedPairs.filter { boundPairs.contains($0) }.count
+        return Double(grounded) / Double(matchedPairs.count)
     }
 }

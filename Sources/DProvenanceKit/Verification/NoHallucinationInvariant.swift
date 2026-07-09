@@ -13,15 +13,20 @@ public struct NoHallucinationInvariant: FidelityInvariant {
     public init() {}
 
     public func evaluate(_ map: FormalizationMap) -> Double {
-        let matched = map.interpretations.filter { $0.baseID != nil && $0.comparisonID != nil }
+        let matched = map.interpretations.compactMap { step -> (pair: FormalizationPair, outputState: String)? in
+            guard let pair = step.formalizationPair else { return nil }
+            return (pair, step.outputState)
+        }
         guard !matched.isEmpty else { return 1.0 }
 
-        var equivalentByPair: [String: Bool] = [:]
-        for d in map.decisions { equivalentByPair["\(d.lhs)\u{1}\(d.rhs)"] = d.equivalent }
+        var equivalentByPair: [FormalizationPair: Bool] = [:]
+        for decision in map.decisions {
+            equivalentByPair[decision.formalizationPair] = decision.equivalent
+        }
 
         let supported = matched.filter { step in
             if step.outputState.hasPrefix("ambiguous") { return true } // honest "unsure" verdict
-            return equivalentByPair["\(step.baseID!)\u{1}\(step.comparisonID!)"] == true
+            return equivalentByPair[step.pair] == true
         }.count
         return Double(supported) / Double(matched.count)
     }
