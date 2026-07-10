@@ -6,6 +6,12 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Repositioned the README around on-device provenance and cryptographic attestation, added a
+  release badge and signed-artifact quickstart, made export explicitly opt-in, replaced the
+  generic experimental label with an honest public-beta status, and clarified that the public
+  repository is Apache 2.0 with no production-use restriction.
+
 ## [0.4.0] - 2026-07-10
 
 ### Added

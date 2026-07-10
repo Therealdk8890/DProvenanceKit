@@ -1,19 +1,36 @@
 # DProvenanceKit
 
-**Reasoning observability and regression testing for AI systems — Swift-native, built for on-device and Apple-platform AI.**
+**On-device provenance and cryptographic attestation for AI reasoning — Swift-native, with zero third-party dependencies.**
 
-When an agent's reasoning drifts between runs, DProvenanceKit turns each execution into a queryable, diffable trace so you can see *what changed and why* — not just *what happened*.
+DProvenanceKit records reasoning paths locally, shows exactly what changed between runs, and signs a canonical trace with CryptoKit so the evidence can be verified offline.
 
-> Run → Record → Query → Diff → Detect Regressions
+> Run → Record → Query → Diff → Sign → Verify
 
 [![CI](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Therealdk8890/DProvenanceKit)](https://github.com/Therealdk8890/DProvenanceKit/releases/latest)
 [![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
 
 ---
 
-## See a regression in 30 seconds
+## When the evidence cannot leave the device
+
+Cloud observability assumes you can export prompts, tool calls, outputs, and decision context. Legal, financial, health, enterprise, and regulated workflows often cannot make that assumption.
+
+DProvenanceKit is built for privacy- and regulation-constrained Apple-platform AI that needs inspectable audit evidence without handing the underlying trace to a third-party service:
+
+- Capture and SQLite persistence run in-process on the device.
+- P-256/SHA-256 attestations make covered event modification, deletion, and reordering tamper-evident.
+- Signing keys can be software-backed or non-exportable in the Secure Enclave.
+- `dpk verify` validates artifacts offline and can pin an independently trusted signer key.
+- Signing and local verification make no network requests. Data leaves only when your application explicitly invokes an OTel or cloud export path.
+
+> Attestation proves the integrity of what was recorded. It does not by itself prove truthfulness, capture completeness, trusted time, executing-binary identity, or regulatory compliance. Read the [threat model](docs/ATTESTATION.md#threat-model).
+
+---
+
+## See a reasoning regression in 30 seconds
 
 Your on-device agent shipped fine. Then an OS/model update landed and it *quietly* stopped calling a tool — no crash, no error, just a fluent wrong answer. Here's the reasoning trace, before vs. after:
 
@@ -45,9 +62,9 @@ The demo writes `fm-regression.json`, a WebVisualizer-ready artifact. **Your age
 
 ## Who this is for
 
-If you're building AI in Swift — agents, LLM workflows, tool-using models, or reasoning that runs **on-device** with Apple Foundation Models, MLX, or Core ML — the observability ecosystem has mostly passed you by. LangSmith, Langfuse, Phoenix, OpenTelemetry: Python- and JS-first, built around requests crossing a network.
+If you are building agents, tool-using models, or decision systems in Swift with Apple Foundation Models, MLX, Core ML, or a custom runtime, DProvenanceKit gives you a native provenance layer that stays with the application.
 
-DProvenanceKit works at the reasoning layer, in your language, with no service to stand up and nothing leaving the device. If your reasoning happens in Swift, this is built for you — and if it happens in Apple's Foundation Models, tracing it is [one line](docs/foundation-models.md).
+It is especially suited to teams that cannot send sensitive reasoning traces to hosted observability vendors but still need regression evidence, decision lineage, offline verification, and CI gates. If your reasoning happens in Apple's Foundation Models, tracing it is [one line](docs/foundation-models.md).
 
 ---
 
@@ -83,7 +100,7 @@ DProvenanceKit answers **why the AI reached this conclusion** — decision linea
 
 > OpenTelemetry traces requests. DProvenanceKit traces reasoning.
 
-And when you need both: **[DProvenanceOTel](docs/otel-bridge.md)** exports finished runs as standard OTLP spans — DPK stays the on-device capture layer, and reasoning traces flow to Langfuse or any OTLP/HTTP collector for the dashboards your team already watches. Export, not equivalence.
+It also signs the local reasoning record so its integrity can be checked later. When you explicitly choose to export, **[DProvenanceOTel](docs/otel-bridge.md)** converts finished runs to standard OTLP spans for Langfuse or any OTLP/HTTP collector. Local capture and attestation remain the trust boundary; export is optional.
 
 ## Git for AI logic
 
@@ -251,7 +268,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.3.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.4.0")
 ]
 ```
 
@@ -263,6 +280,7 @@ Your package or app target must declare an Apple platform at or above the packag
 Any `enum` or `struct` that conforms to `TraceableEvent`. `typeIdentifier` must be stable across schema versions; `priority` controls survival under load.
 
 ```swift
+import Foundation
 import DProvenanceKit
 
 enum MyAIDecision: TraceableEvent {
@@ -303,7 +321,10 @@ let store = try SQLiteTraceStore<MyAIDecision>(
 ### 3. Record runs
 
 ```swift
-try await DProvenanceKit<MyAIDecision>.run(contextID: "Case-12345", store: store) {
+let (_, runID) = try await DProvenanceKit<MyAIDecision>.runReturningID(
+    contextID: "Case-12345",
+    store: store
+) { _ in
 
     DProvenanceKit<MyAIDecision>.record(.promptGenerated(tokenCount: 150))
 
@@ -313,6 +334,8 @@ try await DProvenanceKit<MyAIDecision>.run(contextID: "Case-12345", store: store
 
     DProvenanceKit<MyAIDecision>.record(.finalDecisionMade(approved: true))
 }
+
+try await store.flush()
 ```
 
 ### 4. Trace an Apple Foundation Models session
@@ -336,7 +359,34 @@ Every prompt, response, tool call, and generation error is now a queryable trace
 
 > **See it catch a real regression:** `swift run FoundationModelsRegressionDemo` — an agent that silently stops calling its tool after a model update, caught as a `HIGH`-risk regression and failed in CI. [Walkthrough →](docs/foundation-models-regression-demo.md)
 
-### 5. Export to Langfuse or any OTLP backend
+### 5. Sign and verify a completed trace
+
+```swift
+guard let completedRun = try await store.getRun(id: runID) else {
+    fatalError("Recorded run was not found")
+}
+
+let signingKey = SoftwareTraceAttestationKey()
+
+// Persist signingKey.rawRepresentation in Keychain, never in the artifact.
+let document = try TraceAttestationDocument.signed(
+    run: completedRun,
+    using: signingKey
+)
+
+let artifactURL = URL(fileURLWithPath: "decision.attestation.json")
+try document.jsonData().write(to: artifactURL, options: .atomic)
+```
+
+Verify without a network connection. Pin the expected key ID when signer identity matters:
+
+```sh
+swift run dpk verify --in=decision.attestation.json --trusted-key=<trusted-key-id>
+```
+
+See [Trace Attestation](docs/ATTESTATION.md) for Secure Enclave keys, canonicalization, the public test vector, key rotation, and the full threat model.
+
+### 6. Optionally export to Langfuse or any OTLP backend
 
 ```swift
 import DProvenanceOTel
@@ -347,14 +397,15 @@ let exporter = OTLPHTTPExporter<MyAIDecision>(
 let receipt = try await DProvenanceOTelExport.export(from: store, using: exporter)
 ```
 
-One run becomes one OTel trace, deterministically — same run, same trace ID, every export. Backend matrix and mapping details: **[docs/otel-bridge.md](docs/otel-bridge.md)**.
+One run becomes one OTel trace, deterministically — same run, same trace ID, every export. This is an explicit opt-in path; local capture and attestation do not send data anywhere. Backend matrix and mapping details: **[docs/otel-bridge.md](docs/otel-bridge.md)**.
 
 ---
 
 # Architecture
 
 ```
-Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
+Trace Event Stream → Local Store → Query / Diff → Signed Attestation → Offline Verify
+                                      └──────────→ Optional OTel Export
 ```
 
 | Component            | Role                                                              |
@@ -364,6 +415,8 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 | Query Engine         | Reasoning-pattern search, missing-step and temporal detection      |
 | Diff Engine          | Structural reasoning diffs and path comparison                     |
 | Anomaly Detection    | Rule-based validation and regression discovery                     |
+| Trace Attestation    | Canonical P-256 signed artifacts with optional Secure Enclave keys |
+| `dpk verify`         | Offline integrity verification and trusted signer-key pinning       |
 | `DProvenanceFoundationModels` | Drop-in tracing for Apple Foundation Models sessions and tools |
 | `DProvenanceOTel`    | Deterministic OTLP/JSON export to Langfuse and OTLP/HTTP collectors |
 
@@ -373,6 +426,7 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 | Guide | What's inside |
 | ----- | ------------- |
+| [Trace attestation](docs/ATTESTATION.md) | Offline signing and verification, Secure Enclave keys, canonicalization, public vector, threat model |
 | [Foundation Models integration](docs/foundation-models.md) | Trace Apple's on-device LLM: live sessions, post-hoc transcripts, traced tools, redaction policy |
 | [OpenTelemetry bridge](docs/otel-bridge.md) | Export runs as OTLP spans to Langfuse or any OTLP/HTTP collector |
 | [Trace replay](docs/REPLAY.md) | Reconstruct a run's span tree as of any point in time, with integrity manifests |
@@ -389,13 +443,13 @@ Trace Event Stream → Trace Store → Query Engine → Diff / Anomaly Detection
 
 # Status
 
-**Experimental — core engine complete, actively evolving.**
+**Public beta — [0.4.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.4.0) is released; APIs may continue to evolve before 1.0.**
 
-**Working today:** recording, querying (including temporal and sequence operators), structural diffing, semantic alignment (behavioral equivalence), rule-based anomaly and regression detection, both stores at parity, by-tier drop accounting (`dropStats` / `preservedIntegrity`) so load-shedding is never silent — including payload encode failures and events lost to a failed batch insert — a drop-in [Foundation Models adapter](docs/foundation-models.md) (live capture and post-hoc transcript ingestion), [OTLP export](docs/otel-bridge.md) to Langfuse or any OTLP/HTTP collector, and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer fed by [`WebDiffExport`](WebVisualizer/SCHEMA.md) JSON.
+**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
-**Planned:** richer graph/lineage visualization, distributed trace federation, hosted/team trace workflows.
+**Planned:** richer graph/lineage visualization, key-policy and rotation helpers, distributed trace federation, and hosted/team workflows.
 
-**Scope:** Apple platforms (macOS / iOS). The library depends on system SQLite and CryptoKit, so it targets Apple OSes rather than Linux — by design, since the goal is reasoning observability for Swift and on-device AI.
+**Scope:** Apple platforms (macOS / iOS). The package uses system SQLite and CryptoKit but no third-party packages. It targets Apple OSes by design because its primary job is local provenance and attestation for Swift and on-device AI.
 
 ---
 
@@ -407,16 +461,12 @@ Docs, hosted trace visualizer, and more at **[dprovenance.dev](https://dprovenan
 
 ---
 
-# Commercial & team use
+# License and commercial support
 
-The whole library is free and open source under Apache 2.0 — including for production and commercial use. That covers everything that runs on your machine: recording, querying, diffing, **provenance/lineage**, the FoundationModels adapter, and exporting to your own Langfuse or OTel backend. If you want a **team version** — traces and lineage shared across machines and CI, a regression gate that fails a pull request when reasoning drifts, cross-machine analytics, and production monitoring — or commercial support and SLAs, reach out: **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**. See [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md) for details.
+DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use, with no production-use restriction. See [LICENSE](LICENSE).
+
+Commercial agreements cover support, SLAs, managed/team workflows, and separately licensed private add-ons — not permission to use the Apache-2.0 library. For details, see [COMMERCIAL.md](COMMERCIAL.md) or contact **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
 
 If you want to buy or evaluate support, start with the packaged offer in
 [docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md), the Stripe-ready catalog in
 [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md), or the GitHub commercial inquiry template.
-
----
-
-# License
-
-DProvenanceKit is distributed under the **Apache License 2.0** — free for any use, including production and commercial use, with no usage restrictions. See [LICENSE](LICENSE). Support, SLAs, and enterprise/hosted features are described in [COMMERCIAL.md](https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md).
