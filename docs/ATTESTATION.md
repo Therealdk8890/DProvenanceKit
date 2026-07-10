@@ -298,6 +298,11 @@ Archived store files stay fully queryable — reopen them with `RawTraceStore` (
 consumer) at any time. Nothing is exported lossily and nothing is deleted; retention policy
 (how long archived files live, and where) stays where it belongs, in the application.
 
+One rule after rotating: discard the old store handle. SQLite does not support renaming a
+database out from under an open connection, so reads through the pre-rotation handle throw
+once the file has moved — read the archive through a fresh `RawTraceStore` instead (the
+snippet above already replaces `store` with a fresh instance at the active path).
+
 ## Key lifecycle
 
 - Generate one signing identity per application, device, deployment, or policy boundary rather

@@ -218,9 +218,12 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     /// subsequent calls await the same close and return the same answer.
     ///
     /// Reads (`queryRuns`, `getRun`, lineage traversal) remain available after `close()`
-    /// through a read-only connection that cannot modify the archived file. Events
-    /// recorded after `close()` are counted in `dropStats` like any other loss, and
-    /// edges linked after `close()` are counted as structural losses.
+    /// through a read-only connection that cannot modify the archived file — but only
+    /// while the file stays at its path. SQLite forbids renaming a database out from
+    /// under an open connection, so once the file is rotated away this handle's reads
+    /// throw (`SQLITE_IOERR`); read the archive through a fresh `RawTraceStore` instead.
+    /// Events recorded after `close()` are counted in `dropStats` like any other loss,
+    /// and edges linked after `close()` are counted as structural losses.
     @discardableResult
     public func close() async -> Bool {
         await ensureCloseTask().value
