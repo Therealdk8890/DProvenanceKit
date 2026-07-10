@@ -60,8 +60,8 @@ public struct AlignmentSnapshotValidator: Sendable {
             case .strict:
                 throw SnapshotValidationError.hashMismatch(expected: snapshot.outputAlignmentsHash, actual: actualHash)
             case .reportOnly:
-                // Would log to standard out or metrics
-                print("⚠️ [AlignmentSnapshotValidator] Drift detected. Expected \(snapshot.outputAlignmentsHash), got \(actualHash)")
+                // Hashes identify content without containing it, so they can be public.
+                DPKLog.alignment.warning("Snapshot drift detected. Expected \(snapshot.outputAlignmentsHash, privacy: .public), got \(actualHash, privacy: .public)")
                 return false
             }
         }

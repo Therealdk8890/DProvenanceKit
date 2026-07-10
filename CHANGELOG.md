@@ -6,7 +6,31 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`SQLiteTraceStore.close()`** — flushes everything pending, stops the background writer,
+  checkpoints the WAL, and leaves the store file in rollback-journal mode so it can be archived,
+  rotated, or copied as a single complete file. Returns whether that single-file guarantee holds
+  (`false` when a concurrent reader pinned the WAL — archive the `-wal`/`-shm` companions too).
+  Idempotent, and safe against racing writes: events recorded after `close()` are counted in
+  `dropStats` rather than dropped silently, edges linked after `close()` are counted as
+  structural losses, and post-close reads go through a read-only connection that cannot modify
+  the archived file. The non-destructive attest-then-rotate retention pattern it enables is
+  documented in `docs/ATTESTATION.md`.
+- **`SQLiteOpenMode`** — `SQLiteConnection` can now open `.readOnly` (fails on a missing file,
+  rejects every write) and `.readOnlyImmutable` (reads bare single-file WAL stores that a plain
+  read-only connection cannot open).
+- A complete, copy-pasteable Keychain persistence recipe for attestation signing keys in
+  `docs/ATTESTATION.md`, and a "Tracing multi-session pipelines" guide (labeled span-path
+  subtrees, RAG-is-a-tool-call framing) in `docs/foundation-models.md`.
+
 ### Changed
+- **`RawTraceStore` now opens store files strictly read-only.** Previously it opened with
+  `CREATE | READWRITE` and WAL pragmas, so a mistyped path silently created an empty database
+  and an inspector could mutate a store file it didn't own. A missing file now throws, and bare
+  single-file stores (no `-wal` companion) are read through SQLite's immutable mode.
+- Runtime diagnostics (writer flush/insert failures, cloud batch quarantine, live anomaly
+  matches, snapshot drift) now go through `os.Logger` under the `com.dprovenancekit` subsystem
+  instead of `print`, with payload-bearing text privacy-redacted in release logs.
 - Repositioned the README around on-device provenance and cryptographic attestation, added a
   release badge and signed-artifact quickstart, made export explicitly opt-in, replaced the
   generic experimental label with an honest public-beta status, and clarified that the public

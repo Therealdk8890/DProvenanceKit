@@ -109,8 +109,11 @@ public struct LiveAnomalySubscription<T: TraceableEvent>: TraceQuerySubscription
     
     public func onMatch(run: TraceRun<T>) {
         let anomaly = rule.makeAnomaly(run: run)
-        // In a real system, emit this to an alert stream or notification center
-        print("🚨 LIVE ANOMALY DETECTED: [\(anomaly.ruleName)] \(anomaly.description) in run \(anomaly.runID)")
+        // This convenience subscription reports through the unified log. The description
+        // is rule-authored and may embed payload content, so it stays privacy-redacted in
+        // release logs; apps that need programmatic alerting implement their own
+        // `TraceQuerySubscription` instead.
+        DPKLog.anomaly.warning("Live anomaly detected: [\(anomaly.ruleName, privacy: .public)] in run \(anomaly.runID, privacy: .public): \(anomaly.description, privacy: .private)")
     }
     
     public func onUpdate(run: TraceRun<T>) {

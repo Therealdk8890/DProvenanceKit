@@ -28,25 +28,68 @@ public enum SQLiteError: Error, CustomStringConvertible {
     }
 }
 
+/// How a `SQLiteConnection` opens the database file.
+public enum SQLiteOpenMode: Sendable, Equatable {
+    /// Open read-write, creating the file if it does not exist (the historical default).
+    case readWriteCreate
+    /// Open an existing database strictly read-only. Opening fails if the file does not
+    /// exist — a mistyped path can no longer silently create an empty store — and any
+    /// write through the connection fails with `SQLITE_READONLY`. The main database file
+    /// is never modified.
+    ///
+    /// Caveat: a WAL-mode file with no `-wal` companion at all — a store copied,
+    /// exported, or rotated as a single bare file — cannot be read through a read-only
+    /// connection: reads fail with `SQLITE_CANTOPEN`. Whenever a `-wal` sits next to
+    /// the file (a live writer, a crashed writer, or a cleanly closed store on Apple
+    /// platforms, which persist an empty `-wal`), plain read-only reads work, even if
+    /// the `-shm` is missing. For bare single-file stores, use `.readOnlyImmutable`.
+    case readOnly
+    /// Open strictly read-only with SQLite's `immutable=1` option: no locks are taken
+    /// and no `-shm`/`-wal` files are read or created, which makes cold WAL-mode files
+    /// readable (see `.readOnly`). ONLY safe for files no live writer can touch — an
+    /// archived or copied store, or one whose owning process has exited. If another
+    /// connection writes the file while it is open in this mode, reads may return
+    /// corrupt results rather than merely stale ones.
+    case readOnlyImmutable
+}
+
 public final class SQLiteConnection: @unchecked Sendable {
     private var db: OpaquePointer?
     private let queue = DispatchQueue(label: "com.dprovenancekit.sqlite", attributes: .concurrent)
 
-    public init(fileURL: URL) throws {
+    public init(fileURL: URL, mode: SQLiteOpenMode = .readWriteCreate) throws {
         // Use SQLITE_OPEN_FULLMUTEX because we share the connection pointer across threads
-        let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
+        let modeFlags: Int32
+        let path: String
+        switch mode {
+        case .readWriteCreate:
+            modeFlags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE
+            path = fileURL.path
+        case .readOnly:
+            modeFlags = SQLITE_OPEN_READONLY
+            path = fileURL.path
+        case .readOnlyImmutable:
+            // immutable is only expressible through a URI filename; the file: URL form
+            // percent-encodes spaces and other characters the URI parser would trip on.
+            modeFlags = SQLITE_OPEN_READONLY | SQLITE_OPEN_URI
+            path = URL(fileURLWithPath: fileURL.path).absoluteString + "?immutable=1"
+        }
+        let flags = modeFlags | SQLITE_OPEN_FULLMUTEX
         var tempDB: OpaquePointer?
-        let result = sqlite3_open_v2(fileURL.path, &tempDB, flags, nil)
+        let result = sqlite3_open_v2(path, &tempDB, flags, nil)
         guard result == SQLITE_OK else {
             let msg = tempDB.flatMap { String(cString: sqlite3_errmsg($0)) }
             sqlite3_close_v2(tempDB)
             throw SQLiteError.openFailed(result, msg)
         }
         self.db = tempDB
-        
-        // Enable WAL mode
-        try execute("PRAGMA journal_mode=WAL;")
-        try execute("PRAGMA synchronous=NORMAL;") // Safe with WAL
+
+        if mode == .readWriteCreate {
+            // Enable WAL mode. Skipped for read-only connections: the journal mode is a
+            // property of the database file, and changing it is a write.
+            try execute("PRAGMA journal_mode=WAL;")
+            try execute("PRAGMA synchronous=NORMAL;") // Safe with WAL
+        }
         try execute("PRAGMA temp_store=MEMORY;")
         // Wait up to 5s for a lock instead of failing instantly with SQLITE_BUSY.
         // A second connection (e.g. the inspector UI reading while the app writes)
@@ -61,9 +104,24 @@ public final class SQLiteConnection: @unchecked Sendable {
             sqlite3_close_v2(db)
         }
     }
-    
+
+    /// Closes the underlying handle. Safe to call more than once. Statements already
+    /// prepared keep working until finalized (`sqlite3_close_v2` defers the real close),
+    /// but new `execute`/`prepare` calls throw. Exists so an owner can release the
+    /// file — e.g. to let another connection take it exclusively — without waiting for
+    /// deinit.
+    public func close() {
+        queue.sync(flags: .barrier) {
+            sqlite3_close_v2(db)
+            db = nil
+        }
+    }
+
     public func execute(_ sql: String) throws {
         try queue.sync(flags: .barrier) {
+            guard db != nil else {
+                throw SQLiteError.executeFailed(SQLITE_MISUSE, "connection is closed")
+            }
             var errMsg: UnsafeMutablePointer<CChar>?
             let result = sqlite3_exec(db, sql, nil, nil, &errMsg)
             if result != SQLITE_OK {
@@ -73,7 +131,7 @@ public final class SQLiteConnection: @unchecked Sendable {
             }
         }
     }
-    
+
     public func transaction<T>(_ block: () throws -> T) throws -> T {
         try execute("BEGIN TRANSACTION;")
         do {
@@ -85,9 +143,12 @@ public final class SQLiteConnection: @unchecked Sendable {
             throw error
         }
     }
-    
+
     public func prepare(_ sql: String) throws -> SQLiteStatement {
         return try queue.sync {
+            guard db != nil else {
+                throw SQLiteError.prepareFailed(SQLITE_MISUSE, "connection is closed")
+            }
             var stmt: OpaquePointer?
             let result = sqlite3_prepare_v2(db, sql, -1, &stmt, nil)
             guard result == SQLITE_OK else {

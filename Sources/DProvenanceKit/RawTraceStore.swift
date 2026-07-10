@@ -26,9 +26,37 @@ public struct RawTraceRun: Sendable, Identifiable, Equatable {
 
 public final class RawTraceStore: @unchecked Sendable {
     private let db: SQLiteConnection
-    
+
+    /// Opens an existing store file strictly read-only. This type only ever SELECTs, and
+    /// it is how inspectors open store files they do not own, so the connection must not
+    /// be able to mutate them: a mistyped path now throws instead of silently creating an
+    /// empty database, and the file being inspected can never be written through here.
+    ///
+    /// Two read-only strategies cover the states a store file can be in:
+    /// - Whenever a `-wal` file sits next to the database — a live writer, a cleanly
+    ///   closed store on Apple platforms (which persist an empty `-wal`), or a crashed
+    ///   writer — a plain read-only connection reads the committed content.
+    /// - A **bare** WAL-mode file with no `-wal` at all (a store copied, exported, or
+    ///   rotated as a single file) cannot be read through a plain read-only connection:
+    ///   SQLite refuses with `SQLITE_CANTOPEN` because it cannot build the wal-index.
+    ///   That state falls back to SQLite's `immutable=1` open, which is safe precisely
+    ///   because the missing `-wal` proves no writer has the file open.
     public init(fileURL: URL) throws {
-        self.db = try SQLiteConnection(fileURL: fileURL)
+        let candidate = try SQLiteConnection(fileURL: fileURL, mode: .readOnly)
+        do {
+            // Preparing any statement forces the schema read that surfaces
+            // SQLITE_CANTOPEN on a bare WAL-mode file.
+            _ = try candidate.prepare("SELECT count(*) FROM sqlite_master;")
+            self.db = candidate
+        } catch {
+            // Fall back to immutable only when no -wal exists. If the probe failed
+            // despite a -wal being present, the file has a real problem (corruption,
+            // permissions) that an immutable open would mask, not fix.
+            guard !FileManager.default.fileExists(atPath: fileURL.path + "-wal") else {
+                throw error
+            }
+            self.db = try SQLiteConnection(fileURL: fileURL, mode: .readOnlyImmutable)
+        }
     }
     
     public func fetchAllRuns() async throws -> [RawTraceRun] {

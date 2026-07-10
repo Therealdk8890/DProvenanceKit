@@ -116,7 +116,7 @@ public actor CloudWriter {
                 let statusCode = try await sendBatch(batch)
                 
                 if statusCode == 400 {
-                    print("🚨 [DProvenanceKit] Poison batch detected (400 Bad Request). Quarantining.")
+                    DPKLog.cloud.error("Poison batch detected (400 Bad Request); quarantining \(batch.count) events.")
                     quarantineQueue.append(batch)
                     inflightBatch = nil
                     attemptCount = 0
@@ -133,7 +133,7 @@ public actor CloudWriter {
                 await circuitBreaker.recordFailure()
                 
                 if attemptCount >= maxAttempts {
-                    print("🚨 [DProvenanceKit] Batch failed \(maxAttempts) times. Quarantining.")
+                    DPKLog.cloud.error("Batch failed \(maxAttempts) times; quarantining \(batch.count) events.")
                     quarantineQueue.append(batch)
                     inflightBatch = nil
                     attemptCount = 0
