@@ -106,7 +106,7 @@ fm.tool.<toolName>.<k>             standalone TracedTool invocation
 fm[<label>].turn.<i>               with a session label prefix
 ```
 
-`FMSpanPath` builds these (`turn(_:sessionLabel:)`, `tool(named:invocation:turnIndex:sessionLabel:)`, `standaloneTool(named:invocation:sessionLabel:)`) — it's ungated pure string logic, so trace viewers can parse paths without the SDK. Tracing multiple sessions in one run? Give each a `sessionLabel` in its configuration so their span paths don't collide.
+`FMSpanPath` builds these (`turn(_:sessionLabel:)`, `tool(named:invocation:turnIndex:sessionLabel:)`, `standaloneTool(named:invocation:sessionLabel:)`) — it's ungated pure string logic, so trace viewers can parse paths without the SDK. Tracing multiple sessions in one run? Give each a `sessionLabel` in its configuration so their span paths don't collide — see [Tracing multi-session pipelines](#tracing-multi-session-pipelines).
 
 ## Capture mode 1: post-hoc ingestion
 
@@ -193,6 +193,39 @@ let session = LanguageModelSession(tools: [WeatherTool().traced()])
 `TracedTool` captures the **raw** arguments (`Arguments = GeneratedContent`) before typed decoding — a decode failure is itself evidence and must not lose the `fm_tool_call`; it records the call, a `toolCallError`, and rethrows. The model sees the identical schema because `parameters` forwards the base tool's. Invocations land under `fm.tool.<name>.<k>`.
 
 Standalone mode records via ambient task-locals, which is best-effort: a runtime that detaches tool invocation loses the ambient run. Session-owned wrapping via `TracedLanguageModelSession` is detachment-proof.
+
+## Tracing multi-session pipelines
+
+One run can hold several sessions — a planner/worker pipeline, a router plus specialists, or any agent graph you compose on top of FoundationModels. Give each session its own `sessionLabel` and every event stays attributable: the label prefixes the span path, so `fm[planner].turn.0` and `fm[worker].turn.0` never collide, and because span ids ARE span paths, each labeled session forms its own stable subtree for the alignment engine to compare across runs.
+
+```swift
+try await FMTrace.run(contextID: "research-pipeline", store: store) {
+    let planner = LanguageModelSession.traced(
+        instructions: "Decompose the request into steps.",
+        configuration: FMTracingConfiguration(sessionLabel: "planner")
+    )
+    let worker = LanguageModelSession.traced(
+        tools: [SearchTool()],
+        configuration: FMTracingConfiguration(sessionLabel: "worker")
+    )
+
+    let plan = try await planner.respond(to: request)
+    let result = try await worker.respond(to: plan.content)
+}
+```
+
+The same labeling works SDK-free: ingest one `FMTranscriptSnapshot` per session, each with its own labeled configuration, and the span paths interleave without collision:
+
+```swift
+FMSnapshotIngestion.record(plannerSnapshot, configuration: FMTracingConfiguration(sessionLabel: "planner"))
+FMSnapshotIngestion.record(workerSnapshot, configuration: FMTracingConfiguration(sessionLabel: "worker"))
+```
+
+Unlabeled sessions in the same run share the bare `fm.turn.<i>` namespace and WILL collide — label every session as soon as a run contains more than one.
+
+### RAG is a tool call
+
+FoundationModels has no separate retrieval primitive, and this library doesn't need one either: a retriever is a `Tool`, so a RAG pipeline traces through the existing `fm_tool_call`/`fm_tool_output` vocabulary with zero extra configuration — the retrieved passages are the tool output, recorded (and redactable) like any other. The [regression demo](foundation-models-regression-demo.md) is exactly this shape with a weather tool standing in for the retriever.
 
 ## Model availability
 

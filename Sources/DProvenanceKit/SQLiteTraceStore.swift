@@ -2,13 +2,19 @@ import Foundation
 
 public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked Sendable {
     private let db: SQLiteConnection
+    private let fileURL: URL
     /// A second connection to the same file, used only for reads. The writer's
     /// inserts bind/step between BEGIN and COMMIT on `db`, and a reader sharing that
     /// connection would see its own uncommitted rows mid-transaction. On a separate
     /// connection, WAL gives the reader a committed snapshot, so a query can never
     /// observe a half-written batch. Reads flush the writer first, so "committed"
     /// includes everything recorded before the read.
-    private let readDB: SQLiteConnection
+    ///
+    /// Mutable only inside `close()`, which must close it (exiting WAL mode requires
+    /// being the file's sole connection) and reopens it strictly read-only. All read
+    /// paths go through `reader()`, which hands out the current connection under
+    /// `closedLock`.
+    private var readDB: SQLiteConnection
     private let buffer: TraceWriteBuffer
     private let writer: SQLiteWriter
 
@@ -28,12 +34,37 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         return e
     }()
 
+    /// Guards `isClosed`, `closeTask`, and `readDB` reassignment. The store-level
+    /// `isClosed` check in `record()` is a fast path only — the authoritative gate is
+    /// inside `TraceWriteBuffer`, whose closed-check shares the buffer's own lock with
+    /// the enqueue, so a record racing `close()` is either drained by the writer's
+    /// final flush or counted as dropped, never stranded.
+    private let closedLock = NSLock()
+    private var isClosed = false
+    /// The single in-flight (or completed) close. Every `close()` caller awaits the
+    /// same task, so a second concurrent `close()` cannot return before the first has
+    /// actually finished draining and quiescing.
+    private var closeTask: Task<Bool, Never>?
+
+    private var closedNow: Bool {
+        closedLock.lock()
+        defer { closedLock.unlock() }
+        return isClosed
+    }
+
+    private func reader() -> SQLiteConnection {
+        closedLock.lock()
+        defer { closedLock.unlock() }
+        return readDB
+    }
+
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
         let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
         let tally = TraceDropTally()
         let wr = SQLiteWriter(db: database, buffer: buf, dropTally: tally)
 
+        self.fileURL = fileURL
         self.db = database
         self.buffer = buf
         self.writer = wr
@@ -128,6 +159,15 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
     
     public func record(_ event: TraceEvent<T>) {
+        if closedNow {
+            // The background writer is gone, so this event can never reach disk. Count
+            // the loss in its tier — a write after close() must not vanish silently.
+            // (Fast path only: a record that slips past this check mid-close is caught
+            // and counted by the buffer's own gate.)
+            dropTally.record(priority: event.payload.priority.rawValue)
+            return
+        }
+
         guard let payloadData = try? encoder.encode(event.payload) else {
             // An unencodable payload can't be persisted — but it must not vanish
             // silently. Count it in its own tier so the loss shows up in dropStats.
@@ -153,11 +193,98 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
     }
 
     public func link(source: UUID, target: UUID, type: TraceEdgeType) {
+        // No closed-check here: the buffer's gate discards, logs, and counts an edge
+        // linked after close() as a structural loss, atomically with its own lock.
         buffer.enqueueEdge(TraceEdge(sourceID: source, targetID: target, type: type))
     }
-    
+
     public func flush() async throws {
+        // After close() the writer has already drained everything it will ever drain,
+        // and its run-metadata flush would WRITE to the quiesced file (`force: true`
+        // re-stages every run). Reads triggered after close() must not touch the file.
+        if closedNow { return }
         try await writer.flush()
+    }
+
+    /// Flushes every pending event and edge, stops the background writer, and folds the
+    /// WAL back into the main database file, leaving it in rollback-journal mode when
+    /// possible. Call this before archiving or rotating a store file — see the retention
+    /// pattern in `docs/ATTESTATION.md`.
+    ///
+    /// Returns `true` when the `.sqlite` file alone is a complete archive of the store
+    /// (every WAL frame folded in). Returns `false` when a concurrent reader pinned the
+    /// WAL so the fold could not complete — in that case keep the `-wal`/`-shm`
+    /// companions next to the file when archiving it. The result is computed once;
+    /// subsequent calls await the same close and return the same answer.
+    ///
+    /// Reads (`queryRuns`, `getRun`, lineage traversal) remain available after `close()`
+    /// through a read-only connection that cannot modify the archived file. Events
+    /// recorded after `close()` are counted in `dropStats` like any other loss, and
+    /// edges linked after `close()` are counted as structural losses.
+    @discardableResult
+    public func close() async -> Bool {
+        await ensureCloseTask().value
+    }
+
+    /// Creates the single close task on first call; synchronous because `NSLock` may
+    /// not be held across suspension points.
+    private func ensureCloseTask() -> Task<Bool, Never> {
+        closedLock.lock()
+        defer { closedLock.unlock() }
+        if closeTask == nil {
+            isClosed = true
+            // Gate the buffer BEFORE the writer's final drain: everything admitted up
+            // to this point is persisted by shutdown(); everything after is counted.
+            buffer.close()
+            closeTask = Task { [self] in
+                await writer.shutdown()
+                return quiesceFile()
+            }
+        }
+        return closeTask!
+    }
+
+    /// Runs after the writer has fully stopped. Returns whether the `.sqlite` file
+    /// alone is a complete archive.
+    private func quiesceFile() -> Bool {
+        // Fold the -wal into the main file. The busy column must be inspected: SQLite
+        // reports a blocked checkpoint as SQLITE_OK with busy=1, so exec-and-ignore
+        // would silently rotate an archive that is missing committed events.
+        var checkpointComplete = false
+        if let stmt = try? db.prepare("PRAGMA wal_checkpoint(TRUNCATE);"),
+           (try? stmt.step()) == true {
+            checkpointComplete = stmt.columnInt(at: 0) == 0
+        }
+
+        // Exiting WAL mode requires being the file's only connection, so the read
+        // connection must close first; it reopens strictly read-only below. (With it
+        // open, the pragma fails SQLITE_BUSY unconditionally — verified empirically.)
+        reader().close()
+
+        // Leave the file in rollback-journal mode so the archived artifact is readable
+        // by ANY read-only client (a bare WAL-mode file needs an immutable open; a
+        // rollback-mode file does not). The flip performs its own full checkpoint, so
+        // its success also proves completeness. The next SQLiteTraceStore opened at
+        // this path switches the file back to WAL.
+        var flipped = false
+        if let stmt = try? db.prepare("PRAGMA journal_mode=DELETE;"),
+           (try? stmt.step()) == true {
+            flipped = stmt.columnString(at: 0)?.lowercased() == "delete"
+        }
+
+        // Restore post-close reads on a connection that can never write the archive.
+        if let reopened = try? SQLiteConnection(fileURL: fileURL, mode: .readOnly) {
+            closedLock.lock()
+            readDB = reopened
+            closedLock.unlock()
+        }
+
+        if !flipped && !checkpointComplete {
+            DPKLog.store.error("close() could not fold the WAL (a concurrent reader is pinning it); the .sqlite file alone is NOT a complete archive — keep the -wal/-shm files with it.")
+        } else if !flipped {
+            DPKLog.store.warning("close() folded the WAL but the file stays in WAL mode; a bare copy needs an immutable read-only open (RawTraceStore does this automatically).")
+        }
+        return flipped || checkpointComplete
     }
 
     /// Every event this store failed to retain, by priority tier: the write buffer's
@@ -178,7 +305,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         try await flush()
 
         let compiled = TraceQueryCompiler.compile(node: dsl.ast)
-        let stmt = try readDB.prepare(compiled.sql)
+        let stmt = try reader().prepare(compiled.sql)
         for (i, binding) in compiled.bindings.enumerated() {
             try stmt.bind(binding, at: Int32(i + 1))
         }
@@ -228,14 +355,14 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         // fresh UUID is minted on read and lineage edges (keyed on the original id) and
         // the exported dpk.event_id no longer line up.
         let sql = "SELECT id, engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
-        let stmt = try readDB.prepare(sql)
+        let stmt = try reader().prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
 
         var events: [TraceEvent<T>] = []
         let decoder = JSONDecoder()
 
         // Fetch context_id from the runs table
-        let ctxStmt = try readDB.prepare("SELECT context_id FROM runs WHERE run_id = ?")
+        let ctxStmt = try reader().prepare("SELECT context_id FROM runs WHERE run_id = ?")
         try ctxStmt.bind(id.uuidString, at: 1)
         guard try ctxStmt.step(), let contextID = ctxStmt.columnString(at: 0) else {
             return nil
@@ -293,7 +420,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         SELECT source_id, target_id, edge_type FROM lineage_cte;
         """
         
-        let stmt = try readDB.prepare(sql)
+        let stmt = try reader().prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
         var edges: [TraceEdge] = []
@@ -328,7 +455,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         SELECT source_id, target_id, edge_type FROM impact_cte;
         """
         
-        let stmt = try readDB.prepare(sql)
+        let stmt = try reader().prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
         
         var edges: [TraceEdge] = []
@@ -360,7 +487,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         WHERE e.id IN (\(placeholders))
         """
         
-        let stmt = try readDB.prepare(sql)
+        let stmt = try reader().prepare(sql)
         for (i, idString) in idStrings.enumerated() {
             try stmt.bind(idString, at: Int32(i + 1))
         }

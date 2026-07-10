@@ -60,6 +60,11 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     /// later evicted to admit something more important — every silent loss lands here.
     private var droppedByTier: [UInt64] = [0, 0, 0, 0]
 
+    /// Set by `close()`. Checked under the same `lock` as the enqueue itself, so an
+    /// event is either admitted before the store's final drain or counted as dropped —
+    /// there is no interleaving that admits a row no writer will ever drain.
+    private var isClosed = false
+
     // Tracking for per-run degradation
     private var queueDepthByRun: [String: Int] = [:]
 
@@ -108,8 +113,14 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     public func enqueue(_ event: TraceEventRow) {
         lock.withLock {
             let priority = TracePriority(rawValue: event.priority) ?? .telemetry
+
+            if isClosed {
+                droppedByTier[priority.rawValue] &+= 1
+                return
+            }
+
             let eventBytes = event.payload.count + 256
-            
+
             if eventBytes > config.capacity.maxEventSizeBytes {
                 droppedByTier[priority.rawValue] &+= 1
                 return
@@ -151,8 +162,25 @@ public final class TraceWriteBuffer: @unchecked Sendable {
 
     public func enqueueEdge(_ edge: TraceEdge) {
         lock.withLock {
+            if isClosed {
+                // Lineage is structural data, so a discarded edge is counted as a
+                // structural loss: it changes what lineage traversal (and an
+                // attestation's edge set) would have contained, which is exactly what
+                // preservedIntegrity exists to flag.
+                DPKLog.store.error("link() called after the store was closed; the edge was discarded and counted as a structural loss.")
+                droppedByTier[TracePriority.structural.rawValue] &+= 1
+                return
+            }
             edgeQueue.append(edge)
         }
+    }
+
+    /// Closes the intake: every event enqueued afterwards is counted as dropped in its
+    /// tier and every edge as a structural loss, because no writer will drain them.
+    /// Called by the owning store's `close()` BEFORE the writer's final drain, which
+    /// makes the drain a true cutoff — admitted-before or counted-after, never stranded.
+    public func close() {
+        lock.withLock { isClosed = true }
     }
 
     /// Frees one slot under global pressure. Returns `false` only when the incoming

@@ -15,7 +15,8 @@ import DProvenanceKit
 
 let signingKey = SoftwareTraceAttestationKey()
 
-// Persist signingKey.rawRepresentation in Keychain. Never write it into the trace artifact.
+// Persist signingKey.rawRepresentation in Keychain — see "Persisting keys in the
+// Keychain" below. Never write it into the trace artifact.
 let document = try TraceAttestationDocument.signed(
     run: completedRun,
     edges: lineageEdges,
@@ -48,6 +49,106 @@ let document = try TraceAttestationDocument.signed(run: completedRun, using: key
 Persist `key.dataRepresentation` in Keychain to reopen the same Secure Enclave key later. That
 value is a protected key reference, not the private scalar, but it should still be treated as
 sensitive application state.
+
+## Persisting keys in the Keychain
+
+Key custody belongs to the application, not this library: Keychain behavior depends on your
+code-signing identity, entitlements, and sandbox, none of which a SwiftPM package can carry for
+you (unsigned test binaries, for example, cannot use the data-protection keychain at all — they
+fail with `errSecMissingEntitlement`). What the library guarantees is exact round-tripping:
+`SoftwareTraceAttestationKey(rawRepresentation:)` and
+`SecureEnclaveTraceAttestationKey(dataRepresentation:)` reconstruct the same signing identity —
+same key ID — from the bytes you persisted.
+
+The complete recipe below is intended to be pasted into your app target and adapted:
+
+```swift
+import DProvenanceKit
+import Foundation
+import Security
+
+enum AttestationKeyStore {
+    /// One Keychain item per signing identity. Pick a service string unique to your app.
+    private static let service = "com.yourapp.attestation-keys"
+
+    struct KeyStoreError: Error { let status: OSStatus }
+
+    /// Stores (or replaces) a software key's private scalar.
+    static func save(_ key: SoftwareTraceAttestationKey, label: String) throws {
+        try save(data: key.rawRepresentation, label: label)
+    }
+
+    /// Stores (or replaces) a Secure Enclave key *reference*. The private scalar never
+    /// leaves the enclave; this blob only lets you reopen the same key later.
+    static func save(_ key: SecureEnclaveTraceAttestationKey, label: String) throws {
+        try save(data: key.dataRepresentation, label: label)
+    }
+
+    static func loadSoftwareKey(label: String) throws -> SoftwareTraceAttestationKey? {
+        try load(label: label).map { try SoftwareTraceAttestationKey(rawRepresentation: $0) }
+    }
+
+    static func loadSecureEnclaveKey(label: String) throws -> SecureEnclaveTraceAttestationKey? {
+        try load(label: label).map { try SecureEnclaveTraceAttestationKey(dataRepresentation: $0) }
+    }
+
+    private static func save(data: Data, label: String) throws {
+        var attributes = baseQuery(label: label)
+        attributes[kSecValueData as String] = data
+        // Signing keys must survive a locked screen for background signing, but never
+        // leave this device: a restored or migrated identity would silently sign under
+        // the same key ID from different hardware.
+        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+
+        let status = SecItemAdd(attributes as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            let update = [kSecValueData as String: data]
+            let updateStatus = SecItemUpdate(baseQuery(label: label) as CFDictionary, update as CFDictionary)
+            guard updateStatus == errSecSuccess else { throw KeyStoreError(status: updateStatus) }
+        } else if status != errSecSuccess {
+            throw KeyStoreError(status: status)
+        }
+    }
+
+    private static func load(label: String) throws -> Data? {
+        var query = baseQuery(label: label)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess else { throw KeyStoreError(status: status) }
+        return item as? Data
+    }
+
+    private static func baseQuery(label: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: label,
+            // Never sync signing identities through iCloud Keychain — each device is its
+            // own signer, identified by its own key ID. Kept explicit in the query so a
+            // synced item with the same label can never shadow the local identity.
+            kSecAttrSynchronizable as String: false,
+        ]
+    }
+}
+```
+
+Adaptation notes:
+
+- **macOS apps** must add `kSecUseDataProtectionKeychain as String: true` to `baseQuery` for
+  this recipe's protections to hold. Without it, items land in the legacy file-based keychain,
+  which silently ignores `kSecAttrAccessible` — the save succeeds, but the ThisDeviceOnly
+  guarantee promised above is not enforced (a migrated or restored home directory carries the
+  identity to new hardware). The data-protection keychain requires a signed app with an
+  application identifier — which is why the recipe lives in your app target and not in the
+  package.
+- **Sandboxed apps sharing an identity across an app group** need `kSecAttrAccessGroup`.
+- **Biometry-gated signing** (require Touch ID/Face ID per signature) means creating the item
+  with a `SecAccessControl` instead of a plain accessibility class; start from this recipe only
+  if you do not need that.
 
 ## Verify offline
 
@@ -150,11 +251,59 @@ artifact that will leave the device.
 OTel and `CloudTraceStore` export remain explicit, optional paths. The accurate guarantee is:
 **nothing leaves the device unless the application configures and invokes an export path.**
 
+## Retention: attest, then rotate
+
+DProvenanceKit deliberately ships no destructive retention API — a provenance store that deletes
+its own history is a liability in the audit workflows this library targets. The supported way to
+keep on-disk growth bounded is non-destructive rotation:
+
+1. **Attest** what you are about to age out. For each run worth preserving as evidence, write a
+   signed document — it is a self-contained, offline-verifiable archive of the run and its
+   lineage edges:
+
+   ```swift
+   let document = try TraceAttestationDocument.signed(run: run, edges: edges, using: key)
+   try document.jsonData().write(to: archiveURL, options: .atomic)
+   ```
+
+2. **Close** the store. `await store.close()` flushes every pending event and edge, stops the
+   background writer, folds the WAL back into the `.sqlite` file, and leaves the file in
+   rollback-journal mode — complete, quiescent, and readable as a single file by any read-only
+   client. It returns whether that single-file guarantee holds: `false` means a concurrent
+   reader pinned the WAL and the `-wal`/`-shm` companions must be archived alongside the file.
+
+3. **Rotate**: move the closed file to your archive location and start the next
+   `SQLiteTraceStore` at a fresh path.
+
+   ```swift
+   let complete = await store.close()
+   try FileManager.default.moveItem(at: activeURL, to: archivedURL)
+   if !complete {
+       // A concurrent reader kept the WAL pinned: the companions carry the
+       // unfolded frames, so they must travel with the archive.
+       for suffix in ["-wal", "-shm"] {
+           let companion = activeURL.path + suffix
+           if FileManager.default.fileExists(atPath: companion) {
+               try FileManager.default.moveItem(
+                   at: URL(fileURLWithPath: companion),
+                   to: URL(fileURLWithPath: archivedURL.path + suffix)
+               )
+           }
+       }
+   }
+   store = try SQLiteTraceStore<MyEvent>(fileURL: activeURL)
+   ```
+
+Archived store files stay fully queryable — reopen them with `RawTraceStore` (or any store
+consumer) at any time. Nothing is exported lossily and nothing is deleted; retention policy
+(how long archived files live, and where) stays where it belongs, in the application.
+
 ## Key lifecycle
 
 - Generate one signing identity per application, device, deployment, or policy boundary rather
   than one global key for every customer.
-- Store software-key raw representations in Keychain with an access class appropriate to the app.
+- Store software-key raw representations in Keychain with an access class appropriate to the app
+  (see [Persisting keys in the Keychain](#persisting-keys-in-the-keychain)).
 - Store Secure Enclave key references in Keychain and test restoration before relying on them.
 - Distribute trusted key IDs separately from the signed documents they validate.
 - Rotate keys deliberately and retain an auditable mapping of key ID to owner and validity period.

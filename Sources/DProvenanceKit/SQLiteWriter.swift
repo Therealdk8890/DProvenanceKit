@@ -119,7 +119,7 @@ public actor SQLiteWriter {
                 markRunsClean(stagedRunIDs)
                 lastRunFlushTime = now
             } catch {
-                print("🚨 [DProvenanceKit] SQLiteWriter failed to flush runs: \(error)")
+                DPKLog.store.error("SQLiteWriter failed to flush runs: \(String(describing: error), privacy: .public)")
             }
         }
         
@@ -158,7 +158,7 @@ public actor SQLiteWriter {
             for event in batch {
                 dropTally.record(priority: event.priority)
             }
-            print("🚨 [DProvenanceKit] SQLiteWriter failed to insert batch: \(error)")
+            DPKLog.store.error("SQLiteWriter failed to insert batch of \(batch.count) events: \(String(describing: error), privacy: .public)")
         }
     }
     
