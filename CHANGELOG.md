@@ -6,10 +6,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-10
+
+### Added
+- **Offline trace attestation** — canonical, domain-separated trace documents signed with
+  CryptoKit P-256/SHA-256. Attestations cover event order, payloads, identifiers, timestamps,
+  span relationships, and supplied lineage edges; software and optional Secure Enclave keys
+  share one API.
+- **`dpk verify`** — an offline verifier for portable attestation JSON, with explicit
+  embedded-key integrity mode and trusted-key pinning for signer identity. `dpk attest-demo`
+  produces a disposable signed corpus trace for evaluation.
+- **Attestation assurance surface** — adversarial modification/deletion/reordering tests, a
+  committed public verification vector, canonicalization documentation, key-lifecycle guidance,
+  and an explicit threat model covering capture completeness, trusted time, endpoint compromise,
+  privacy, and compliance boundaries.
+
 ### Changed
 - Fidelity scoring now uses typed expected/actual evidence pairs, keeping each evidence item
   tied to its semantic category so diagnostics do not cross-match unrelated finding types.
-- Updated the README install snippet to point at the latest published release and called out
+- Removed the nonexistent `0.3.1` install reference, restored `0.3.0` as the release floor, and called out
   the Apple platform floor (`.macOS(.v13)` / `.iOS(.v16)`) for clean SwiftPM adoption.
 - Made the bundled WebVisualizer easier to try from a release: visible sample state,
   one-click sample reset, current JSON download, corrected export command copy, and browser
@@ -131,7 +146,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.1.0
