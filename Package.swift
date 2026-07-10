@@ -40,6 +40,10 @@ let package = Package(
             targets: ["DProvenanceKitCLI"]
         ),
         .executable(
+            name: "dpk",
+            targets: ["DProvenanceKitCLI"]
+        ),
+        .executable(
             name: "Quickstart",
             targets: ["Quickstart"]
         ),

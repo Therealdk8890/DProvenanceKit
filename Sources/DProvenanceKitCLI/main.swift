@@ -28,7 +28,7 @@ struct DProvenanceKitCLI {
         }
 
         let mode = positional.first ?? "evaluate"
-        guard ["evaluate", "diagnose", "stability", "web-export"].contains(mode) else {
+        guard ["evaluate", "diagnose", "stability", "web-export", "attest-demo", "verify"].contains(mode) else {
             printErr("Unknown mode '\(mode)'.")
             printUsage()
             exit(2)
@@ -37,6 +37,14 @@ struct DProvenanceKitCLI {
         // web-export emits pure JSON to stdout (pipeable) — keep the human header off it.
         if mode == "web-export" {
             runWebExport(flags: flags)
+            return
+        }
+        if mode == "attest-demo" {
+            runAttestDemo(flags: flags)
+            return
+        }
+        if mode == "verify" {
+            runVerify(flags: flags)
             return
         }
 
@@ -224,11 +232,82 @@ struct DProvenanceKitCLI {
         }
     }
 
+    // MARK: - attestation
+
+    /// Produces a self-contained signed trace using the bundled corpus. This keeps private key
+    /// material out of the artifact and gives users a safe document to exercise with `verify`.
+    static func runAttestDemo(flags: [String]) {
+        let run = DProvenanceCorpus.codingAgentRegression.base
+        let key = SoftwareTraceAttestationKey()
+
+        do {
+            let document = try TraceAttestationDocument.signed(run: run, using: key)
+            let data = try document.jsonData()
+            if let out = parseValue(flags, "--out=") {
+                try data.write(to: URL(fileURLWithPath: out), options: .atomic)
+                printErr("Wrote signed trace to \(out)")
+            } else {
+                FileHandle.standardOutput.write(data)
+                FileHandle.standardOutput.write(Data("\n".utf8))
+            }
+            printErr("Signer key ID: \(document.attestation.keyID)")
+            printErr("Pin that key ID during verification when signer identity matters.")
+        } catch {
+            printErr("attest-demo failed: \(error)")
+            exit(1)
+        }
+    }
+
+    /// Verifies the trace digest and P-256 signature in an attestation document. Without at
+    /// least one `--trusted-key`, this proves integrity only; it does not establish who signed.
+    static func runVerify(flags: [String]) {
+        guard let input = parseValue(flags, "--in=") else {
+            printErr("verify requires --in=<attestation.json>")
+            exit(2)
+        }
+        let trustedKeyIDs = Set(parseValues(flags, "--trusted-key="))
+        let trustSet: Set<String>? = trustedKeyIDs.isEmpty ? nil : trustedKeyIDs
+
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: input))
+            let document = try TraceAttestationDocument.decodeJSON(data)
+            let result = document.verify(trustedKeyIDs: trustSet)
+            guard result.isValid else {
+                printErr("INVALID: \(result.failure?.rawValue ?? "unknown failure")")
+                printErr("Key ID: \(result.keyID)")
+                exit(1)
+            }
+
+            print("VALID")
+            print("Run ID: \(document.trace.runID.uuidString.lowercased())")
+            print("Events: \(document.trace.events.count)  Edges: \(document.trace.edges.count)")
+            print("Digest: \(document.attestation.traceDigest)")
+            print("Key ID: \(result.keyID)")
+            switch result.trust {
+            case .embeddedKeyOnly:
+                print("Trust: signature valid; signer identity not pinned")
+            case .trustedKey:
+                print("Trust: signature valid; signer key pinned")
+            }
+        } catch {
+            printErr("verify failed: \(error)")
+            exit(1)
+        }
+    }
+
     /// Parses `--<key>=<value>`; nil if absent or empty.
     static func parseValue(_ flags: [String], _ prefix: String) -> String? {
         guard let raw = flags.first(where: { $0.hasPrefix(prefix) }) else { return nil }
         let value = String(raw.dropFirst(prefix.count))
         return value.isEmpty ? nil : value
+    }
+
+    static func parseValues(_ flags: [String], _ prefix: String) -> [String] {
+        flags.compactMap { raw in
+            guard raw.hasPrefix(prefix) else { return nil }
+            let value = String(raw.dropFirst(prefix.count))
+            return value.isEmpty ? nil : value
+        }
     }
 
     static func printUsage() {
@@ -242,12 +321,16 @@ struct DProvenanceKitCLI {
           diagnose    Rank the most systemically impactful failure modes
           stability   Report evaluation variance across repeated runs
           web-export  Emit WebVisualizer JSON for one corpus case (pure JSON to stdout)
+          attest-demo Write a signed trace document from the bundled corpus
+          verify      Verify a signed trace document offline
 
         Flags:
           --gate            Exit non-zero if any case fails — for CI regression gating
           --min-f1=<value>  With --gate, also require F1 >= <value> on both datasets
           --case=<name>     web-export: which corpus case to export (default: first)
           --out=<path>      web-export: write JSON to a file instead of stdout
+          --in=<path>       verify: attestation document to verify
+          --trusted-key=<id> verify: require this signer key ID (repeatable)
           -h, --help        Show this help
         """)
     }
