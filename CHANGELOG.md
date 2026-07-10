@@ -6,12 +6,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.3.1] - 2026-07-09
-
 ### Changed
 - Fidelity scoring now uses typed expected/actual evidence pairs, keeping each evidence item
   tied to its semantic category so diagnostics do not cross-match unrelated finding types.
-- Updated the README install snippet to point at the published patch release and called out
+- Updated the README install snippet to point at the latest published release and called out
   the Apple platform floor (`.macOS(.v13)` / `.iOS(.v16)`) for clean SwiftPM adoption.
 - Made the bundled WebVisualizer easier to try from a release: visible sample state,
   one-click sample reset, current JSON download, corrected export command copy, and browser
@@ -133,8 +131,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.1...HEAD
-[0.3.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...0.3.1
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...HEAD
 [0.3.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.1.0
