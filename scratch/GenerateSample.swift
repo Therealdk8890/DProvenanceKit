@@ -1,11 +1,23 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#endif
 import DProvenanceKit
 import DProvenanceUI
 
 @main
 struct GenerateSampleApp: App {
     @StateObject private var storeManager = StoreManager()
-    
+
+    init() {
+        #if canImport(AppKit)
+        // A bare SwiftPM executable otherwise launches as a background accessory. Promote the
+        // demo so its window, Dock icon, and menu bar are visible when run from the command line.
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             InvestigationDemoView()

@@ -11,6 +11,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   release badge and signed-artifact quickstart, made export explicitly opt-in, replaced the
   generic experimental label with an honest public-beta status, and clarified that the public
   repository is Apache 2.0 with no production-use restriction.
+- Restored two useful fixes from the obsolete alignment branch: run-metadata dirty flags now
+  clear only after the enclosing SQLite transaction commits, and the SwiftPM sample promotes
+  itself to a foreground macOS app when launched from the command line.
 
 ## [0.4.0] - 2026-07-10
 

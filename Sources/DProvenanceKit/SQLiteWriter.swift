@@ -57,17 +57,20 @@ public actor SQLiteWriter {
     
     public func flush() async throws {
         await processBatch(drainAll: true)
-        try db.transaction {
+        let stagedRunIDs = try db.transaction {
             try flushRunsTable(force: true)
         }
+        markRunsClean(stagedRunIDs)
     }
     
     public func shutdown() async {
         isShuttingDown = true
         await writeTask?.value
         await processBatch(drainAll: true)
-        try? db.transaction {
+        if let stagedRunIDs = try? db.transaction({
             try flushRunsTable(force: true)
+        }) {
+            markRunsClean(stagedRunIDs)
         }
     }
     
@@ -110,9 +113,10 @@ public actor SQLiteWriter {
         let now = Date().timeIntervalSince1970
         if now - lastRunFlushTime > 1.0 {
             do {
-                try db.transaction {
+                let stagedRunIDs = try db.transaction {
                     try flushRunsTable()
                 }
+                markRunsClean(stagedRunIDs)
                 lastRunFlushTime = now
             } catch {
                 print("🚨 [DProvenanceKit] SQLiteWriter failed to flush runs: \(error)")
@@ -236,7 +240,11 @@ public actor SQLiteWriter {
         activeRuns[runID] = state
     }
     
-    private func flushRunsTable(force: Bool = false) throws {
+    /// Stages dirty run metadata inside the caller's transaction and returns the run IDs whose
+    /// UPSERTs succeeded. Dirty flags are cleared only after that transaction commits; otherwise
+    /// a later statement failure could roll the database back while leaving the cache marked clean.
+    @discardableResult
+    private func flushRunsTable(force: Bool = false) throws -> [String] {
         let upsertSQL = """
         INSERT INTO runs (run_id, context_id, start_time, end_time, event_count, fingerprint)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -247,6 +255,7 @@ public actor SQLiteWriter {
         """
         
         let stmt = try db.prepare(upsertSQL)
+        var stagedRunIDs: [String] = []
         
         for (runID, state) in activeRuns {
             if state.isDirty || force {
@@ -262,9 +271,17 @@ public actor SQLiteWriter {
                 
                 _ = try stmt.step()
                 stmt.reset()
-                
-                activeRuns[runID]?.isDirty = false
+
+                stagedRunIDs.append(runID)
             }
+        }
+
+        return stagedRunIDs
+    }
+
+    private func markRunsClean(_ runIDs: [String]) {
+        for runID in runIDs {
+            activeRuns[runID]?.isDirty = false
         }
     }
 }
