@@ -19,46 +19,61 @@ struct DProvenanceKitCLI {
 
     static func main() async {
         let args = Array(CommandLine.arguments.dropFirst())
-        let flags = args.filter { $0.hasPrefix("-") }
-        let positional = args.filter { !$0.hasPrefix("-") }
 
-        if flags.contains("--help") || flags.contains("-h") {
+        if args.contains("--help") || args.contains("-h") {
+            // Help must not silently swallow a requested action: a stray --help in a
+            // CI line like `evaluate --gate --help` would otherwise exit 0 without
+            // ever running the gate. Standalone help (optionally with a mode) is fine.
+            let others = args.filter { $0.hasPrefix("-") && $0 != "--help" && $0 != "-h" }
+            guard others.isEmpty else {
+                printErr("Error: --help cannot be combined with other flags (\(others.joined(separator: " "))).")
+                exit(2)
+            }
             printUsage()
             return
         }
 
-        let mode = positional.first ?? "evaluate"
-        guard ["evaluate", "diagnose", "stability", "web-export", "attest-demo", "verify"].contains(mode) else {
-            printErr("Unknown mode '\(mode)'.")
-            printUsage()
+        // Fail-closed argument handling: anything unknown, malformed, duplicated, or
+        // out of range exits 2 before any work runs. Silently ignoring a broken
+        // `--trusted-key` or `--min-f1` would downgrade a security check while still
+        // reporting success — the exact failure mode this CLI exists to catch.
+        let invocation: CLIInvocation
+        do {
+            invocation = try CLIArguments.parse(args)
+        } catch let error as CLIArgumentError {
+            printErr("Error: \(error.description)")
+            printErr("Run with --help for usage.")
+            exit(2)
+        } catch {
+            printErr("Error: \(error)")
             exit(2)
         }
 
         // web-export emits pure JSON to stdout (pipeable) — keep the human header off it.
-        if mode == "web-export" {
-            runWebExport(flags: flags)
+        if invocation.mode == .webExport {
+            runWebExport(caseName: invocation.caseName, outPath: invocation.outPath)
             return
         }
-        if mode == "attest-demo" {
-            runAttestDemo(flags: flags)
+        if invocation.mode == .attestDemo {
+            runAttestDemo(outPath: invocation.outPath)
             return
         }
-        if mode == "verify" {
-            runVerify(flags: flags)
+        if invocation.mode == .verify {
+            runVerify(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
             return
         }
 
         print("DProvenanceKit CLI Evaluator")
         print("============================")
 
-        let gate = flags.contains("--gate")
-        let minF1 = parseMinF1(flags)
+        let gate = invocation.gate
+        let minF1 = invocation.minF1
 
         let runner = BenchmarkRunner<DProvenanceCorpus.AgentEvent>()
         let dataset = DProvenanceCorpus.dataset
 
-        switch mode {
-        case "evaluate":
+        switch invocation.mode {
+        case .evaluate:
             print("=== STANDARD DATASET ===")
             let report = await runner.run(dataset: dataset) { cb in makeEngine(cb) }
             print(String(format: "Dataset: %@  (%d cases, %d passed)", report.datasetName, report.totalCases, report.passedCases))
@@ -116,7 +131,7 @@ struct DProvenanceKitCLI {
                             minF1: minF1)
             }
 
-        case "diagnose":
+        case .diagnose:
             let report = await runner.run(dataset: dataset) { cb in makeEngine(cb) }
             print("Causal ranking (most systemically impactful failure modes first):")
             let ranking = report.causalRanking
@@ -129,7 +144,7 @@ struct DProvenanceKitCLI {
                              rank.fractionalImpact * 100, rank.zScoreImpact, rank.averageConfidence))
             }
 
-        case "stability":
+        case .stability:
             // (1) Under the deterministic boundary the engine is reproducible: variance is 0.
             let isolated = DeterministicBoundary(cacheIsolated: true, seedControl: "cli_seed")
             let stable = await runner.runRepeatedEvaluation(dataset: dataset, iterations: 3, boundary: isolated) { _, cb in
@@ -181,27 +196,22 @@ struct DProvenanceKitCLI {
         }
     }
 
-    /// Parses `--min-f1=<value>`; returns nil if absent or malformed (malformed is
-    /// ignored rather than fatal so a typo doesn't mask a real regression as a pass).
-    static func parseMinF1(_ flags: [String]) -> Double? {
-        guard let raw = flags.first(where: { $0.hasPrefix("--min-f1=") }) else { return nil }
-        return Double(raw.dropFirst("--min-f1=".count))
-    }
-
     // MARK: - web-export
 
     /// Emits a `WebDiffExport` JSON for one corpus case — the exact shape the bundled
     /// WebVisualizer consumes (`WebVisualizer/SCHEMA.md`). Pure JSON to stdout so it can be
     /// redirected straight into the viewer; `--out=<path>` writes a file instead.
-    static func runWebExport(flags: [String]) {
+    static func runWebExport(caseName: String?, outPath: String?) {
         let cases = DProvenanceCorpus.dataset.cases
-        let requested = parseValue(flags, "--case=")
-        guard let bench = requested.flatMap({ name in cases.first { $0.name == name } }) ?? cases.first else {
+        guard let bench = caseName.flatMap({ name in cases.first { $0.name == name } }) ?? cases.first else {
             printErr("No corpus cases available to export.")
             exit(2)
         }
-        if let requested, bench.name != requested {
-            printErr("Case '\(requested)' not found; available: \(cases.map(\.name).joined(separator: ", ")). Exporting '\(bench.name)'.")
+        if let caseName, bench.name != caseName {
+            // Exporting a different case than the one asked for would be a silent
+            // substitution; a pipeline consuming this JSON must not get the wrong run.
+            printErr("Case '\(caseName)' not found; available: \(cases.map(\.name).joined(separator: ", ")).")
+            exit(2)
         }
 
         let config = AlignmentConfiguration<DProvenanceCorpus.AgentEvent>(
@@ -219,9 +229,9 @@ struct DProvenanceKitCLI {
 
         do {
             let data = try export.jsonData()
-            if let out = parseValue(flags, "--out=") {
-                try data.write(to: URL(fileURLWithPath: out))
-                printErr("Wrote \(data.count) bytes to \(out)  (case: \(bench.name))")
+            if let outPath {
+                try data.write(to: URL(fileURLWithPath: outPath))
+                printErr("Wrote \(data.count) bytes to \(outPath)  (case: \(bench.name))")
             } else {
                 FileHandle.standardOutput.write(data)
                 FileHandle.standardOutput.write(Data("\n".utf8))
@@ -236,14 +246,14 @@ struct DProvenanceKitCLI {
 
     /// Produces a self-contained signed trace using the bundled corpus. This keeps private key
     /// material out of the artifact and gives users a safe document to exercise with `verify`.
-    static func runAttestDemo(flags: [String]) {
+    static func runAttestDemo(outPath: String?) {
         let run = DProvenanceCorpus.codingAgentRegression.base
         let key = SoftwareTraceAttestationKey()
 
         do {
             let document = try TraceAttestationDocument.signed(run: run, using: key)
             let data = try document.jsonData()
-            if let out = parseValue(flags, "--out=") {
+            if let out = outPath {
                 try data.write(to: URL(fileURLWithPath: out), options: .atomic)
                 printErr("Wrote signed trace to \(out)")
             } else {
@@ -260,16 +270,13 @@ struct DProvenanceKitCLI {
 
     /// Verifies the trace digest and P-256 signature in an attestation document. Without at
     /// least one `--trusted-key`, this proves integrity only; it does not establish who signed.
-    static func runVerify(flags: [String]) {
-        guard let input = parseValue(flags, "--in=") else {
-            printErr("verify requires --in=<attestation.json>")
-            exit(2)
-        }
-        let trustedKeyIDs = Set(parseValues(flags, "--trusted-key="))
+    /// Key IDs arrive pre-validated by `CLIArguments` — an empty or malformed key has already
+    /// exited 2, so an empty set here can only mean the flag was never passed.
+    static func runVerify(inPath: String, trustedKeyIDs: Set<String>) {
         let trustSet: Set<String>? = trustedKeyIDs.isEmpty ? nil : trustedKeyIDs
 
         do {
-            let data = try Data(contentsOf: URL(fileURLWithPath: input))
+            let data = try Data(contentsOf: URL(fileURLWithPath: inPath))
             let document = try TraceAttestationDocument.decodeJSON(data)
             let result = document.verify(trustedKeyIDs: trustSet)
             guard result.isValid else {
@@ -295,21 +302,6 @@ struct DProvenanceKitCLI {
         }
     }
 
-    /// Parses `--<key>=<value>`; nil if absent or empty.
-    static func parseValue(_ flags: [String], _ prefix: String) -> String? {
-        guard let raw = flags.first(where: { $0.hasPrefix(prefix) }) else { return nil }
-        let value = String(raw.dropFirst(prefix.count))
-        return value.isEmpty ? nil : value
-    }
-
-    static func parseValues(_ flags: [String], _ prefix: String) -> [String] {
-        flags.compactMap { raw in
-            guard raw.hasPrefix(prefix) else { return nil }
-            let value = String(raw.dropFirst(prefix.count))
-            return value.isEmpty ? nil : value
-        }
-    }
-
     static func printUsage() {
         print("""
         DProvenanceKit CLI Evaluator
@@ -330,8 +322,11 @@ struct DProvenanceKitCLI {
           --case=<name>     web-export: which corpus case to export (default: first)
           --out=<path>      web-export: write JSON to a file instead of stdout
           --in=<path>       verify: attestation document to verify
-          --trusted-key=<id> verify: require this signer key ID (repeatable)
+          --trusted-key=<id> verify: require this signer key ID (64 hex chars, repeatable)
           -h, --help        Show this help
+
+        Unknown, malformed, duplicated, or out-of-range arguments exit 2 — they are
+        never ignored, so a typo cannot silently weaken a verification or a CI gate.
         """)
     }
 

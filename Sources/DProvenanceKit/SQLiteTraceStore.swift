@@ -95,13 +95,17 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 parent_span_id TEXT,
                 type TEXT NOT NULL,
                 payload BLOB NOT NULL,
-                timestamp INTEGER NOT NULL
+                timestamp INTEGER NOT NULL,
+                schema_version INTEGER NOT NULL DEFAULT 1
             );
             """)
-            
+
             // Backwards compatibility for existing databases
             try? database.execute("ALTER TABLE trace_events ADD COLUMN span_id TEXT;")
             try? database.execute("ALTER TABLE trace_events ADD COLUMN parent_span_id TEXT;")
+            // Rows written before the column existed carry version 1, the only schema
+            // version that shipped without it.
+            try? database.execute("ALTER TABLE trace_events ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;")
             
             // Critical indices
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_id ON trace_events(run_id);")
@@ -186,9 +190,10 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             parentSpanID: event.parentSpanID,
             type: event.payload.typeIdentifier,
             payload: payloadData,
-            timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000)
+            timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000),
+            schemaVersion: event.schemaVersion
         )
-        
+
         buffer.enqueue(row)
     }
 
@@ -357,7 +362,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         // Select `id` too: the recorded TraceEvent.id must survive the round-trip, or a
         // fresh UUID is minted on read and lineage edges (keyed on the original id) and
         // the exported dpk.event_id no longer line up.
-        let sql = "SELECT id, engine, span_id, parent_span_id, type, payload, timestamp, sequence FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
+        let sql = "SELECT id, engine, span_id, parent_span_id, type, payload, timestamp, sequence, schema_version FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
         let stmt = try reader().prepare(sql)
         try stmt.bind(id.uuidString, at: 1)
 
@@ -380,6 +385,11 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             let payloadData = stmt.columnData(at: 5)
             let timestampMs = stmt.columnInt64(at: 6)
             let sequence = UInt64(stmt.columnInt64(at: 7))
+            // Authoritative as stored: legacy rows were backfilled to the column's
+            // NOT NULL DEFAULT 1 by the ALTER in init, and a recorded value — even an
+            // unconventional 0 — must round-trip unchanged or attestation digests
+            // computed before and after a reload diverge.
+            let schemaVersion = Int(stmt.columnInt64(at: 8))
 
             if let payload = try? decoder.decode(T.self, from: payloadData) {
                 let event = TraceEvent(
@@ -387,7 +397,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     runID: id,
                     contextID: contextID,
                     engineName: engine ?? "Unknown",
-                    schemaVersion: 1,
+                    schemaVersion: schemaVersion,
                     sequence: sequence,
                     spanID: spanID,
                     parentSpanID: parentSpanID,
@@ -484,7 +494,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         let placeholders = Array(repeating: "?", count: idStrings.count).joined(separator: ", ")
         
         let sql = """
-        SELECT e.id, e.run_id, r.context_id, e.engine, e.span_id, e.parent_span_id, e.payload, e.timestamp, e.sequence 
+        SELECT e.id, e.run_id, r.context_id, e.engine, e.span_id, e.parent_span_id, e.payload, e.timestamp, e.sequence, e.schema_version
         FROM trace_events e
         JOIN runs r ON e.run_id = r.run_id
         WHERE e.id IN (\(placeholders))
@@ -514,14 +524,17 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             let parentSpanID = stmt.columnString(at: 5)
             let timestampMs = stmt.columnInt64(at: 7)
             let sequence = UInt64(stmt.columnInt64(at: 8))
-            
+            // Authoritative as stored (see fetchRun): the migration backfills legacy
+            // rows to 1, so no read-side coercion may rewrite a recorded value.
+            let schemaVersion = Int(stmt.columnInt64(at: 9))
+
             if let payload = try? decoder.decode(T.self, from: payloadData) {
                 let event = TraceEvent(
                     id: id,
                     runID: runID,
                     contextID: contextID,
                     engineName: engine,
-                    schemaVersion: 1,
+                    schemaVersion: schemaVersion,
                     sequence: sequence,
                     spanID: spanID,
                     parentSpanID: parentSpanID,

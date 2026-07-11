@@ -13,8 +13,12 @@ public struct TraceEventRow: Sendable {
     public let type: String
     public let payload: Data
     public let timestamp: Int64
-    
-    public init(id: String, runID: String, contextID: String, priority: Int, sequence: Int64, engine: String?, spanID: String?, parentSpanID: String?, type: String, payload: Data, timestamp: Int64) {
+    /// `TraceEvent.schemaVersion`, carried so the round-trip through storage cannot
+    /// silently rewrite an event's schema metadata (which a signed attestation covers).
+    /// Defaults to 1 for rows read from stores created before the column existed.
+    public let schemaVersion: Int
+
+    public init(id: String, runID: String, contextID: String, priority: Int, sequence: Int64, engine: String?, spanID: String?, parentSpanID: String?, type: String, payload: Data, timestamp: Int64, schemaVersion: Int = 1) {
         self.id = id
         self.runID = runID
         self.contextID = contextID
@@ -26,6 +30,7 @@ public struct TraceEventRow: Sendable {
         self.type = type
         self.payload = payload
         self.timestamp = timestamp
+        self.schemaVersion = schemaVersion
     }
 }
 

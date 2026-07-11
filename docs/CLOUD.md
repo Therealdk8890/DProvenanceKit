@@ -96,30 +96,39 @@ let snapshot = engine.snapshot()
 print("contaminated spans:", snapshot.manifest.contaminatedSpans)
 ```
 
-Two sharp edges to know:
+One sharp edge to know:
 
 - **Quarantine is in-memory only.** Quarantined batches do not survive process exit; there is no persistence or automatic re-drive.
-- **Round-tripped IDs don't match.** `record` mints a fresh UUID for the wire row rather than reusing `event.id`, so a quarantined event comes back with a *different* event ID than the one originally recorded. ID-based correlation — including the replay manifest's duplicate detection — cannot match it to the original.
+
+Round-tripped identity is preserved: the wire row carries the recorded `event.id`, so a quarantined event comes back with the ID it was recorded with, and ID-based correlation — including the replay manifest's duplicate detection — matches it to the original. Lineage edges drained with a quarantined batch stay attached to it (`CloudWriter.getQuarantinedEdges()`).
 
 ## Wire contract
 
 No reference server ships with the repository; the contract below is what the client sends and expects. All requests carry `Authorization: Bearer {apiKey}` and `Content-Type: application/json`.
 
-`POST {endpoint}/ingest` — a JSON array of event objects:
+`POST {endpoint}/ingest` — a JSON object with the batch's events and any lineage edges drained with them:
 
 ```json
 {
-  "id": "…", "run_id": "…", "context_id": "…",
-  "priority": 3, "sequence": 17,
-  "engine": "DocumentAnalyzer",
-  "span_id": "…", "parent_span_id": null,
-  "type": "finalDecisionMade",
-  "payload": { "…": "inline JSON, or a base64 string if the payload isn't valid JSON" },
-  "timestamp": 1767225600000000
+  "events": [
+    {
+      "id": "…", "run_id": "…", "context_id": "…",
+      "priority": 3, "sequence": 17,
+      "engine": "DocumentAnalyzer",
+      "span_id": "…", "parent_span_id": null,
+      "type": "finalDecisionMade",
+      "payload": { "…": "inline JSON, or a base64 string if the payload isn't valid JSON" },
+      "timestamp": 1767225600000000,
+      "schema_version": 1
+    }
+  ],
+  "edges": [
+    { "source_id": "…", "target_id": "…", "edge_type": "derivedFrom" }
+  ]
 }
 ```
 
-`timestamp` is microseconds since the Unix epoch. Any 2xx acknowledges the batch; 400 quarantines it; anything else triggers retry/backoff.
+`id` is the recorded `TraceEvent.id` and `schema_version` the recorded `TraceEvent.schemaVersion` — the wire never rewrites either. `timestamp` is microseconds since the Unix epoch. Edges enqueued via `link(source:target:type:)` ride in the same request as the events they were drained with, and `flush()` does not return while edges are still pending. Any 2xx acknowledges the batch; 400 quarantines it (events and edges together); anything else triggers retry/backoff.
 
 ## What is *not* implemented
 
@@ -128,7 +137,8 @@ Be aware before you build on it:
 - **`queryRuns(_:)` cannot return data.** The request side is real — it POSTs `{schemaVersion, dsl, limit}` to `{endpoint}/query` and maps error responses (`UNSUPPORTED_SCHEMA` on 400/422 → `CloudTraceStoreError.unsupportedSchema`, 501 → `.notImplemented`, other non-2xx → `.serverError`) — but response decoding was never implemented: **on success it always returns `[]`**. Query your traces locally; the cloud store is an ingestion transport.
 - **`negotiateCapabilities()` negotiates nothing.** It performs a GET to `{endpoint}/capabilities` and only verifies a 2xx; it parses no response.
 - **No clean shutdown.** The background writer task starts in `init` and runs for the lifetime of the process; `CloudTraceStore` exposes no way to stop it.
-- **Failure logging is `print()` to stdout.** There is no logging hook yet.
+
+Failure diagnostics (poison batches, exhausted retries) go to the unified logging system under subsystem `com.dprovenancekit`, category `cloud`.
 
 ## API reference
 

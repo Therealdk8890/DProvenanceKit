@@ -14,29 +14,49 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     private let buffer: TraceWriteBuffer
     private let writer: CloudWriter
     private let session: URLSession
-    
+
+    /// Events lost before they reach the buffer — payloads that fail to JSON-encode.
+    /// Folded into `dropStats` so an unencodable payload can never vanish while the
+    /// store still reports `preservedIntegrity == true`.
+    private let dropTally = TraceDropTally()
+
+    /// Reused across the concurrent `record` entrypoint: configured once and only read
+    /// during `encode`, so concurrent calls are data-race-free while avoiding a fresh
+    /// allocation per event. `.sortedKeys` produces the canonical payload bytes required
+    /// by Trace Specification v1 §2 (sorted keys).
+    private let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.outputFormatting = [.sortedKeys]
+        return e
+    }()
+
     public init(endpoint: URL, apiKey: String, config: OfflineConfig = OfflineConfig(), session: URLSession = .shared) {
         self.endpoint = endpoint
         self.apiKey = apiKey
         self.buffer = TraceWriteBuffer(config: config)
         self.session = session
-        
+
         let ingestionURL = endpoint.appendingPathComponent("ingest")
         self.writer = CloudWriter(endpoint: ingestionURL, apiKey: apiKey, buffer: buffer, session: session)
-        
+
         Task {
             await self.writer.start()
         }
     }
-    
+
     public func record(_ event: TraceEvent<T>) {
-        // `.sortedKeys` produces the canonical payload bytes required by Trace Spec v1 §2.
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        guard let payloadData = try? encoder.encode(event.payload) else { return }
-        
+        guard let payloadData = try? encoder.encode(event.payload) else {
+            // An unencodable payload can't be transmitted — but it must not vanish
+            // silently. Count it in its own tier so the loss shows up in dropStats.
+            dropTally.record(priority: event.payload.priority.rawValue)
+            return
+        }
+
         let row = TraceEventRow(
-            id: UUID().uuidString,
+            // The recorded TraceEvent.id must survive the wire: a fresh UUID here would
+            // break ID-based correlation (replay manifests, lineage joins, quarantine
+            // round-trips) between the device and the server.
+            id: event.id.uuidString,
             runID: event.runID.uuidString,
             contextID: event.contextID,
             priority: event.payload.priority.rawValue,
@@ -46,9 +66,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
             parentSpanID: event.parentSpanID,
             type: event.payload.typeIdentifier,
             payload: payloadData,
-            timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000)
+            timestamp: Int64(event.timestamp.timeIntervalSince1970 * 1_000_000),
+            schemaVersion: event.schemaVersion
         )
-        
+
         buffer.enqueue(row)
     }
 
@@ -66,7 +87,10 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         try await writer.flush(timeout: timeout)
     }
 
-    public var dropStats: TraceDropStats { buffer.dropStats }
+    /// Buffer congestion drops plus payloads that failed to encode in `record`.
+    /// Quarantined batches are NOT counted here — they remain retrievable via
+    /// `queryQuarantinedEvents`.
+    public var dropStats: TraceDropStats { buffer.dropStats + dropTally.snapshot }
     
     private struct QueryPayload: Encodable {
         let schemaVersion: String
@@ -149,7 +173,7 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
                 runID: runID,
                 contextID: row.contextID,
                 engineName: row.engine ?? "Unknown",
-                schemaVersion: Int(TraceQueryDSL<T>.schemaVersion.prefix(while: { $0.isNumber })) ?? 1,
+                schemaVersion: row.schemaVersion,
                 sequence: UInt64(row.sequence),
                 spanID: row.spanID,
                 parentSpanID: row.parentSpanID,

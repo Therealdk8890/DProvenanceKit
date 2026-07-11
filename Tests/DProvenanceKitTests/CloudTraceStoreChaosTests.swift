@@ -122,9 +122,10 @@ final class CloudTraceStoreChaosTests: XCTestCase {
             }
             
             if !bodyData.isEmpty {
-                if let dict = try? JSONSerialization.jsonObject(with: bodyData) as? [[String: Any]] {
+                if let envelope = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
+                   let events = envelope["events"] as? [[String: Any]] {
                     Task {
-                        await actorCounts.add(dict.count)
+                        await actorCounts.add(events.count)
                     }
                 }
             }

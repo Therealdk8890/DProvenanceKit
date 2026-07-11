@@ -9,19 +9,29 @@ public enum CloudWriterError: Error, Equatable {
 }
 
 public actor CloudWriter {
+    /// One drained unit of work: the events and lineage edges taken from the buffer
+    /// together, kept together through retry and quarantine so neither can be
+    /// silently left behind while the other is delivered.
+    struct Batch: Sendable {
+        var events: [TraceEventRow]
+        var edges: [TraceEdge]
+        var count: Int { events.count + edges.count }
+        var isEmpty: Bool { events.isEmpty && edges.isEmpty }
+    }
+
     private let endpoint: URL
     private let apiKey: String
     private let buffer: TraceWriteBuffer
     private let session: URLSession
-    
+
     private var writeTask: Task<Void, Never>?
     private var isShuttingDown = false
     private var isSending = false
-    
-    private var inflightBatch: [TraceEventRow]? = nil
+
+    private var inflightBatch: Batch? = nil
     private var attemptCount = 0
-    private var quarantineQueue: [[TraceEventRow]] = []
-    
+    private var quarantineQueue: [Batch] = []
+
     private let circuitBreaker = CircuitBreaker()
     
     public init(endpoint: URL, apiKey: String, buffer: TraceWriteBuffer, session: URLSession = .shared) {
@@ -44,14 +54,16 @@ public actor CloudWriter {
         }
     }
     
-    /// Drains the backlog to the server, bounded by `timeout`. Returns when everything
-    /// is delivered (or quarantined); throws `CloudWriterError.flushTimedOut` if the
-    /// deadline passes first — it never blocks indefinitely on an unreachable endpoint.
+    /// Drains the backlog — pending events AND lineage edges — to the server, bounded
+    /// by `timeout`. Returns when everything is delivered (or quarantined); throws
+    /// `CloudWriterError.flushTimedOut` (undelivered = events + edges) if the deadline
+    /// passes first — it never blocks indefinitely on an unreachable endpoint.
     public func flush(timeout: TimeInterval = 30.0) async throws {
         let deadline = Date().addingTimeInterval(timeout)
-        while buffer.currentDepth > 0 || inflightBatch != nil {
+        while buffer.currentDepth > 0 || buffer.pendingEdgeCount > 0 || inflightBatch != nil {
             if Date() >= deadline {
-                throw CloudWriterError.flushTimedOut(undelivered: buffer.currentDepth + (inflightBatch?.count ?? 0))
+                let backlog = buffer.currentDepth + buffer.pendingEdgeCount
+                throw CloudWriterError.flushTimedOut(undelivered: backlog + (inflightBatch?.count ?? 0))
             }
             if isSending {
                 try await Task.sleep(nanoseconds: 20_000_000)
@@ -62,15 +74,21 @@ public actor CloudWriter {
             try await Task.sleep(nanoseconds: 20_000_000)
         }
     }
-    
+
     public func shutdown() async {
         isShuttingDown = true
         await writeTask?.value
         try? await flush()
     }
-    
+
     public func getQuarantinedEvents() -> [TraceEventRow] {
-        return quarantineQueue.flatMap { $0 }
+        return quarantineQueue.flatMap { $0.events }
+    }
+
+    /// Lineage edges that were drained alongside a batch the server rejected (400) or
+    /// that exhausted retries. Like quarantined events, they are retained — not lost.
+    public func getQuarantinedEdges() -> [TraceEdge] {
+        return quarantineQueue.flatMap { $0.edges }
     }
     
     private func tick() async {
@@ -95,12 +113,18 @@ public actor CloudWriter {
         }
 
         guard await circuitBreaker.allowRequest() else { return }
-        
-        let batch: [TraceEventRow]
+
+        let batch: Batch
         if let inflight = inflightBatch {
             batch = inflight
         } else {
-            let drained = drainAll ? buffer.flushAll() : buffer.drain(max: maxBatch)
+            // Edges ride with the event batch: they are drained atomically here and
+            // stay attached through retry/quarantine, so a lineage edge can never sit
+            // in the buffer forever while the events it references are delivered.
+            let drained = Batch(
+                events: drainAll ? buffer.flushAll() : buffer.drain(max: maxBatch),
+                edges: buffer.drainEdges()
+            )
             guard !drained.isEmpty else { return }
             batch = drained
             inflightBatch = batch
@@ -116,7 +140,7 @@ public actor CloudWriter {
                 let statusCode = try await sendBatch(batch)
                 
                 if statusCode == 400 {
-                    DPKLog.cloud.error("Poison batch detected (400 Bad Request); quarantining \(batch.count) events.")
+                    DPKLog.cloud.error("Poison batch detected (400 Bad Request); quarantining \(batch.events.count) events and \(batch.edges.count) edges.")
                     quarantineQueue.append(batch)
                     inflightBatch = nil
                     attemptCount = 0
@@ -133,7 +157,7 @@ public actor CloudWriter {
                 await circuitBreaker.recordFailure()
                 
                 if attemptCount >= maxAttempts {
-                    DPKLog.cloud.error("Batch failed \(maxAttempts) times; quarantining \(batch.count) events.")
+                    DPKLog.cloud.error("Batch failed \(maxAttempts) times; quarantining \(batch.events.count) events and \(batch.edges.count) edges.")
                     quarantineQueue.append(batch)
                     inflightBatch = nil
                     attemptCount = 0
@@ -162,13 +186,13 @@ public actor CloudWriter {
         }
     }
     
-    private func sendBatch(_ events: [TraceEventRow]) async throws -> Int {
+    private func sendBatch(_ batch: Batch) async throws -> Int {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let payload = events.map { event in
+
+        let eventObjects = batch.events.map { event in
             [
                 "id": event.id,
                 "run_id": event.runID,
@@ -180,10 +204,21 @@ public actor CloudWriter {
                 "parent_span_id": event.parentSpanID ?? NSNull(),
                 "type": event.type,
                 "payload": (try? JSONSerialization.jsonObject(with: event.payload)) ?? event.payload.base64EncodedString(),
-                "timestamp": event.timestamp
+                "timestamp": event.timestamp,
+                "schema_version": event.schemaVersion
             ] as [String : Any]
         }
-        
+        let edgeObjects = batch.edges.map { edge in
+            [
+                "source_id": edge.sourceID.uuidString,
+                "target_id": edge.targetID.uuidString,
+                "edge_type": edge.type.rawValue
+            ] as [String : Any]
+        }
+
+        // Envelope form (see docs/CLOUD.md "Wire contract"): lineage edges ship in the
+        // same request as the events they arrived with.
+        let payload: [String: Any] = ["events": eventObjects, "edges": edgeObjects]
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         
         let (_, response) = try await session.data(for: request)
