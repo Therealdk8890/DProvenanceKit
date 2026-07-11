@@ -6,14 +6,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-> **Release note:** several fixes below are deliberately fail-closed and therefore
+## [0.5.0] - 2026-07-11
+
+> **Breaking release.** Several fixes below are deliberately fail-closed and therefore
 > breaking — the cloud `/ingest` wire format, stricter attestation edge validation
 > (previously-signed documents containing self/duplicate/dangling edges now fail
 > verification, and `TraceAttestationError`/`TraceAttestationVerificationFailure`
 > gained cases that break exhaustive switches), and CLI arguments that used to be
-> silently ignored now exit 2. Ship these as **0.5.0**, not a 0.4.x patch — and note
-> that SwiftPM's `from: "0.4.0"` still auto-flows 0.5.0 to consumers, so the bump is
-> a signal, not a shield.
+> silently ignored now exit 2. Hence 0.5.0 rather than a 0.4.x patch — and note that
+> SwiftPM's `from: "0.4.0"` still auto-flows this release to consumers, so the bump
+> is a signal, not a shield.
 
 ### Fixed
 - **CLI trust controls now fail closed.** Unknown, malformed, empty, duplicated, or
@@ -226,7 +228,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.1.0...0.2.0
