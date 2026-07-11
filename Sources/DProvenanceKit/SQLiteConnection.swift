@@ -132,7 +132,22 @@ public final class SQLiteConnection: @unchecked Sendable {
         }
     }
 
+    /// Serializes whole transactions: SQLite transactions are per-connection, so two
+    /// threads interleaving BEGIN…COMMIT here would share one transaction — the
+    /// second BEGIN fails, and its ROLLBACK would silently discard the first thread's
+    /// staged writes while that thread's remaining statements auto-commit one by one.
+    /// Recursive so a nested `transaction` on the same thread fails at BEGIN (as it
+    /// always has) instead of deadlocking.
+    ///
+    /// Scope: this serializes `transaction` blocks against each other. A bare
+    /// `execute`/`prepare` issued from another thread while a transaction is open
+    /// still joins it (standard shared-connection SQLite semantics) — keep ad-hoc
+    /// statements off a connection whose transactions must be isolated.
+    private let transactionLock = NSRecursiveLock()
+
     public func transaction<T>(_ block: () throws -> T) throws -> T {
+        transactionLock.lock()
+        defer { transactionLock.unlock() }
         try execute("BEGIN TRANSACTION;")
         do {
             let result = try block()

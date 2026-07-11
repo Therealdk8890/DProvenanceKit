@@ -89,6 +89,13 @@ public final class TraceWriteBuffer: @unchecked Sendable {
         lock.withLock { totalCount }
     }
 
+    /// Lineage edges enqueued via `enqueueEdge` and not yet drained. Edges live in
+    /// their own queue outside `currentDepth`, so a flush that only checked event
+    /// depth could report "empty" while edges still wait for a writer.
+    public var pendingEdgeCount: Int {
+        lock.withLock { edgeQueue.count }
+    }
+
     /// A by-tier tally of every event shed since this buffer was created.
     ///
     /// Exposed so a consumer can answer "can I trust this run's diff?" without

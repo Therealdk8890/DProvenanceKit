@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DProvenanceKit — Reasoning observability &amp; regression testing for Swift AI</title>
-<meta name="description" content="Turn every AI run into a queryable, diffable trace. Catch the silent regressions on-device AI ships — a dropped tool call, a skipped step — before your users do. Swift-native, Apache 2.0, built for Apple Foundation Models." />
+<title>DProvenanceKit — On-device provenance &amp; signed attestation for Swift AI</title>
+<meta name="description" content="Turn every AI run into a queryable, diffable, cryptographically signed trace. Catch the silent regressions on-device AI ships — a dropped tool call, a skipped step — and verify the evidence offline. Swift-native, Apache 2.0, built for Apple Foundation Models." />
 <meta name="theme-color" content="#0a0c10" />
 
 <!-- Open Graph / social -->
@@ -305,7 +305,8 @@
     <span class="eyebrow">◆ Swift-native · on-device · Apache 2.0</span>
     <h1>Your AI agent <span class="grad">changed its mind.</span> Now you know exactly why.</h1>
     <p class="lede">
-      DProvenanceKit turns every AI run into a queryable, diffable trace of its <em>reasoning</em>.
+      DProvenanceKit turns every AI run into a queryable, diffable trace of its <em>reasoning</em> —
+      then signs it with CryptoKit into a tamper-evident attestation you can verify offline.
       When an OS or model update makes your on-device agent silently drop a tool call or skip a step,
       it catches the regression and fails your build — before your users hit it.
     </p>
@@ -408,11 +409,12 @@
       <div>
         <p class="muted"><strong>1.</strong> Add the package (Swift Package Manager):</p>
         <pre class="code"><span class="cm">// Package.swift</span>
-.package(url: <span class="str">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="str">"0.2.0"</span>)</pre>
+.package(url: <span class="str">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="str">"0.4.0"</span>)</pre>
       </div>
       <div>
         <p class="muted"><strong>2.</strong> Trace an Apple Foundation Models session — one line:</p>
-        <pre class="code"><span class="kw">import</span> DProvenanceFoundationModels
+        <pre class="code"><span class="kw">import</span> FoundationModels
+<span class="kw">import</span> DProvenanceFoundationModels
 
 <span class="kw">try await</span> FMTrace.run(contextID: <span class="str">"chat"</span>, store: store) {
     <span class="kw">let</span> s = LanguageModelSession.traced(instructions: <span class="str">"Be terse."</span>)

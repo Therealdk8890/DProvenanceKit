@@ -40,6 +40,12 @@ public actor SQLiteWriter {
         self.db = db
         self.buffer = buffer
         self.dropTally = dropTally
+        // The INSERT names schema_version, but consumers may pair this writer with a
+        // connection to a pre-existing store file directly (bypassing
+        // SQLiteTraceStore's migration). Migrate here too, or every batch against a
+        // legacy file would fail and be tallied as dropped. Harmless when the table
+        // doesn't exist yet or the column is already present.
+        try? db.execute("ALTER TABLE trace_events ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;")
     }
     
     public func start() {
@@ -158,7 +164,14 @@ public actor SQLiteWriter {
             for event in batch {
                 dropTally.record(priority: event.priority)
             }
-            DPKLog.store.error("SQLiteWriter failed to insert batch of \(batch.count) events: \(String(describing: error), privacy: .public)")
+            // Edges are structural data (they change what lineage traversal and an
+            // attestation's edge set contain), so a lost edge must flip
+            // preservedIntegrity exactly like a lost structural event — including
+            // when the failed batch contained only edges.
+            if !edgesBatch.isEmpty {
+                dropTally.record(priority: TracePriority.structural.rawValue, count: UInt64(edgesBatch.count))
+            }
+            DPKLog.store.error("SQLiteWriter failed to insert batch of \(batch.count) events and \(edgesBatch.count) edges: \(String(describing: error), privacy: .public)")
         }
     }
     
@@ -181,8 +194,8 @@ public actor SQLiteWriter {
     
     private func insert(_ events: [TraceEventRow]) throws {
         let insertSQL = """
-        INSERT INTO trace_events (id, run_id, context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO trace_events (id, run_id, context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp, schema_version)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         let stmt = try db.prepare(insertSQL)
         
@@ -210,7 +223,8 @@ public actor SQLiteWriter {
             try stmt.bind(event.type, at: 9)
             try stmt.bind(event.payload, at: 10)
             try stmt.bind(event.timestamp, at: 11)
-            
+            try stmt.bind(Int64(event.schemaVersion), at: 12)
+
             _ = try stmt.step()
             stmt.reset()
         }

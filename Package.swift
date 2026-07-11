@@ -101,6 +101,12 @@ let package = Package(
             name: "DProvenanceKitTests",
             dependencies: ["DProvenanceKit", "DProvenanceUI"]
         ),
+        // Covers the CLI's fail-closed argument validation: a malformed --trusted-key
+        // or --min-f1 must stop the run, never silently weaken it.
+        .testTarget(
+            name: "DProvenanceKitCLITests",
+            dependencies: ["DProvenanceKitCLI"]
+        ),
         .testTarget(
             name: "DProvenanceUITests",
             dependencies: ["DProvenanceUI"]

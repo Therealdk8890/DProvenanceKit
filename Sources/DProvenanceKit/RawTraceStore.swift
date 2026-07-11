@@ -1,7 +1,10 @@
 import Foundation
 
 public struct RawTraceEvent: Sendable, Identifiable, Equatable {
-    public let id = UUID()
+    /// The `trace_events.id` the event was recorded with — NOT minted per read.
+    /// Restoring the persisted id is what keeps identity stable across inspector
+    /// reloads and lets rows join against lineage edges and exported `dpk.event_id`s.
+    public let id: UUID
     public let runID: UUID
     public let contextID: String
     public let priority: Int
@@ -12,6 +15,9 @@ public struct RawTraceEvent: Sendable, Identifiable, Equatable {
     public let typeIdentifier: String
     public let payloadJSON: String
     public let timestamp: Date
+    /// `TraceEvent.schemaVersion` as recorded; 1 for rows written before the
+    /// `schema_version` column existed.
+    public let schemaVersion: Int
 }
 
 public struct RawTraceRun: Sendable, Identifiable, Equatable {
@@ -89,25 +95,49 @@ public final class RawTraceStore: @unchecked Sendable {
     }
     
     private func fetchEventsForRun(id: String) async throws -> [RawTraceEvent] {
-        let sql = "SELECT context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
-        let stmt = try db.prepare(sql)
+        // The connection is read-only, so files created before the `schema_version`
+        // column existed cannot be migrated here; preparing the modern SELECT fails on
+        // them, and the legacy SELECT (implicit version 1) is used instead.
+        let modernSQL = "SELECT id, context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp, schema_version FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
+        let legacySQL = "SELECT id, context_id, priority, sequence, engine, span_id, parent_span_id, type, payload, timestamp FROM trace_events WHERE run_id = ? ORDER BY sequence ASC"
+        let stmt: SQLiteStatement
+        let hasSchemaVersion: Bool
+        do {
+            stmt = try db.prepare(modernSQL)
+            hasSchemaVersion = true
+        } catch let error as SQLiteError {
+            // Fall back ONLY when the column is genuinely absent. A transient prepare
+            // failure (locking, I/O) must propagate — silently downgrading a modern
+            // file to implicit version 1 would rewrite its schema metadata.
+            guard case .prepareFailed(_, let message) = error,
+                  message?.contains("no such column") == true else {
+                throw error
+            }
+            stmt = try db.prepare(legacySQL)
+            hasSchemaVersion = false
+        }
         try stmt.bind(id, at: 1)
-        
+
         var events: [RawTraceEvent] = []
         while try stmt.step() {
-            let contextID = stmt.columnString(at: 0) ?? ""
-            let priority = Int(stmt.columnInt64(at: 1))
-            let sequence = UInt64(stmt.columnInt64(at: 2))
-            let engine = stmt.columnString(at: 3) ?? "Unknown"
-            let spanID = stmt.columnString(at: 4)
-            let parentSpanID = stmt.columnString(at: 5)
-            let type = stmt.columnString(at: 6) ?? "Unknown"
-            let payloadData = stmt.columnData(at: 7)
-            let timestampMs = stmt.columnInt64(at: 8)
-            
+            let eventID = stmt.columnString(at: 0).flatMap(UUID.init(uuidString:))
+            let contextID = stmt.columnString(at: 1) ?? ""
+            let priority = Int(stmt.columnInt64(at: 2))
+            let sequence = UInt64(stmt.columnInt64(at: 3))
+            let engine = stmt.columnString(at: 4) ?? "Unknown"
+            let spanID = stmt.columnString(at: 5)
+            let parentSpanID = stmt.columnString(at: 6)
+            let type = stmt.columnString(at: 7) ?? "Unknown"
+            let payloadData = stmt.columnData(at: 8)
+            let timestampMs = stmt.columnInt64(at: 9)
+            let schemaVersion = hasSchemaVersion ? Int(stmt.columnInt64(at: 10)) : 1
+
             let payloadJSON = String(data: payloadData, encoding: .utf8) ?? "{}"
-            
+
             let event = RawTraceEvent(
+                // A row whose id fails to parse still surfaces (under a fresh UUID)
+                // rather than disappearing from the inspector.
+                id: eventID ?? UUID(),
                 runID: UUID(uuidString: id) ?? UUID(),
                 contextID: contextID,
                 priority: priority,
@@ -117,7 +147,8 @@ public final class RawTraceStore: @unchecked Sendable {
                 parentSpanID: parentSpanID,
                 typeIdentifier: type,
                 payloadJSON: payloadJSON,
-                timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
+                timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0),
+                schemaVersion: schemaVersion
             )
             events.append(event)
         }

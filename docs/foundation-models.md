@@ -9,6 +9,7 @@ The module is built around one parity invariant: **live capture and post-hoc ing
 ## The three one-liners
 
 ```swift
+import FoundationModels
 import DProvenanceFoundationModels
 ```
 
@@ -49,11 +50,12 @@ Add the product:
 .product(name: "DProvenanceFoundationModels", package: "DProvenanceKit")
 ```
 
-The module `@_exported import`s `DProvenanceKit`, so one import gives you both. `FMTrace` is a typealias for `DProvenanceKit<FoundationModelTraceEvent>`.
+The module `@_exported import`s `DProvenanceKit`, so importing it gives you the core library too. It does NOT re-export `FoundationModels` itself — types like `LanguageModelSession` come from Apple's framework, so code that touches them needs `import FoundationModels` alongside. `FMTrace` is a typealias for `DProvenanceKit<FoundationModelTraceEvent>`.
 
 ## Minimal end-to-end example
 
 ```swift
+import FoundationModels
 import DProvenanceFoundationModels
 
 let store = try SQLiteTraceStore<FoundationModelTraceEvent>(

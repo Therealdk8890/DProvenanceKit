@@ -6,6 +6,53 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+> **Release note:** several fixes below are deliberately fail-closed and therefore
+> breaking — the cloud `/ingest` wire format, stricter attestation edge validation
+> (previously-signed documents containing self/duplicate/dangling edges now fail
+> verification, and `TraceAttestationError`/`TraceAttestationVerificationFailure`
+> gained cases that break exhaustive switches), and CLI arguments that used to be
+> silently ignored now exit 2. Ship these as **0.5.0**, not a 0.4.x patch — and note
+> that SwiftPM's `from: "0.4.0"` still auto-flows 0.5.0 to consumers, so the bump is
+> a signal, not a shield.
+
+### Fixed
+- **CLI trust controls now fail closed.** Unknown, malformed, empty, duplicated, or
+  out-of-range arguments exit 2 instead of being silently ignored: `--trusted-key=` with an
+  empty or non-64-hex value no longer downgrades `dpk verify` to unpinned verification, and
+  `--min-f1=bogus`/`nan`/`-0.1` no longer lets `evaluate --gate` pass without an F1 floor
+  (`--min-f1` also requires `--gate`, and `web-export --case=<unknown>` no longer silently
+  exports a different case).
+- **SQLite round-trips preserve `TraceEvent.schemaVersion`.** A new `schema_version` column
+  (auto-migrated on open; read-only legacy files fall back to implicit version 1) means a
+  version-2 event can no longer be reloaded as version 1 and signed into an attestation with
+  false schema metadata.
+- **`RawTraceStore` restores persisted event ids** instead of minting a fresh `UUID` per read,
+  so inspector reloads keep stable identity, rows join against lineage edges and exported
+  `dpk.event_id`s, and two reads of the same store compare equal. `RawTraceEvent` also exposes
+  `schemaVersion`.
+- **Cloud ingestion no longer lies.** `CloudTraceStore.record` sends the recorded `event.id`
+  (quarantined events round-trip with their original identity) and carries `schema_version`;
+  payloads that fail to encode are counted in `dropStats`; lineage edges are drained and
+  transmitted with each batch — previously queued forever — and stay attached through retry
+  and quarantine (`CloudWriter.getQuarantinedEdges()`); `flush()` waits for pending edges.
+- **Lost lineage edges break `preservedIntegrity`.** A failed SQLite batch insert now counts
+  its edges as structural losses, including edge-only batches that previously left
+  `dropStats` untouched.
+- **`SQLiteConnection.transaction` is serialized.** Concurrent transactions on the shared
+  connection could interleave BEGIN…COMMIT, letting one thread's failed BEGIN roll back
+  another's staged writes while its remaining statements auto-committed piecemeal.
+- **Attestations validate edge structure.** Signing and verification reject self-referential
+  edges, duplicate edges, and edges with no connection to the attested run (cross-run lineage
+  chains that anchor to the run's events remain valid).
+
+### Changed
+- **Cloud `/ingest` wire format** is now an `{"events": […], "edges": […]}` envelope instead
+  of a bare event array, so lineage edges ship with the events they were drained with (see
+  `docs/CLOUD.md` for the full contract).
+- Foundation Models quickstarts (README, `docs/foundation-models.md`, dprovenance.dev) now
+  include the required `import FoundationModels`; the site and `COMMERCIAL.md` install
+  snippets reference `0.4.0`, and the site leads with the attestation positioning.
+
 ### Added
 - **`SQLiteTraceStore.close()`** — flushes everything pending, stops the background writer,
   checkpoints the WAL, and leaves the store file in rollback-journal mode so it can be archived,

@@ -49,6 +49,25 @@ jobs:
       - name: Run CLI evaluation (gated — fails the build on regression)
         run: swift run DProvenanceKitCLI evaluate --gate
 
+      - name: CLI fail-closed smoke (bad security args must exit 2, never weaken)
+        run: |
+          swift build --product dpk
+          DPK=".build/debug/dpk"
+          check2() {
+            set +e; "$DPK" "$@" >/dev/null 2>&1; rc=$?; set -e
+            if [ "$rc" -ne 2 ]; then echo "FAIL: expected exit 2, got $rc for: $*"; exit 1; fi
+            echo "ok (exit 2): $*"
+          }
+          check2 evaluate --gate --min-f1=bogus
+          check2 evaluate --gate --min-f1=nan
+          check2 evaluate --gate --min-f1=-0.1
+          check2 evaluate --min-f1=0.9
+          check2 evaluate --gaet
+          check2 evaluate --gate --help
+          check2 verify --in=nonexistent.json --trusted-key=
+          check2 verify --in=nonexistent.json --trusted-key=deadbeef
+          check2 web-export --case=does-not-exist
+
       - name: Run Quickstart (compile-check of the documented API)
         run: swift run Quickstart
 

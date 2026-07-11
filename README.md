@@ -343,6 +343,7 @@ try await store.flush()
 If your AI is Apple's on-device LLM, skip the custom vocabulary — the adapter ships one, frozen and diff-ready:
 
 ```swift
+import FoundationModels
 import DProvenanceFoundationModels
 
 let fmStore = try SQLiteTraceStore<FoundationModelTraceEvent>(

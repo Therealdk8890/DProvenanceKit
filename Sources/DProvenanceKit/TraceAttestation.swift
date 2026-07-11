@@ -344,6 +344,9 @@ public enum TraceAttestationVerificationFailure: String, Sendable, Equatable {
     case invalidPayloadJSON
     case eventCountMismatch
     case edgeCountMismatch
+    case selfReferentialEdge
+    case duplicateEdge
+    case danglingEdge
     case malformedDigest
     case digestMismatch
     case malformedPublicKey
@@ -463,6 +466,15 @@ public enum TraceAttestationError: Error, Equatable {
     case duplicateEventID(UUID)
     case nonMonotonicSequence(previous: UInt64, current: UInt64)
     case invalidPayloadJSON(UUID)
+    /// An edge whose source and target are the same event: never meaningful lineage.
+    case selfReferentialEdge(TraceEdge)
+    /// The same (source, target, type) edge appears more than once.
+    case duplicateEdge(TraceEdge)
+    /// An edge with no connection — direct or through other edges — to any event in
+    /// the attested run. Cross-run lineage chains are legitimate (upstream edges may
+    /// reference events archived in other runs), but every edge must anchor to this
+    /// run's events through the edge set; an unanchored edge is a construction error.
+    case danglingEdge(TraceEdge)
 }
 
 private enum TraceAttestationValidator {
@@ -491,6 +503,45 @@ private enum TraceAttestationValidator {
                 throw TraceAttestationError.invalidPayloadJSON(event.id)
             }
         }
+        try validateEdges(trace.edges, eventIDs: eventIDs)
+    }
+
+    /// Structural checks on the lineage edge set. Events are validated individually
+    /// above; without this, an attestation would happily sign self-loops, repeated
+    /// edges, and edges unrelated to the run — all of which a verifier would then
+    /// certify as covered evidence.
+    private static func validateEdges(_ edges: [TraceEdge], eventIDs: Set<UUID>) throws {
+        var seenEdges = Set<TraceEdge>()
+        for edge in edges {
+            guard edge.sourceID != edge.targetID else {
+                throw TraceAttestationError.selfReferentialEdge(edge)
+            }
+            guard seenEdges.insert(edge).inserted else {
+                throw TraceAttestationError.duplicateEdge(edge)
+            }
+        }
+
+        // Every edge must be connected to the attested run. Both endpoints living in
+        // OTHER runs is fine mid-chain (transitive upstream lineage), so anchoring is
+        // computed as a fixpoint over the edge graph, not per-edge containment.
+        var anchored = eventIDs
+        var remaining = edges
+        var grew = true
+        while grew {
+            grew = false
+            remaining.removeAll { edge in
+                guard anchored.contains(edge.sourceID) || anchored.contains(edge.targetID) else {
+                    return false
+                }
+                anchored.insert(edge.sourceID)
+                anchored.insert(edge.targetID)
+                grew = true
+                return true
+            }
+        }
+        if let dangling = remaining.first {
+            throw TraceAttestationError.danglingEdge(dangling)
+        }
     }
 
     static func verificationFailure(
@@ -509,6 +560,12 @@ private enum TraceAttestationValidator {
             return .nonMonotonicSequence
         } catch TraceAttestationError.invalidPayloadJSON {
             return .invalidPayloadJSON
+        } catch TraceAttestationError.selfReferentialEdge {
+            return .selfReferentialEdge
+        } catch TraceAttestationError.duplicateEdge {
+            return .duplicateEdge
+        } catch TraceAttestationError.danglingEdge {
+            return .danglingEdge
         } catch {
             return .invalidPayloadJSON
         }
