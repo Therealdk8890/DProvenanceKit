@@ -58,6 +58,22 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         return readDB
     }
 
+    /// Lowercased `trace_events` column names. SQLite compares identifiers
+    /// case-insensitively (an `ALTER … ADD COLUMN span_id` fails "duplicate column"
+    /// against an existing `SPAN_ID`), so the presence check must be
+    /// case-insensitive too or a legacy DB with non-lowercase columns would make
+    /// the guarded ALTER below throw where it should no-op.
+    private static func traceEventColumnNames(in database: SQLiteConnection) throws -> Set<String> {
+        let statement = try database.prepare("PRAGMA table_info(trace_events);")
+        var names = Set<String>()
+        while try statement.step() {
+            if let name = statement.columnString(at: 1) {
+                names.insert(name.lowercased())
+            }
+        }
+        return names
+    }
+
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
         let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
@@ -100,12 +116,22 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             );
             """)
 
-            // Backwards compatibility for existing databases
-            try? database.execute("ALTER TABLE trace_events ADD COLUMN span_id TEXT;")
-            try? database.execute("ALTER TABLE trace_events ADD COLUMN parent_span_id TEXT;")
+            // Backwards compatibility for databases created before these columns.
+            // Check first instead of swallowing duplicate-column errors: SQLite logs
+            // failed ALTER statements before Swift can catch them, and `try?` would
+            // also hide genuine migration failures.
+            let eventColumns = try Self.traceEventColumnNames(in: database)
+            if !eventColumns.contains("span_id") {
+                try database.execute("ALTER TABLE trace_events ADD COLUMN span_id TEXT;")
+            }
+            if !eventColumns.contains("parent_span_id") {
+                try database.execute("ALTER TABLE trace_events ADD COLUMN parent_span_id TEXT;")
+            }
             // Rows written before the column existed carry version 1, the only schema
             // version that shipped without it.
-            try? database.execute("ALTER TABLE trace_events ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;")
+            if !eventColumns.contains("schema_version") {
+                try database.execute("ALTER TABLE trace_events ADD COLUMN schema_version INTEGER NOT NULL DEFAULT 1;")
+            }
             
             // Critical indices
             try database.execute("CREATE INDEX IF NOT EXISTS idx_run_id ON trace_events(run_id);")
