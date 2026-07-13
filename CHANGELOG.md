@@ -6,6 +6,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Proof packs** — a single self-contained JSON document (`ProofPackDocument`) carrying a
+  signed trace attestation plus the artifact bytes the trace vouches for (`ProofPackArtifact`,
+  utf8 or base64). `verify(trustedKeyIDs:)` checks the attestation exactly as before, then
+  fail-closed re-derives each embedded artifact's SHA-256 and requires it to appear as a string
+  leaf inside a signed event payload, reporting which event bound each artifact. Wrapping adds
+  nothing to the canonical or signed bytes, so existing attestations can be packed without
+  re-signing. Verified offline with `dpk verify --in=pack.json --proof-pack [--trusted-key=…]`.
+  Format, producer rules, and threat model in `docs/PROOF_PACK.md`; a committed
+  `docs/test-vectors/proof-pack-v1.json` vector is checked by the test suite.
+
 ## [0.5.0] - 2026-07-11
 
 > **Breaking release.** Several fixes below are deliberately fail-closed and therefore

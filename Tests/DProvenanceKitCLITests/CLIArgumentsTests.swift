@@ -71,6 +71,46 @@ final class CLIArgumentsTests: XCTestCase {
         }
     }
 
+    // MARK: - --proof-pack
+
+    func testProofPackFlagIsAcceptedOnVerify() throws {
+        let invocation = try CLIArguments.parse(["verify", "--in=pack.json", "--proof-pack"])
+        XCTAssertEqual(invocation.mode, .verify)
+        XCTAssertTrue(invocation.proofPack)
+
+        // And it stays off unless explicitly requested.
+        XCTAssertFalse(try CLIArguments.parse(["verify", "--in=doc.json"]).proofPack)
+    }
+
+    func testProofPackFlagIsRejectedOutsideVerify() {
+        for mode in ["evaluate", "diagnose", "stability", "web-export", "attest-demo"] {
+            XCTAssertThrowsError(try CLIArguments.parse([mode, "--proof-pack"]),
+                                 "expected --proof-pack to be rejected for '\(mode)'") { error in
+                XCTAssertEqual(error as? CLIArgumentError, .unknownFlag("--proof-pack"))
+            }
+        }
+    }
+
+    func testProofPackStillRequiresInputPath() {
+        XCTAssertThrowsError(try CLIArguments.parse(["verify", "--proof-pack"])) { error in
+            XCTAssertEqual(error as? CLIArgumentError, .missingRequiredFlag("--in=<attestation.json>"))
+        }
+    }
+
+    func testProofPackWithValueIsRejected() {
+        // Boolean flags never take a value; `--proof-pack=value` goes down the value-flag
+        // path and must be rejected as unknown, not treated as the boolean.
+        XCTAssertThrowsError(try CLIArguments.parse(["verify", "--in=pack.json", "--proof-pack=yes"])) { error in
+            XCTAssertEqual(error as? CLIArgumentError, .unknownFlag("--proof-pack"))
+        }
+    }
+
+    func testDuplicateProofPackIsRejected() {
+        XCTAssertThrowsError(try CLIArguments.parse(["verify", "--in=pack.json", "--proof-pack", "--proof-pack"])) { error in
+            XCTAssertEqual(error as? CLIArgumentError, .duplicateFlag("--proof-pack"))
+        }
+    }
+
     // MARK: - --min-f1
 
     func testMalformedMinF1IsRejected() {

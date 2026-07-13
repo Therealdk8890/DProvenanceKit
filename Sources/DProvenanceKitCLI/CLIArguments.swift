@@ -54,6 +54,8 @@ struct CLIInvocation: Equatable {
     var caseName: String?
     var outPath: String?
     var inPath: String?
+    /// verify: treat `--in` as a proof pack (attestation + embedded artifacts).
+    var proofPack = false
     /// Normalized (lowercased) 64-hex-character signer key IDs.
     var trustedKeyIDs: Set<String> = []
 }
@@ -64,7 +66,8 @@ enum CLIArguments {
     /// is rejected rather than ignored.
     private static let booleanFlags: [CLIInvocation.Mode: Set<String>] = [
         .evaluate: ["--gate"],
-        .diagnose: [], .stability: [], .webExport: [], .attestDemo: [], .verify: [],
+        .diagnose: [], .stability: [], .webExport: [], .attestDemo: [],
+        .verify: ["--proof-pack"],
     ]
     private static let valueFlags: [CLIInvocation.Mode: Set<String>] = [
         .evaluate: ["--min-f1"],
@@ -121,6 +124,8 @@ enum CLIArguments {
                 switch raw {
                 case "--gate":
                     invocation.gate = true
+                case "--proof-pack":
+                    invocation.proofPack = true
                 default:
                     throw CLIArgumentError.unknownFlag(raw)
                 }
