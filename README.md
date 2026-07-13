@@ -12,6 +12,8 @@ DProvenanceKit records reasoning paths locally, shows exactly what changed betwe
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
 
+> **Working in Python?** There's a full Python port — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and CI regression gate, plus adapters for LangChain, the OpenAI Agents SDK, LlamaIndex, and CrewAI: `pip install dprovenancekit`.
+
 ---
 
 ## When the evidence cannot leave the device
