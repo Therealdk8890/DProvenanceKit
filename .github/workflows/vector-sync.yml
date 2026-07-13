@@ -1,0 +1,49 @@
+# Guards the vendored Trace Specification v1 golden vectors against silent
+# drift from their canonical source, the DProvenanceKitPython repo (the
+# reference oracle). The vendored copy keeps the Swift harness self-contained;
+# this check makes the manual ConformanceHarness/sync-vectors.sh flow
+# fail-loud instead of trust-me.
+#
+# Runs on pushes/PRs that touch the vectors (or this workflow), and weekly —
+# changes in the canonical Python repo can't trigger CI here, so the schedule
+# is what catches upstream vector changes that nobody re-synced.
+name: Vector sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ConformanceHarness/vectors/**"
+      - ".github/workflows/vector-sync.yml"
+  pull_request:
+    paths:
+      - "ConformanceHarness/vectors/**"
+      - ".github/workflows/vector-sync.yml"
+  schedule:
+    # Mondays 14:00 UTC
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+jobs:
+  vector-drift:
+    name: Vendored vectors match canonical Python source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch canonical vectors (DProvenanceKitPython)
+        run: git clone --depth 1 https://github.com/Therealdk8890/DProvenanceKitPython.git /tmp/dpk-python
+
+      - name: Compare vendored vectors against canonical source
+        run: |
+          ConformanceHarness/sync-vectors.sh /tmp/dpk-python/conformance/vectors
+          if [ -n "$(git status --porcelain -- ConformanceHarness/vectors)" ]; then
+            echo "::error::Vendored Trace Spec v1 vectors have drifted from the canonical Python repo."
+            echo "Diff after re-sync:"
+            git status --porcelain -- ConformanceHarness/vectors
+            git diff -- ConformanceHarness/vectors | head -100
+            echo "Run ConformanceHarness/sync-vectors.sh, re-run the harness, and commit the result."
+            exit 1
+          fi
+          echo "Vendored vectors are in sync with the canonical source."
