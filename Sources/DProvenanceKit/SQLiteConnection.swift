@@ -84,6 +84,19 @@ public final class SQLiteConnection: @unchecked Sendable {
         }
         self.db = tempDB
 
+        // Wait up to 5s for a lock instead of failing instantly with SQLITE_BUSY.
+        // A second connection (e.g. the inspector UI reading while the app writes)
+        // can collide with a WAL checkpoint; the default 0ms timeout turns that
+        // transient contention into a hard error. Blocking briefly is the standard
+        // remedy and is bounded, so it never deadlocks the writer.
+        //
+        // Installed before any file-touching pragma: `journal_mode=WAL` below is
+        // this connection's first read of the database, and it can land inside
+        // another connection's close-time checkpoint (closing the last connection
+        // to a WAL database briefly holds the file exclusively). With no busy
+        // handler yet, that collision throws "database is locked" from init.
+        // busy_timeout itself only installs the handler — it does no file I/O.
+        try execute("PRAGMA busy_timeout=5000;")
         if mode == .readWriteCreate {
             // Enable WAL mode. Skipped for read-only connections: the journal mode is a
             // property of the database file, and changing it is a write.
@@ -91,12 +104,6 @@ public final class SQLiteConnection: @unchecked Sendable {
             try execute("PRAGMA synchronous=NORMAL;") // Safe with WAL
         }
         try execute("PRAGMA temp_store=MEMORY;")
-        // Wait up to 5s for a lock instead of failing instantly with SQLITE_BUSY.
-        // A second connection (e.g. the inspector UI reading while the app writes)
-        // can collide with a WAL checkpoint; the default 0ms timeout turns that
-        // transient contention into a hard error. Blocking briefly is the standard
-        // remedy and is bounded, so it never deadlocks the writer.
-        try execute("PRAGMA busy_timeout=5000;")
     }
     
     deinit {
