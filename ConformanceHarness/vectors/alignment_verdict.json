@@ -191,6 +191,50 @@
           "added"
         ]
       }
+    },
+    {
+      "description": "Two critical steps run in the opposite order -> HIGH regression (reordering a critical step can invert a dependency).",
+      "profile": "developer_debug_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        }
+      ],
+      "expected": {
+        "regression_level": "high",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "reordered",
+          "reordered"
+        ]
+      }
     }
   ]
 }
