@@ -270,7 +270,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.4.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.6.0")
 ]
 ```
 
@@ -430,6 +430,7 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 | Guide | What's inside |
 | ----- | ------------- |
 | [Trace attestation](docs/ATTESTATION.md) | Offline signing and verification, Secure Enclave keys, canonicalization, public vector, threat model |
+| [Proof packs](docs/PROOF_PACK.md) | One offline-verifiable JSON document carrying a signed attestation plus the artifact bytes it vouches for |
 | [Foundation Models integration](docs/foundation-models.md) | Trace Apple's on-device LLM: live sessions, post-hoc transcripts, traced tools, redaction policy |
 | [OpenTelemetry bridge](docs/otel-bridge.md) | Export runs as OTLP spans to Langfuse or any OTLP/HTTP collector |
 | [Trace replay](docs/REPLAY.md) | Reconstruct a run's span tree as of any point in time, with integrity manifests |
@@ -446,9 +447,9 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 
 # Status
 
-**Public beta — [0.4.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.4.0) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.6.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.6.0) is released; APIs may continue to evolve before 1.0.**
 
-**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
+**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof packs](docs/PROOF_PACK.md) that bind artifact bytes to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
 **Planned:** richer graph/lineage visualization, key-policy and rotation helpers, distributed trace federation, and hosted/team workflows.
 
