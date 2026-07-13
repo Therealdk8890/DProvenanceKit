@@ -59,7 +59,11 @@ struct DProvenanceKitCLI {
             return
         }
         if invocation.mode == .verify {
-            runVerify(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
+            if invocation.proofPack {
+                runVerifyProofPack(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
+            } else {
+                runVerify(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
+            }
             return
         }
 
@@ -302,6 +306,45 @@ struct DProvenanceKitCLI {
         }
     }
 
+    /// Verifies a proof pack: the embedded attestation exactly as `runVerify` does, then each
+    /// embedded artifact's recomputed SHA-256 against its declared digest and against the
+    /// signed event payloads (docs/PROOF_PACK.md). All verification logic lives in the
+    /// library (`ProofPackDocument.verify`); this arm only decodes and reports.
+    static func runVerifyProofPack(inPath: String, trustedKeyIDs: Set<String>) {
+        let trustSet: Set<String>? = trustedKeyIDs.isEmpty ? nil : trustedKeyIDs
+
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: inPath))
+            let pack = try ProofPackDocument.decodeJSON(data)
+            let result = pack.verify(trustedKeyIDs: trustSet)
+            guard result.isValid else {
+                printErr("INVALID: \(result.failure.map(String.init(describing:)) ?? "unknown failure")")
+                if let attestation = result.attestation {
+                    printErr("Key ID: \(attestation.keyID)")
+                }
+                exit(1)
+            }
+
+            print("VALID")
+            print("Run ID: \(pack.attestation.trace.runID.uuidString.lowercased())")
+            print("Events: \(pack.attestation.trace.events.count)  Edges: \(pack.attestation.trace.edges.count)  Artifacts: \(pack.artifacts.count)")
+            print("Digest: \(pack.attestation.attestation.traceDigest)")
+            print("Key ID: \(pack.attestation.attestation.keyID)")
+            switch result.attestation?.trust {
+            case .trustedKey?:
+                print("Trust: signature valid; signer key pinned")
+            default:
+                print("Trust: signature valid; signer identity not pinned")
+            }
+            for binding in result.bindings {
+                print("Artifact: \(binding.role)  sha256=\(binding.sha256.prefix(12))…  bound by event[\(binding.eventIndex)] \(binding.eventTypeIdentifier)")
+            }
+        } catch {
+            printErr("verify failed: \(error)")
+            exit(1)
+        }
+    }
+
     static func printUsage() {
         print("""
         DProvenanceKit CLI Evaluator
@@ -321,7 +364,9 @@ struct DProvenanceKitCLI {
           --min-f1=<value>  With --gate, also require F1 >= <value> on both datasets
           --case=<name>     web-export: which corpus case to export (default: first)
           --out=<path>      web-export: write JSON to a file instead of stdout
-          --in=<path>       verify: attestation document to verify
+          --in=<path>       verify: attestation document (or proof pack) to verify
+          --proof-pack      verify: treat --in as a proof pack and also check that each
+                            embedded artifact's SHA-256 is bound inside the signed trace
           --trusted-key=<id> verify: require this signer key ID (64 hex chars, repeatable)
           -h, --help        Show this help
 
