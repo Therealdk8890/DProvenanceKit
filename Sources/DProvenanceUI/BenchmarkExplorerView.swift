@@ -78,10 +78,12 @@ public struct BenchmarkExplorerView<T: TraceableEvent>: View {
                 
                 Section("Causal Ranking") {
                     ForEach(report.causalRanking, id: \.cause.label) { rank in
+                        let isUndiagnosed = rank.cause == .undiagnosed
+                        let causeLabel: String = isUndiagnosed ? "Unknown / Unclassified" : rank.cause.label
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(rank.cause == .undiagnosed ? "Unknown / Unclassified" : rank.cause.label)
+                            Text(causeLabel)
                                 .font(.caption.bold())
-                                .foregroundColor(rank.cause == .undiagnosed ? .gray : .primary)
+                                .foregroundColor(isUndiagnosed ? Color.gray : Color.primary)
                             HStack {
                                 Text("Freq: \(rank.frequency)")
                                 Text("Impact: \(String(format: "%.1f", rank.fractionalImpact * 100))%")

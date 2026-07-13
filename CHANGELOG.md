@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-13
+
 ### Added
 - **Proof packs** — a single self-contained JSON document (`ProofPackDocument`) carrying a
   signed trace attestation plus the artifact bytes the trace vouches for (`ProofPackArtifact`,
@@ -16,6 +18,28 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   re-signing. Verified offline with `dpk verify --in=pack.json --proof-pack [--trusted-key=…]`.
   Format, producer rules, and threat model in `docs/PROOF_PACK.md`; a committed
   `docs/test-vectors/proof-pack-v1.json` vector is checked by the test suite.
+- CI now fails loudly if the vendored conformance vectors drift from the canonical
+  copies in the Python port (`vector-sync` workflow).
+
+### Fixed
+- **Opening a SQLite store no longer races a closing one.** `busy_timeout` is now
+  installed immediately after the handle opens — before `journal_mode=WAL`, the first
+  pragma that touches the database file. Previously a connection opened while another
+  connection to the same store was mid-close (the last close briefly holds the file
+  exclusively to checkpoint the WAL) could throw an instant "database is locked" from
+  init instead of taking the bounded 5-second wait.
+- **Legacy stores with differently-cased columns open cleanly.** The schema backfill
+  now checks column presence via `PRAGMA table_info` with case-insensitive comparison
+  before issuing `ALTER TABLE ADD COLUMN`, instead of firing the ALTERs unconditionally
+  and swallowing failures. A legacy database that declared `span_id`/`parent_span_id`/
+  `schema_version` in a different case no longer fails init with "duplicate column
+  name", spurious duplicate-column error logs on every launch are gone, and genuine
+  migration failures now propagate instead of being silently discarded.
+
+### Changed
+- README surfaces the [Python port](https://github.com/Therealdk8890/DProvenanceKitPython)
+  at the top: same recording API, query DSL, diff/alignment engines, and CI gate, with
+  adapters for LangChain, the OpenAI Agents SDK, LlamaIndex, and CrewAI.
 
 ## [0.5.0] - 2026-07-11
 
@@ -239,7 +263,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.2.0...0.3.0

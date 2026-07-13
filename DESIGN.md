@@ -185,7 +185,6 @@ The dedicated regression test fails on the old compiler and passes on the new on
 
 Stated plainly, because a design doc that only lists strengths isn't a design doc:
 
-- **`schemaVersion` isn't persisted.** It exists on the in-memory envelope but has no storage column and is hardcoded on read-back. The stable-`typeIdentifier` contract carries the cross-version story today, but the version metadata is lost at the disk boundary.
 - **Apple-only by dependency.** System SQLite and CryptoKit tie the library to Apple OSes. This is consistent with the on-device-AI goal, but it's a hard scope boundary, not an accident.
 - **The live engine's delivery stream is unbounded**, which sits in tension with the carefully bounded backpressure on the write path; a slow live consumer can grow memory.
 - **The lock-based concurrency model** (§4) is correct but compiler-unverified. An actor-based redesign would get checked guarantees at the cost of the synchronous-record property — a tradeoff worth revisiting if Swift's concurrency tools make a synchronous, ordered, actor-backed enqueue expressible.

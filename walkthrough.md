@@ -91,6 +91,8 @@ made to increase scores:**
 | F1            | 0.381  | 1.0   |
 | Tests         | 62     | 63    |
 
+*Counts are a point-in-time record of this evaluation cycle, not current totals — the suite has since grown past 400 tests.*
+
 Determinism was preserved throughout: a deterministic engine repeated across iterations reports
 exactly zero F1 variance ("Stable"), and the perturbation layer — which injects equivalence-score
 noise gated by the `DeterministicBoundary` — demonstrably produces detectable variance when
