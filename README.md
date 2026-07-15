@@ -272,7 +272,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.6.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.6.1")
 ]
 ```
 
@@ -453,7 +453,7 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 
 # Status
 
-**Public beta — [0.6.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.6.0) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.6.1](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.6.1) is released; APIs may continue to evolve before 1.0.**
 
 **Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof packs](docs/PROOF_PACK.md) that bind artifact bytes to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
