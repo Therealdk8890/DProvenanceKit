@@ -279,6 +279,10 @@ dependencies: [
 Your package or app target must declare an Apple platform at or above the package floor
 (`.macOS(.v13)` or `.iOS(.v16)`).
 
+### Platform support
+
+The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The command-line executables (`dpk`, `GenerateSample`) are macOS-only.
+
 ### 1. Define your events
 
 Any `enum` or `struct` that conforms to `TraceableEvent`. `typeIdentifier` must be stable across schema versions; `priority` controls survival under load.
