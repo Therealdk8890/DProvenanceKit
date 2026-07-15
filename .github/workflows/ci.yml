@@ -110,14 +110,14 @@ jobs:
       - name: Run conformance harness
         run: swift run --package-path ConformanceHarness
 
-      - name: Build iOS Core Library
-        run: xcodebuild -scheme DProvenanceKit -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+      # Swift Package Index chooses the generated `DProvenanceKit-Package` scheme
+      # when `xcodebuild -list` reports multiple schemes. Build that exact surface
+      # so an executable target cannot silently break the package's compatibility.
+      - name: Build full package with Xcode (macOS)
+        run: xcodebuild -scheme DProvenanceKit-Package -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build
 
-      - name: Build iOS UI Library
-        run: xcodebuild -scheme DProvenanceUI -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
-
-      - name: Build iOS FoundationModels/OTel bridge
-        run: xcodebuild -scheme DProvenanceFoundationModelsOTel -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+      - name: Build full package with Xcode (iOS)
+        run: xcodebuild -scheme DProvenanceKit-Package -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 
       - name: Install WebVisualizer dependencies
         working-directory: WebVisualizer

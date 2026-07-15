@@ -5,6 +5,9 @@ import DProvenanceFoundationModels
 // ─────────────────────────────────────────────────────────────────────────────
 // Foundation Models regression demo
 //
+// Keep this @main entry point out of a file named main.swift. Xcode's generated
+// package scheme otherwise treats it as top-level code for iOS builds.
+//
 // A weather agent, traced through the DProvenanceKit Foundation Models adapter
 // (post-hoc transcript ingestion — the zero-refactor entry point). BEFORE an
 // OS/model update it calls a tool for live conditions; AFTER the update the same

@@ -1,6 +1,8 @@
 import Foundation
 import DProvenanceKit
 
+// Keep this @main entry point out of a file named main.swift. Xcode's generated
+// package scheme otherwise treats it as top-level code for iOS builds.
 // A runnable end-to-end tour of the core loop: Run → Record → Query → Diff → Detect.
 // `git clone && swift run Quickstart` prints a visible trace and a regression. This
 // file also serves as a compile-check of the documented public API — if a README
