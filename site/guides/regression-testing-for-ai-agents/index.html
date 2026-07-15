@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regression Testing for AI Agents: A Practical Guide</title>
+<meta name="description" content="A guide to LLM and AI agent regression testing: record golden runs, diff execution structure, and fail CI when agent reasoning drifts — not just outputs.">
+<link rel="canonical" href="https://dprovenance.dev/guides/regression-testing-for-ai-agents/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="Regression Testing for AI Agents: A Practical Guide">
+<meta property="og:description" content="Record golden runs, diff execution structure, and fail CI when agent reasoning drifts — a practical guide to prompt and LLM regression testing.">
+<meta property="og:url" content="https://dprovenance.dev/guides/regression-testing-for-ai-agents/">
+<meta property="og:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<meta property="og:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Regression Testing for AI Agents: A Practical Guide">
+<meta name="twitter:description" content="Record golden runs, diff execution structure, and fail CI when agent reasoning drifts — a practical guide to prompt and LLM regression testing.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<meta name="twitter:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Regression testing for AI agents: catch reasoning drift before it ships",
+  "description": "A practical guide to LLM and AI agent regression testing: record golden runs, diff execution structure with run fingerprints and step-level alignment, and fail CI when reasoning drifts.",
+  "url": "https://dprovenance.dev/guides/regression-testing-for-ai-agents/",
+  "mainEntityOfPage": "https://dprovenance.dev/guides/regression-testing-for-ai-agents/",
+  "datePublished": "2026-07-03",
+  "image": "https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif",
+  "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "publisher": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "datePublished": "2026-07-03",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is prompt regression testing?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Prompt regression testing (also called LLM regression testing) compares a candidate run of an LLM application against a known-good golden run and fails the build when the execution structure changes — a dropped tool call, a looping step, a changed path — instead of string-matching final outputs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I test AI agents before production?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Record a golden trace of a known-good run and commit it as a baseline. On every prompt, model, or code change, re-run the agent and diff the candidate's execution structure against the golden — a run fingerprint for the cheap check, step-level alignment for the details — and block the release when critical steps are dropped, reordered, or looping. DProvenanceKit does this via a pytest fixture, an assert_no_regression call, or a server-less gate CLI in CI."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is this different from evals?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Evals score the quality of outputs against a rubric or dataset; regression testing detects structural drift between two runs of the same agent. Evals tell you whether answers are good; regression tests tell you whether this build changed how the agent works. They are complementary — run both."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Structural diffing vs LLM-as-a-judge in CI?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Structural diffing is deterministic, fast, and free: the same two traces always produce the same verdict, so it can gate a pull request with no judge flakiness and no per-run API cost. LLM-as-a-judge complements it for semantic output quality, but makes a poor sole CI gate."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does nondeterminism make fingerprints flaky?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. The run fingerprint hashes the execution structure — the typed steps and engines in sequence order — not token output, so two runs that take the same path fingerprint identically even when the wording differs. When the path itself legitimately varies, tune strictness with max_regression_level, allow_divergent_steps, or a custom equivalence evaluator."
+      }
+    }
+  ]
+}
+</script>
+<style>
+  :root{
+    --bg:#08090b; --bg2:#0d0f13; --bg3:#101318;
+    --border:#21262e; --border2:#2b323c;
+    --text:#c9d1d9; --dim:#8f99a3; --faint:#7d8590;
+    --red:#f85149; --red-bg:rgba(248,81,73,.10);
+    --green:#3fb950; --green-hi:#56d364; --green-bg:rgba(63,185,80,.10);
+    --amber:#d29922;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--mono);
+    font-size:15px;line-height:1.65;
+    background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(63,185,80,.05),transparent),
+                     radial-gradient(ellipse 60% 40% at 80% 0%,rgba(248,81,73,.04),transparent);
+  }
+  a{color:var(--green-hi);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:940px;margin:0 auto;padding:0 20px}
+
+  /* header */
+  header{border-bottom:1px solid var(--border);background:rgba(8,9,11,.92)}
+  .nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 0}
+  .logo{color:var(--text);font-weight:700;letter-spacing:-.02em}
+  .logo:hover{text-decoration:none}
+  .logo .p{color:var(--green)}
+  .logo .c{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-.18em;margin-left:2px;animation:blink 1.2s steps(1) infinite}
+  .nav-links{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto;font-size:13px}
+  .nav-links a{color:var(--dim)}
+  .nav-links a:hover{color:var(--text)}
+  @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.logo .c{animation:none}}
+
+  /* hero */
+  .hero{padding:56px 0 8px}
+  .crumb{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+  .crumb a{color:var(--faint)}
+  .crumb a:hover{color:var(--dim)}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.2;letter-spacing:-.02em;font-weight:700;max-width:26ch}
+  h1 .fail{color:var(--red)}
+  .sub{font-family:var(--sans);color:var(--dim);max-width:64ch;margin:20px 0 8px;font-size:16px}
+  .sub strong{color:var(--text);font-weight:600}
+
+  /* sections */
+  section{padding:44px 0}
+  section + section{border-top:1px solid var(--border)}
+  .sec-kicker{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+  .sec-kicker .no{color:var(--green)}
+  h2{font-size:clamp(20px,3.2vw,26px);letter-spacing:-.02em;line-height:1.25;margin-bottom:14px}
+  .lede{font-family:var(--sans);color:var(--dim);max-width:64ch;font-size:15.5px;margin-bottom:22px}
+  .lede strong{color:var(--text);font-weight:600}
+  .lede a{color:var(--green-hi)}
+
+  /* quotable definition */
+  .definition{font-family:var(--sans);font-size:15.5px;line-height:1.7;color:var(--text);border:1px solid var(--border);border-left:3px solid var(--green);background:var(--green-bg);border-radius:0 10px 10px 0;padding:16px 20px;max-width:72ch;margin-bottom:22px}
+  .definition strong{font-weight:600}
+
+  /* code blocks */
+  .code{border:1px solid var(--border);border-radius:10px;background:var(--bg3);overflow:hidden}
+  .code-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:12px;color:var(--faint);border-bottom:1px solid var(--border);background:var(--bg2)}
+  .code-bar button{font:inherit;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--dim);padding:3px 10px;cursor:pointer}
+  .code-bar button:hover{color:var(--text);border-color:var(--border2)}
+  .code pre{padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:var(--mono)}
+  .kw{color:#ff7b72}
+  .st{color:#7ee787}
+  .cm{color:#828d99}
+  .out{color:#9aa4ae}
+  .ok{color:var(--green-hi)}
+  .er{color:var(--red);font-weight:700}
+  .er-band{display:inline-block;background:var(--red-bg);border-left:3px solid var(--red);padding:1px 10px 1px 8px;margin-left:-11px}
+  .yk{color:#79c0ff}
+  .t-dollar{color:var(--faint);user-select:none}
+  .caption{font-size:13px;color:var(--faint);margin-top:12px;font-family:var(--sans)}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.92em;font-family:var(--mono)}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+
+  /* terminal */
+  .term{border:1px solid var(--border);border-radius:10px;background:#0b0d10;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+  .term-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
+  .dot{width:11px;height:11px;border-radius:50%;background:#333a43}
+  .dot.r{background:#71332f}.dot.y{background:#6b5a26}.dot.g{background:#2c5237}
+  .term-title{margin:0 auto;font-size:12px;color:var(--faint);padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .term-badge{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);border:1px solid var(--amber);border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .term-badge.ok{color:var(--green-hi);border-color:var(--green)}
+  .term-note{border-top:1px solid var(--border);background:var(--bg2);padding:9px 14px;font-size:12px;color:var(--dim);font-family:var(--sans);white-space:normal}
+  .term-body{padding:18px 18px 20px;font-size:13px;line-height:1.7;overflow-x:auto;white-space:pre;font-family:var(--mono)}
+  .t-cmd{color:var(--text)}
+  .t-flag{color:var(--green-hi)}
+  .t-dim{color:var(--dim)}
+  .t-faint{color:var(--faint)}
+  .t-red{color:var(--red);font-weight:700}
+  .t-redline{color:var(--red)}
+  .t-green{color:var(--green-hi)}
+  .t-amber{color:var(--amber)}
+  .t-failband{display:inline-block;background:var(--red-bg);border-left:3px solid var(--red);padding:1px 10px 1px 8px;margin-left:-11px}
+
+  /* lists */
+  ul.facts{list-style:none;font-family:var(--sans);font-size:14.5px;color:var(--dim);max-width:70ch;margin-top:4px}
+  ul.facts li{padding:5px 0 5px 18px;position:relative}
+  ul.facts li::before{content:"▸";color:var(--green);position:absolute;left:0}
+  ul.facts strong{color:var(--text);font-weight:600}
+  ul.facts a{color:var(--green-hi)}
+
+  /* faq */
+  .faq h3{font-size:15.5px;color:var(--text);letter-spacing:-.01em;margin:28px 0 8px}
+  .faq p{font-family:var(--sans);font-size:14.5px;color:var(--dim);max-width:70ch}
+  .faq p strong{color:var(--text);font-weight:600}
+  .faq p a{color:var(--green-hi)}
+
+  /* ctas */
+  .ctas{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:22px}
+  .btn{display:inline-block;padding:10px 18px;border-radius:6px;font-size:14px;border:1px solid var(--border2);color:var(--text)}
+  .btn:hover{text-decoration:none;border-color:var(--dim)}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#04120a;font-weight:700}
+  .btn.primary:hover{background:var(--green-hi);border-color:var(--green-hi)}
+
+  footer{border-top:1px solid var(--border);padding:30px 0 44px;font-size:13px;color:var(--faint)}
+  .foot{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+  .foot a{color:var(--dim)}
+  .foot a:hover{color:var(--text)}
+
+  @media (max-width:480px){
+    .code pre,.term-body{font-size:11.5px}
+    section{padding:36px 0}
+    .hero{padding:40px 0 4px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="https://dprovenance.dev/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="https://dprovenance.dev/#record">record</a>
+      <a href="https://dprovenance.dev/#ci">gate</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+      <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="https://dprovenance.dev/">dprovenance.dev</a> / guides / regression-testing-for-ai-agents</p>
+    <h1>Regression testing for AI agents: catch <span class="fail">reasoning drift</span> before it ships</h1>
+    <p class="sub">You shipped a prompt tweak. The agent still returns an answer — it just quietly stopped verifying claims on the way there. This guide is a practical walkthrough of <strong>AI agent regression testing</strong>: record a golden run, diff a candidate's execution structure against it, and fail the build when the reasoning drifts. The examples use <a href="https://github.com/Therealdk8890/DProvenanceKitPython">DProvenanceKit</a> — open source, Apache-2.0, zero third-party dependencies in the core.</p>
+  </div>
+
+  <section id="failure-mode">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · the failure mode</p>
+      <h2>Output tests pass. The reasoning regressed.</h2>
+      <p class="lede">The nastiest agent bugs don't throw. You reword a system prompt, bump a model version, or reorder a tool list, and the agent keeps producing plausible answers. Nothing crashes. No assertion fires. But somewhere inside the run it stopped calling its verification step, or started looping its search tool three times where one call used to do.</p>
+      <p class="lede">Traditional testing can't see this, because asserting on final output means matching a string or schema an LLM produced — flaky by construction, and blind to <strong>how</strong> the answer was assembled. An answer produced without the verify step can look identical to one that was checked. The regression isn't in the output; it's in the execution path. That is the gap <strong>LLM regression testing</strong> exists to close: treat the reasoning itself — the sequence of steps, tools, and engines — as the thing under test.</p>
+    </div>
+  </section>
+
+  <section id="definition">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · the definition</p>
+      <h2>What is prompt regression testing?</h2>
+      <div class="definition"><strong>Prompt regression testing</strong> — also called LLM regression testing — is the practice of comparing a candidate run of an LLM application against a known-good <strong>golden run</strong> and failing the build when the execution structure changes: a dropped tool call, a looping step, a changed path. It gates on how the agent worked, not on string-matching what it said, so the verdict stays deterministic even when outputs vary token to token.</div>
+      <p class="lede">The framing works because structure is far more stable than text. Two healthy runs of the same agent rarely produce identical tokens, but they take a recognizable path: plan, search, rank, verify, decide. When that path changes without you intending it to, something in your prompt, model, or orchestration changed the agent's behavior — and that is exactly what a regression test should flag. It is not a replacement for evals (more on that <a href="#faq">in the FAQ</a>); it's the structural complement that can run deterministically on every pull request.</p>
+    </div>
+  </section>
+
+  <section id="golden-runs">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · golden runs</p>
+      <h2>The golden-run workflow</h2>
+      <p class="lede">The mechanics mirror snapshot testing, applied to reasoning instead of rendered output:</p>
+      <ul class="facts">
+        <li><strong>Record</strong> a run you trust as a trace — every step, in order, with its span structure.</li>
+        <li><strong>Save</strong> that trace as the golden baseline (a plain SQLite file you can commit).</li>
+        <li><strong>Re-run</strong> the agent after every prompt edit, model bump, or refactor.</li>
+        <li><strong>Diff</strong> the candidate against the golden and fail when the structure drifts.</li>
+      </ul>
+      <p class="lede" style="margin-top:18px">Here is the whole loop with a single import — this is the README's quick start, unedited:</p>
+      <div class="code">
+        <div class="code-bar"><span>five_minute_wow.py</span><span>python</span></div>
+        <pre><span class="kw">from</span> dprovenancekit <span class="kw">import</span> trace
+
+<span class="cm"># 1. Record an execution</span>
+<span class="kw">with</span> trace(<span class="st">"Agent Workflow"</span>):
+    <span class="kw">with</span> trace(<span class="st">"Retrieve Documents"</span>):
+        <span class="cm"># your retrieval code here</span>
+        <span class="kw">pass</span>
+    <span class="kw">with</span> trace(<span class="st">"Verify Claims"</span>):
+        <span class="cm"># your verification code here</span>
+        <span class="kw">pass</span>
+
+<span class="cm"># 2. Save the trace</span>
+trace.save(<span class="st">"golden_run.sqlite"</span>)
+
+<span class="cm"># 3. Print a structural explanation</span>
+trace.explain()
+<span class="out"># --- Execution Trace (b4f8d2…) ---</span>
+<span class="out"># ▶ Started Agent Workflow</span>
+<span class="out">#   ▶ Started Retrieve Documents</span>
+<span class="out">#   <span class="ok">✔</span> Finished Retrieve Documents</span>
+<span class="out">#   ▶ Started Verify Claims</span>
+<span class="out">#   <span class="ok">✔</span> Finished Verify Claims</span>
+<span class="out"># <span class="ok">✔</span> Finished Agent Workflow</span>
+
+<span class="cm"># 4. Later, the workflow regresses: a code change drops the verification step</span>
+<span class="kw">with</span> trace(<span class="st">"Agent Workflow"</span>):
+    <span class="kw">with</span> trace(<span class="st">"Retrieve Documents"</span>):
+        <span class="kw">pass</span>
+    <span class="cm"># "Verify Claims" never runs</span>
+
+<span class="cm"># 5. Diff the current run against the saved golden baseline</span>
+trace.diff(<span class="st">"golden_run.sqlite"</span>)
+<span class="out"># --- Trace Diff (Golden vs Current) ---</span>
+<span class="er-band"><span class="er"># ❌ Missing step: Verify Claims</span></span></pre>
+      </div>
+      <p class="caption">The same record → explain → diff loop, with more context, is on <a href="https://dprovenance.dev/#record">the main page</a>. Under the hood it powers anomaly detection, CI gating, and visual trace analysis.</p>
+    </div>
+  </section>
+
+  <section id="fingerprints">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · fingerprints</p>
+      <h2>Run fingerprints: the cheap signal</h2>
+      <p class="lede">Before you reach for a full step-by-step diff, there's a one-string-compare shortcut: the <strong>run fingerprint</strong>, a structural identity of the execution path. DProvenanceKit computes it as a SHA-1 over each event's type-and-engine signature in sequence order — so equal fingerprints mean the same typed steps ran through the same engines in the same order.</p>
+      <p class="lede">Reordered tools, a skipped retrieval step, a dropped verify step: all of them change the fingerprint. That makes it a cheap regression signal you can check constantly — equal fingerprints and you're done; different fingerprints and you run the full alignment to see exactly which steps were added, removed, or reordered, and how severe that is. Because the hash covers structure rather than token output, two runs that phrase their answers differently but take the same path fingerprint identically.</p>
+    </div>
+  </section>
+
+  <section id="worked-example">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 05</span> · a real catch</p>
+      <h2>Worked example: the research agent that stopped verifying</h2>
+      <p class="lede">A research agent, recorded twice into one local SQLite file. The golden run takes the path <strong>plan → search.web → rank → verify.claims → decide</strong>. The candidate — after a PR that "just" reworded the planner prompt — loops <strong>search.web</strong> three times, then skips <strong>verify.claims</strong> entirely. The server-less <code>gate</code> CLI selects the newest run per context id and diffs them; no backend, no account:</p>
+      <div class="term">
+        <div class="term-bar">
+          <span class="dot r" aria-hidden="true"></span><span class="dot y" aria-hidden="true"></span><span class="dot g" aria-hidden="true"></span>
+          <span class="term-title">research-agent · golden vs candidate · dprovenancekit</span>
+          <span class="term-badge ok">real output</span>
+        </div>
+        <pre class="term-body" aria-label="Terminal transcript: the regression gate diffs a golden and a candidate run, reports that verify.claims was removed and search.web was repeated, and exits with code 1."><span class="t-dollar">$</span> <span class="t-cmd">dprovenancekit gate</span> <span class="t-flag">--db</span> traces.sqlite <span class="t-faint">\</span>
+    <span class="t-flag">--golden-context</span> golden <span class="t-flag">--candidate-context</span> candidate
+
+<span class="t-failband"><span class="t-dim">Regression gate: </span><span class="t-red">FAIL</span></span>
+<span class="t-dim">  severity: </span><span class="t-amber">high</span><span class="t-faint"> (strength 0.95); max allowed: none</span>
+<span class="t-faint">  fingerprint: differs (5e616565a219… vs b6e1023b183b…)</span>
+<span class="t-dim">  per-step changes:</span>
+<span class="t-redline">    added: search.web, search.web</span>
+<span class="t-redline">    removed: verify.claims</span>
+<span class="t-dim">  engine: </span><span class="t-amber">Critical reasoning steps removed: verify.claims</span>
+
+<span class="t-dollar">$</span> <span class="t-cmd">echo $?</span>
+<span class="t-red">1</span></pre>
+        <div class="term-note">Verbatim real output — captured from <code>dprovenancekit gate</code> run against two actually-recorded traces; the fingerprints are the real hashes.</div>
+      </div>
+      <p class="lede" style="margin-top:22px">The non-zero exit code is the point: this command drops into any pipeline as a hard gate — the <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">CI gate guide</a> covers GitHub Actions and GitLab wiring end to end. And for invariants that should hold on <em>every</em> run, not just against a baseline, two anomaly rules ship out of the box — <strong>Tool Drop</strong> (a required step never ran) and <strong>Looping</strong> (a step repeated past a threshold) — configured through a JSON rule registry:</p>
+      <div class="code">
+        <div class="code-bar"><span>rules.json</span><span>json</span></div>
+        <pre>{
+  <span class="st">"rules"</span>: [
+    { <span class="st">"type"</span>: <span class="st">"tool_drop"</span>, <span class="st">"required_step"</span>: <span class="st">"safety_check"</span> },
+    { <span class="st">"type"</span>: <span class="st">"looping"</span>, <span class="st">"step"</span>: <span class="st">"web_search"</span>, <span class="st">"max_repeats"</span>: <span class="yk">5</span> }
+  ]
+}</pre>
+      </div>
+      <p class="caption"><span class="t-dollar">$</span> <code>dprovenancekit anomalies --db traces.sqlite --rules rules.json</code> — runs the rules locally or on every PR, no golden required.</p>
+    </div>
+  </section>
+
+  <section id="tests">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 06</span> · in the test suite</p>
+      <h2>LLM regression testing in pytest</h2>
+      <p class="lede">The same gate is one assertion inside any test. Give it a golden run and a candidate run; it aligns them and fails with a readable diagnostic when the candidate diverged:</p>
+      <div class="code">
+        <div class="code-bar"><span>test_gate.py</span><span>python</span></div>
+        <pre><span class="kw">from</span> dprovenancekit.testing <span class="kw">import</span> RegressionGate, assert_no_regression
+
+<span class="cm"># Strict by default: any removed, added, or changed (ambiguous) step fails,</span>
+<span class="cm"># and a removed CRITICAL step is a HIGH-severity regression.</span>
+assert_no_regression(golden=golden_run, candidate=candidate_run)
+
+<span class="cm"># Or build a reusable policy and inspect the verdict without raising:</span>
+report = RegressionGate(allow_divergent_steps=<span class="kw">True</span>).check(golden_run, candidate_run)
+<span class="kw">assert</span> report.passed, report.reasoning</pre>
+      </div>
+      <p class="lede" style="margin-top:22px">Regressions carry a severity — <strong>none / low / medium / high</strong> — and a removed <em>or reordered</em> CRITICAL step is a HIGH-severity regression (reordering a critical step can invert a dependency). Loosen the gate with <code>max_regression_level</code> (gate on severity only) or <code>allow_divergent_steps</code> (tolerate benign per-step changes), or pass a custom <code>evaluator</code> to define what "equivalent" means — for example, ignore volatile payload fields like token counts. One subtlety worth knowing: detecting <em>reordered</em> steps requires a span-aware profile such as <code>AlignmentProfile.developer_debug_v1</code>; the default linear profile treats a pure reorder as still-matching, so pass the span-aware profile when order is part of what you're guarding.</p>
+      <p class="lede">The bundled pytest plugin removes the remaining plumbing. One fixture records the block as a candidate run and pins the baseline for you:</p>
+      <div class="code">
+        <div class="code-bar"><span>test_research_agent.py</span><span>python</span></div>
+        <pre><span class="kw">def</span> test_research_agent(golden_trace):
+    <span class="kw">with</span> golden_trace(<span class="st">"research-agent"</span>):
+        run_my_agent()   <span class="cm"># anything using @traced / record_event / an adapter</span></pre>
+      </div>
+      <div class="code" style="margin-top:12px">
+        <div class="code-bar"><span>shell</span><span>sh</span></div>
+        <pre><span class="t-dollar">$ </span>pytest --dprov-update-golden   <span class="cm"># record (or intentionally update) the baseline, commit it</span>
+<span class="t-dollar">$ </span>pytest                         <span class="cm"># every later run gates against tests/goldens/research-agent.sqlite</span></pre>
+      </div>
+      <p class="caption">Baselines are SQLite files committed next to your tests (directory configurable via the <code>dprov_golden_dir</code> ini option). Gate options can be set per test — e.g. <code>golden_trace("name", max_regression_level="high")</code>.</p>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 07</span> · your stack</p>
+      <h2>Works with your stack — or with no framework at all</h2>
+      <p class="lede">Everything above operates on traces, so the only integration question is how runs get recorded. For a hand-written agent loop, the core instrumentation ships with zero dependencies:</p>
+      <div class="code">
+        <div class="code-bar"><span>instrumented_agent.py</span><span>python</span></div>
+        <pre><span class="kw">from</span> dprovenancekit <span class="kw">import</span> InMemoryTraceStore, traced, traced_run, record_event
+
+<span class="kw">@traced</span>
+<span class="kw">def</span> search(query): ...
+
+<span class="kw">@traced</span>
+<span class="kw">def</span> answer(question, sources): ...
+
+store = InMemoryTraceStore()
+<span class="kw">with</span> traced_run(store, context_id=<span class="st">"ticket-42"</span>):
+    sources = search(question)
+    record_event(<span class="st">"plan.chosen"</span>, {<span class="st">"strategy"</span>: <span class="st">"rag"</span>})
+    reply = answer(question, sources)</pre>
+      </div>
+      <p class="lede" style="margin-top:22px"><code>@traced</code> records a <code>&lt;name&gt;.start</code> / <code>.end</code> / <code>.error</code> event pair per call in its own span, and works on plain functions, <code>async def</code>, generators, and async generators. Instrumentation never changes behavior — exceptions pass through unchanged, and outside a <code>traced_run</code> the decorator is transparent. Already on a framework? Adapters record the same trace shape:</p>
+      <ul class="facts">
+        <li><strong>LangChain / LangGraph</strong> — <code>pip install "dprovenancekit[langchain]"</code>, then attach <code>DProvenanceTracer</code> / <code>DProvenanceCallbackHandler</code>.</li>
+        <li><strong>OpenAI Agents SDK</strong> — <code>pip install "dprovenancekit[openai-agents]"</code>; officially listed in the OpenAI Agents SDK docs. See <a href="https://dprovenance.dev/openai-agents/">the integration page</a>.</li>
+        <li><strong>LlamaIndex</strong> — <code>pip install "dprovenancekit[llama-index]"</code>.</li>
+        <li><strong>CrewAI</strong> — <code>pip install "dprovenancekit[crewai]"</code>.</li>
+        <li>Plus integration modules for <strong>Google GenAI, FastAPI, Jupyter, and MCP</strong>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="faq" class="faq">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 08</span> · faq</p>
+      <h2>FAQ</h2>
+
+      <h3>What is prompt regression testing?</h3>
+      <p>Prompt regression testing (also called LLM regression testing) compares a candidate run of an LLM application against a known-good golden run and fails the build when the execution structure changes — a dropped tool call, a looping step, a changed path — instead of string-matching final outputs.</p>
+
+      <h3>How do I test AI agents before production?</h3>
+      <p>Record a golden trace of a known-good run and commit it as a baseline. On every prompt, model, or code change, re-run the agent and diff the candidate's execution structure against the golden — a run fingerprint for the cheap check, step-level alignment for the details — and block the release when critical steps are dropped, reordered, or looping. In practice that's one <code>golden_trace</code> pytest fixture during development plus a <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">gate in CI</a> that exits non-zero on drift.</p>
+
+      <h3>How is this different from evals?</h3>
+      <p>Evals score the <strong>quality of outputs</strong> against a rubric or dataset; regression testing detects <strong>structural drift between runs</strong>. Evals tell you whether answers are good; regression tests tell you whether this build changed how the agent works. They're complementary — run both. Comparing tools in this space? See <a href="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">DProvenanceKit vs LangSmith</a>.</p>
+
+      <h3>Structural diffing vs LLM-as-a-judge in CI?</h3>
+      <p>Structural diffing is deterministic, fast, and free: the same two traces always produce the same verdict, so it can gate a pull request with zero judge flakiness and zero per-run API cost. LLM-as-a-judge complements it for semantic output quality, but a probabilistic judge makes a poor sole gate — a flaky verdict on a merge-blocking check erodes trust fast.</p>
+
+      <h3>Does nondeterminism make fingerprints flaky?</h3>
+      <p>No — the fingerprint hashes the <strong>execution structure</strong> (typed steps and engines in sequence order), not token output, so two runs that take the same path fingerprint identically even when the wording differs. When the path itself legitimately varies, tune strictness instead of abandoning the gate: <code>max_regression_level</code> gates on severity only, <code>allow_divergent_steps</code> tolerates benign per-step changes, and a custom <code>evaluator</code> defines what counts as equivalent.</p>
+    </div>
+  </section>
+
+  <section id="get-started">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 09</span> · get started</p>
+      <h2>Get started</h2>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><button type="button" id="copy-btn" aria-label="Copy install command">copy</button></div>
+        <pre><span class="t-dollar">$ </span>pip install dprovenancekit</pre>
+      </div>
+      <ul class="facts" style="margin-top:18px">
+        <li><strong>v0.6.0 on PyPI</strong> · Python 3.9+ · zero third-party dependencies in the core · Apache-2.0.</li>
+        <li><strong>Validated:</strong> 380+ tests; precision / recall / F1 of 1.000 across 8 standard + 5 adversarial regression-detection scenarios (<code>dprovenancekit evaluate</code>), matching the original Swift implementation case-for-case.</li>
+        <li><strong>CI-ready:</strong> a <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a> on the Marketplace and a GitLab CI template in the repo.</li>
+      </ul>
+      <p class="ctas">
+        <a class="btn primary" href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">Next: wire it into CI →</a>
+        <a class="btn" href="https://github.com/Therealdk8890/DProvenanceKitPython">View on GitHub</a>
+      </p>
+      <p class="caption">The SDK, CLI, and Action are free and open source. A hosted trace visualizer (span tree, payload inspector, side-by-side structural diff) is in early access at <a href="https://app.dprovenance.dev">app.dprovenance.dev</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Apache-2.0 · © 2026 DProvenanceKit</span>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+    <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a>
+    <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">CI gate guide</a>
+    <a href="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">vs LangSmith</a>
+    <a href="https://dprovenance.dev/">dprovenance.dev</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy-btn');
+  if (!btn) return;
+  var CMD = 'pip install dprovenancekit';
+  function done(ok) {
+    btn.textContent = ok ? 'copied ✓' : 'copy failed';
+    setTimeout(function () { btn.textContent = 'copy'; }, 1600);
+  }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = CMD;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    done(ok);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CMD).then(function () { done(true); }, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CrewAI integration — DProvenanceKit</title>
+<meta name="description" content="Drop-in CrewAI tracing: attach one event-bus listener, record every crew.kickoff() as a queryable, diffable trace, and gate CI when a crew drops a task or loops a tool.">
+<link rel="canonical" href="https://dprovenance.dev/crewai/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="CrewAI integration — DProvenanceKit">
+<meta property="og:description" content="Attach one event-bus listener and every CrewAI kickoff becomes a queryable, diffable trace — then diff runs and gate CI when the crew's reasoning drifts.">
+<meta property="og:url" content="https://dprovenance.dev/crewai/">
+<meta property="og:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<meta property="og:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CrewAI integration — DProvenanceKit">
+<meta name="twitter:description" content="Attach one event-bus listener and every CrewAI kickoff becomes a queryable, diffable trace — then diff runs and gate CI when the crew's reasoning drifts.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "CrewAI integration — DProvenanceKit",
+  "description": "Drop-in CrewAI tracing: attach one event-bus listener, record every crew.kickoff() as a queryable, diffable trace, and gate CI on crew regressions.",
+  "url": "https://dprovenance.dev/crewai/",
+  "datePublished": "2026-07-07",
+  "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" }
+}
+</script>
+<style>
+  :root{
+    --bg:#08090b; --bg2:#0d0f13; --bg3:#101318;
+    --border:#21262e; --border2:#2b323c;
+    --text:#c9d1d9; --dim:#8f99a3; --faint:#7d8590;
+    --red:#f85149; --red-bg:rgba(248,81,73,.10);
+    --green:#3fb950; --green-hi:#56d364; --green-bg:rgba(63,185,80,.10);
+    --amber:#d29922;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--mono);
+    font-size:15px;line-height:1.65;
+    background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(63,185,80,.05),transparent),
+                     radial-gradient(ellipse 60% 40% at 80% 0%,rgba(248,81,73,.04),transparent);
+  }
+  a{color:var(--green-hi);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:940px;margin:0 auto;padding:0 20px}
+
+  header{border-bottom:1px solid var(--border);background:rgba(8,9,11,.92)}
+  .nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 0}
+  .logo{color:var(--text);font-weight:700;letter-spacing:-.02em}
+  .logo:hover{text-decoration:none}
+  .logo .p{color:var(--green)}
+  .logo .c{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-.18em;margin-left:2px;animation:blink 1.2s steps(1) infinite}
+  .nav-links{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto;font-size:13px}
+  .nav-links a{color:var(--dim)}
+  .nav-links a:hover{color:var(--text)}
+  @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.logo .c{animation:none}}
+
+  .hero{padding:56px 0 8px}
+  .crumb{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+  .crumb a{color:var(--faint)}
+  .crumb a:hover{color:var(--dim)}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.2;letter-spacing:-.02em;font-weight:700;max-width:24ch}
+  h1 .fail{color:var(--red)}
+  .sub{font-family:var(--sans);color:var(--dim);max-width:64ch;margin:20px 0 8px;font-size:16px}
+  .sub strong{color:var(--text);font-weight:600}
+  .official{font-family:var(--sans);font-size:13.5px;color:var(--dim);margin:6px 0 0}
+  .official .ok{color:var(--green);font-weight:700}
+
+  section{padding:44px 0}
+  section + section{border-top:1px solid var(--border)}
+  .sec-kicker{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+  .sec-kicker .no{color:var(--green)}
+  h2{font-size:clamp(20px,3.2vw,26px);letter-spacing:-.02em;line-height:1.25;margin-bottom:14px}
+  .lede{font-family:var(--sans);color:var(--dim);max-width:64ch;font-size:15.5px;margin-bottom:22px}
+  .lede strong{color:var(--text);font-weight:600}
+  .lede a{color:var(--green-hi)}
+
+  .code{border:1px solid var(--border);border-radius:10px;background:var(--bg3);overflow:hidden}
+  .code-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:12px;color:var(--faint);border-bottom:1px solid var(--border);background:var(--bg2)}
+  .code-bar button{font:inherit;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--dim);padding:3px 10px;cursor:pointer}
+  .code-bar button:hover{color:var(--text);border-color:var(--border2)}
+  .code pre{padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:var(--mono)}
+  .kw{color:#ff7b72}
+  .st{color:#7ee787}
+  .cm{color:#828d99}
+  .t-dollar{color:var(--faint);user-select:none}
+  .caption{font-size:13px;color:var(--faint);margin-top:12px;font-family:var(--sans)}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.92em;font-family:var(--mono)}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+
+  ul.facts{list-style:none;font-family:var(--sans);font-size:14.5px;color:var(--dim);max-width:70ch;margin-top:4px}
+  ul.facts li{padding:5px 0 5px 18px;position:relative}
+  ul.facts li::before{content:"▸";color:var(--green);position:absolute;left:0}
+  ul.facts strong{color:var(--text);font-weight:600}
+
+  footer{border-top:1px solid var(--border);padding:30px 0 44px;font-size:13px;color:var(--faint)}
+  .foot{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+  .foot a{color:var(--dim)}
+  .foot a:hover{color:var(--text)}
+
+  @media (max-width:480px){
+    .code pre{font-size:11.5px}
+    section{padding:36px 0}
+    .hero{padding:40px 0 4px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="https://dprovenance.dev/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="https://dprovenance.dev/#record">record</a>
+      <a href="https://dprovenance.dev/#ci">gate</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+      <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="https://dprovenance.dev/">dprovenance.dev</a> / integrations / crewai</p>
+    <h1>CrewAI tracing<br>that <span class="fail">fails the PR</span>.</h1>
+    <p class="sub">DProvenanceKit hooks CrewAI's global event bus with a single <strong>event listener</strong>: construct it once and <strong>every <code>crew.kickoff()</code> is recorded as a queryable, diffable trace</strong>. Then diff a candidate run against a golden baseline and gate CI when the crew's reasoning drifts — a dropped task, a looping tool, a changed execution path. Crew regression testing, one line of setup.</p>
+    <p class="official">Works with modern <strong>CrewAI (0.85+, the LangChain-free line)</strong> via <code>crewai.events</code>. Constructing the listener registers it on the bus — no other code changes.</p>
+  </div>
+
+  <section id="install">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · install</p>
+      <h2>Install</h2>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><button type="button" id="copy-btn" aria-label="Copy install command">copy</button></div>
+        <pre><span class="t-dollar">$ </span>pip install "dprovenancekit[crewai]"</pre>
+      </div>
+      <p class="caption">Python 3.10+ · zero third-party deps in the core · the extra pulls in <code>crewai&gt;=1.0.0</code>.</p>
+    </div>
+  </section>
+
+  <section id="register">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · attach the listener</p>
+      <h2>Attach the listener</h2>
+      <p class="lede">Constructing <code>DProvenanceKitEventListener(store)</code> registers it on CrewAI's global event bus. Every <code>crew.kickoff()</code> after that is recorded — no other code changes.</p>
+      <div class="code">
+        <div class="code-bar"><span>trace_crew.py</span><span>python</span></div>
+        <pre><span class="kw">from</span> crewai <span class="kw">import</span> Agent, Crew, Task
+<span class="kw">from</span> dprovenancekit <span class="kw">import</span> SQLiteTraceStore
+<span class="kw">from</span> dprovenancekit.integrations.crewai <span class="kw">import</span> (
+    CrewAITraceEvent,
+    DProvenanceKitEventListener,
+)
+
+store = SQLiteTraceStore(CrewAITraceEvent, <span class="st">"traces.sqlite"</span>)
+listener = DProvenanceKitEventListener(store) <span class="cm"># registers on crewai's event bus</span>
+
+<span class="cm"># ... build your agents / tasks / crew as usual ...</span>
+crew.kickoff()                       <span class="cm"># recorded: crew / task / agent / tool / llm events</span>
+listener.force_flush()               <span class="cm"># drain crewai's event bus and persist the run</span></pre>
+      </div>
+      <p class="caption">Full reference: <a href="https://github.com/Therealdk8890/DProvenanceKitPython#crewai">the CrewAI section of the README</a>.</p>
+    </div>
+  </section>
+
+  <section id="recorded">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · what gets recorded</p>
+      <h2>What gets recorded</h2>
+      <p class="lede"><code>DProvenanceKitEventListener</code> is a <code>crewai.events.BaseEventListener</code>, so it sees the same lifecycle stream CrewAI emits:</p>
+      <ul class="facts">
+        <li>Each <code>crew.kickoff()</code> becomes one diffable <strong>run</strong>.</li>
+        <li><code>crew.start</code>/<code>.end</code>, <code>task.*</code>, <code>agent.*</code>, <code>tool.*</code>, and <code>llm.*</code> become <strong>typed events</strong> in a span tree.</li>
+        <li>The agent's role, the tool's name, or the model becomes the event's <strong>engine</strong>.</li>
+        <li>Events are ordered by CrewAI's own <code>emission_sequence</code> — its bus is multithreaded, so arrival order isn't emission order, and ordering by sequence keeps the run (and its fingerprint) stable.</li>
+        <li>Lifecycle <strong>provenance edges</strong> are emitted: <code>DERIVED_FROM</code> (start → end) and <code>INFORMED</code> (parent → child).</li>
+      </ul>
+      <p class="caption">Two runs of the same crew share a <strong>fingerprint</strong>, so the fingerprint / diff / gate tooling flags a dropped task, a skipped tool, or a looping agent.</p>
+    </div>
+  </section>
+
+  <section id="ci">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · gate in ci</p>
+      <h2>Then gate it in CI</h2>
+      <p class="lede">Once runs are recorded, <strong>diff any run against a golden baseline and fail the PR when the reasoning drifts</strong>. The server-less <code>gate</code> CLI exits non-zero on regression, and the <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">DProvenanceKit Regression Gate</a> GitHub Action drops it into any workflow — see <a href="https://dprovenance.dev/#ci">the full gate story on the main page</a>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Apache-2.0 · © 2026 DProvenanceKit</span>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+    <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a>
+    <a href="https://dprovenance.dev/">dprovenance.dev</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy-btn');
+  if (!btn) return;
+  var CMD = 'pip install "dprovenancekit[crewai]"';
+  function done(ok) {
+    btn.textContent = ok ? 'copied ✓' : 'copy failed';
+    setTimeout(function () { btn.textContent = 'copy'; }, 1600);
+  }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = CMD;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    done(ok);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CMD).then(function () { done(true); }, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+</body>
+</html>
