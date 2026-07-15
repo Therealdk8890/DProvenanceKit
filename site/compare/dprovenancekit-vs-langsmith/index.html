@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DProvenanceKit vs LangSmith: Open-Source SDK vs Platform</title>
+<meta name="description" content="Looking for an open source LangSmith alternative? An honest comparison: DProvenanceKit's local-first SDK and CI regression gates vs LangSmith's hosted platform.">
+<link rel="canonical" href="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="DProvenanceKit vs LangSmith: Open-Source SDK vs Platform">
+<meta property="og:description" content="An honest comparison for teams weighing a LangSmith alternative: a zero-dependency, local-first SDK with built-in CI regression gates vs a hosted observability and evals platform.">
+<meta property="og:url" content="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
+<meta property="og:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<meta property="og:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DProvenanceKit vs LangSmith: Open-Source SDK vs Platform">
+<meta name="twitter:description" content="An honest comparison for teams weighing a LangSmith alternative: a zero-dependency, local-first SDK with built-in CI regression gates vs a hosted observability and evals platform.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
+<meta name="twitter:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "DProvenanceKit vs LangSmith: Open-Source SDK vs Platform",
+  "description": "An honest comparison of DProvenanceKit — a zero-dependency, local-first, open-source Python SDK for agent regression testing and CI gating — and LangSmith, the hosted observability and evals platform from the LangChain team.",
+  "datePublished": "2026-07-03",
+  "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "url": "https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/",
+  "mainEntityOfPage": "https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/",
+  "image": "https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif"
+}
+</script>
+<style>
+  :root{
+    --bg:#08090b; --bg2:#0d0f13; --bg3:#101318;
+    --border:#21262e; --border2:#2b323c;
+    --text:#c9d1d9; --dim:#8f99a3; --faint:#7d8590;
+    --red:#f85149; --red-bg:rgba(248,81,73,.10);
+    --green:#3fb950; --green-hi:#56d364; --green-bg:rgba(63,185,80,.10);
+    --amber:#d29922;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);font-family:var(--mono);
+    font-size:15px;line-height:1.65;
+    background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(63,185,80,.05),transparent),
+                     radial-gradient(ellipse 60% 40% at 80% 0%,rgba(248,81,73,.04),transparent);
+  }
+  a{color:var(--green-hi);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:940px;margin:0 auto;padding:0 20px}
+
+  /* header */
+  header{border-bottom:1px solid var(--border);background:rgba(8,9,11,.92)}
+  .nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 0}
+  .logo{color:var(--text);font-weight:700;letter-spacing:-.02em}
+  .logo:hover{text-decoration:none}
+  .logo .p{color:var(--green)}
+  .logo .c{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-.18em;margin-left:2px;animation:blink 1.2s steps(1) infinite}
+  .nav-links{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto;font-size:13px}
+  .nav-links a{color:var(--dim)}
+  .nav-links a:hover{color:var(--text)}
+  @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.logo .c{animation:none}}
+
+  /* hero */
+  .hero{padding:56px 0 8px}
+  .crumb{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+  .crumb a{color:var(--faint)}
+  .crumb a:hover{color:var(--dim)}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.2;letter-spacing:-.02em;font-weight:700;max-width:24ch}
+  h1 .fail{color:var(--red)}
+  .sub{font-family:var(--sans);color:var(--dim);max-width:64ch;margin:20px 0 8px;font-size:16px}
+  .sub strong{color:var(--text);font-weight:600}
+  .sub a{color:var(--green-hi)}
+
+  /* sections */
+  section{padding:44px 0}
+  section + section{border-top:1px solid var(--border)}
+  .sec-kicker{font-size:12px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+  .sec-kicker .no{color:var(--green)}
+  h2{font-size:clamp(20px,3.2vw,26px);letter-spacing:-.02em;line-height:1.25;margin-bottom:14px}
+  .lede{font-family:var(--sans);color:var(--dim);max-width:64ch;font-size:15.5px;margin-bottom:22px}
+  .lede strong{color:var(--text);font-weight:600}
+  .lede a{color:var(--green-hi)}
+
+  /* code blocks */
+  .code{border:1px solid var(--border);border-radius:10px;background:var(--bg3);overflow:hidden}
+  .code-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;font-size:12px;color:var(--faint);border-bottom:1px solid var(--border);background:var(--bg2)}
+  .code-bar button{font:inherit;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--dim);padding:3px 10px;cursor:pointer}
+  .code-bar button:hover{color:var(--text);border-color:var(--border2)}
+  .code pre{padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.7;font-family:var(--mono)}
+  .kw{color:#ff7b72}
+  .st{color:#7ee787}
+  .cm{color:#828d99}
+  .out{color:#9aa4ae}
+  .ok{color:var(--green-hi)}
+  .er{color:var(--red);font-weight:700}
+  .er-band{display:inline-block;background:var(--red-bg);border-left:3px solid var(--red);padding:1px 10px 1px 8px;margin-left:-11px}
+  .yk{color:#79c0ff}
+  .t-dollar{color:var(--faint);user-select:none}
+  .caption{font-size:13px;color:var(--faint);margin-top:12px;font-family:var(--sans)}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.92em;font-family:var(--mono)}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+
+  /* lists */
+  ul.facts{list-style:none;font-family:var(--sans);font-size:14.5px;color:var(--dim);max-width:70ch;margin-top:4px}
+  ul.facts li{padding:5px 0 5px 18px;position:relative}
+  ul.facts li::before{content:"▸";color:var(--green);position:absolute;left:0}
+  ul.facts strong{color:var(--text);font-weight:600}
+  ul.facts a{color:var(--green-hi)}
+
+  /* comparison table */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-top:8px;background:var(--bg3)}
+  table.cmp{border-collapse:collapse;width:100%;min-width:660px;font-family:var(--sans);font-size:14px}
+  .cmp th,.cmp td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+  .cmp td + td, .cmp th + th{border-left:1px solid var(--border)}
+  .cmp thead th{background:var(--bg2);color:var(--text);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+  .cmp tbody th{color:var(--text);font-weight:600;font-size:13.5px;width:18%;background:var(--bg2)}
+  .cmp tbody td{color:var(--dim);width:41%}
+  .cmp tbody td code{font-size:.9em}
+  .cmp tbody tr:last-child th,.cmp tbody tr:last-child td{border-bottom:none}
+  .cmp .yes{color:var(--green);font-weight:700}
+  .cmp .dash{color:var(--faint)}
+
+  /* CTA buttons */
+  .ctas{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:22px 0 0}
+  .cta-links{font-size:13px;color:var(--faint)}
+  .cta-links a{color:var(--dim)}
+  .cta-links a:hover{color:var(--text)}
+  .btn{display:inline-block;padding:10px 18px;border-radius:6px;font-size:14px;border:1px solid var(--border2);color:var(--text)}
+  .btn:hover{text-decoration:none;border-color:var(--dim)}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#04120a;font-weight:700}
+  .btn.primary:hover{background:var(--green-hi);border-color:var(--green-hi)}
+
+  .disclosure{font-family:var(--sans);font-size:13px;color:var(--faint);padding:0 0 34px}
+
+  footer{border-top:1px solid var(--border);padding:30px 0 44px;font-size:13px;color:var(--faint)}
+  .foot{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+  .foot a{color:var(--dim)}
+  .foot a:hover{color:var(--text)}
+
+  @media (max-width:480px){
+    .code pre{font-size:11.5px}
+    section{padding:36px 0}
+    .hero{padding:40px 0 4px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="https://dprovenance.dev/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="https://dprovenance.dev/#record">record</a>
+      <a href="https://dprovenance.dev/#ci">gate</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+      <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="https://dprovenance.dev/">dprovenance.dev</a> / compare / dprovenancekit-vs-langsmith</p>
+    <h1>DProvenanceKit vs LangSmith: which fits your workflow?</h1>
+    <p class="sub">These two get compared because both record what an AI agent did. Past that, they are different shapes of tool. <strong>LangSmith</strong> is a hosted-first observability and evals platform from the LangChain team — dashboards, monitoring, annotation queues, a managed backend. <strong><a href="https://dprovenance.dev/">DProvenanceKit</a></strong> is an open-source (Apache-2.0), zero-dependency Python SDK — stdlib only — that records each agent run as a queryable, diffable trace in a local SQLite file and <strong>fails CI when the reasoning drifts</strong>.</p>
+    <p class="sub">To be plain about it up front: <strong>if you want team dashboards, production monitoring, and hosted evals with human annotation, pick LangSmith.</strong> It is a mature platform, and this page will not pretend otherwise. If what you are missing is regression testing — a golden baseline, a structural diff, an exit code 1 in a pull request — that is the one job DProvenanceKit was built for, and the job this comparison is about.</p>
+  </div>
+
+  <section id="table">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · at a glance</p>
+      <h2>Open-source local-first SDK vs hosted platform</h2>
+      <p class="lede">Every claim in the LangSmith column below was checked against <a href="https://www.langchain.com/langsmith">langchain.com</a> and <a href="https://docs.langchain.com/langsmith/home">docs.langchain.com</a> on July 3, 2026. LangSmith's pricing and features move; treat their pricing page as the source of truth for current numbers.</p>
+      <div class="tbl-wrap">
+        <table class="cmp">
+          <thead>
+            <tr><th scope="col">&nbsp;</th><th scope="col">DProvenanceKit</th><th scope="col">LangSmith</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Tool shape</th>
+              <td>Python SDK + CLI. <code>pip install</code>, import, done — runs entirely in-process, no service to stand up.</td>
+              <td>Hosted observability + evals platform with SDK clients: tracing, dashboards, monitoring, insights, a managed backend.</td>
+            </tr>
+            <tr>
+              <th scope="row">Dependency footprint</th>
+              <td><span class="yes">✓</span> Zero third-party dependencies in the core — stdlib only (<code>sqlite3</code>, <code>contextvars</code>, <code>hashlib</code>, …).</td>
+              <td>SDK client plus a running service — cloud or self-hosted — to send traces to.</td>
+            </tr>
+            <tr>
+              <th scope="row">Data locality</th>
+              <td><span class="yes">✓</span> Local SQLite files that live in your repo. Traces never leave your machine unless you opt into the hosted dashboard.</td>
+              <td>Traces go to the hosted service by default; self-hosted and hybrid deployments are offered on the Enterprise plan (as of July 2026).</td>
+            </tr>
+            <tr>
+              <th scope="row">License</th>
+              <td><span class="yes">✓</span> Apache-2.0 — SDK, gate CLI, pytest plugin, and GitHub Action are all open source.</td>
+              <td>SDK clients are MIT-licensed; the platform itself is a proprietary hosted service.</td>
+            </tr>
+            <tr>
+              <th scope="row">CI regression gating</th>
+              <td><span class="yes">✓</span> Built in, four ways: <code>assert_no_regression</code>, the <code>golden_trace</code> pytest fixture, the server-less <code>gate</code> CLI, and a GitHub Action (+ a GitLab CI template).</td>
+              <td>The <code>@pytest.mark.langsmith</code> integration logs test results to the platform as datasets and experiments; its docs as of July 2026 don't describe a built-in structural golden-baseline gate.</td>
+            </tr>
+            <tr>
+              <th scope="row">Framework coverage</th>
+              <td>LangChain / LangGraph, <a href="https://dprovenance.dev/openai-agents/">OpenAI Agents SDK</a> (officially listed in its docs), LlamaIndex, CrewAI, Google GenAI, FastAPI, MCP — or plain Python with zero deps.</td>
+              <td>Framework-agnostic: LangChain / LangGraph natively, plus OpenAI SDK, Anthropic SDK, Vercel AI SDK, LlamaIndex, and OpenTelemetry ingestion (as of July 2026).</td>
+            </tr>
+            <tr>
+              <th scope="row">Pricing model</th>
+              <td><span class="yes">✓</span> SDK, CLI, pytest plugin, Action: free and open source. Optional commercial hosted dashboard (early access).</td>
+              <td>Free Developer tier (1 seat, up to 5k base traces/mo), Plus at $39/seat/mo, usage-based trace pricing beyond included volume, custom-priced Enterprise (as of July 2026).</td>
+            </tr>
+            <tr>
+              <th scope="row">Languages</th>
+              <td>Python 3.9+, plus a Swift SDK kept behaviorally equivalent through Trace Specification v1.</td>
+              <td>Python and TypeScript SDKs (MIT); langchain.com also lists Go and Java SDKs as of July 2026.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Sources: langchain.com/langsmith, langchain.com/pricing, docs.langchain.com/langsmith, github.com/langchain-ai/langsmith-sdk — all retrieved July 3, 2026.</p>
+    </div>
+  </section>
+
+  <section id="difference">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · the core difference</p>
+      <h2>Regression testing as a first-class citizen</h2>
+      <p class="lede">Most searches for a <strong>LangSmith alternative</strong> compare dashboards to dashboards. DProvenanceKit isn't a dashboard. Its center of gravity is the thing observability platforms treat as an afterthought: <strong>proving that this week's agent still reasons like last week's</strong> — automatically, in CI, before the merge. Observability tells you what happened; a regression gate refuses to let the drift ship.</p>
+      <ul class="facts">
+        <li><strong>Golden baselines are files.</strong> A known-good run is saved as a SQLite trace (e.g. <code>tests/goldens/research-agent.sqlite</code>) and committed like any other snapshot. <code>pytest --dprov-update-golden</code> re-records it deliberately; a plain <code>pytest</code> gates against it.</li>
+        <li><strong>Run fingerprints make drift cheap to detect.</strong> Every run gets a structural identity of its execution path — a reordered tool, a skipped retrieval step, a dropped verify step all change the fingerprint.</li>
+        <li><strong>Diffs are severity-graded, not binary.</strong> Regressions grade none / low / medium / high; a removed critical step (think <code>verify.claims</code> or <code>safety_check</code>) grades high. The gate is strict by default and loosens explicitly via <code>max_regression_level</code> or <code>allow_divergent_steps</code>, and you can plug in a custom <code>evaluator</code>.</li>
+        <li><strong>Gating is built in at every layer</strong> — <code>assert_no_regression</code> in any test, the pytest fixture below, the server-less <code>dprovenancekit gate</code> CLI (local SQLite, no backend, no account), and the <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a> with a GitLab CI template in the repo.</li>
+      </ul>
+      <div class="code" style="margin-top:22px">
+        <div class="code-bar"><span>tests/test_agent.py</span><span>python</span></div>
+        <pre><span class="kw">def</span> test_research_agent(golden_trace):
+    <span class="kw">with</span> golden_trace(<span class="st">"research-agent"</span>):
+        run_my_agent()
+
+<span class="cm"># pytest --dprov-update-golden   -&gt; records tests/goldens/research-agent.sqlite</span>
+<span class="cm"># pytest                         -&gt; gates against it; fails on structural drift</span></pre>
+      </div>
+      <p class="caption">New to the golden-baseline pattern? The concepts are in the <a href="https://dprovenance.dev/guides/regression-testing-for-ai-agents/">regression testing guide</a>; the pipeline wiring is in the <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">CI gate guide</a>.</p>
+    </div>
+  </section>
+
+  <section id="code">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · five minutes</p>
+      <h2>The whole loop: record, save, explain, diff</h2>
+      <p class="lede">This is the part where "free, local-first" stops being an abstraction. One import, a context manager, and two method calls — no account, no API key, no service. Straight from the README, unedited:</p>
+      <div class="code">
+        <div class="code-bar"><span>five_minute_wow.py</span><span>python</span></div>
+        <pre><span class="kw">from</span> dprovenancekit <span class="kw">import</span> trace
+
+<span class="cm"># 1. Record an execution</span>
+<span class="kw">with</span> trace(<span class="st">"Agent Workflow"</span>):
+    <span class="kw">with</span> trace(<span class="st">"Retrieve Documents"</span>):
+        <span class="cm"># your retrieval code here</span>
+        <span class="kw">pass</span>
+    <span class="kw">with</span> trace(<span class="st">"Verify Claims"</span>):
+        <span class="cm"># your verification code here</span>
+        <span class="kw">pass</span>
+
+<span class="cm"># 2. Save the trace</span>
+trace.save(<span class="st">"golden_run.sqlite"</span>)
+
+<span class="cm"># 3. Print a structural explanation</span>
+trace.explain()
+<span class="out"># --- Execution Trace (b4f8d2…) ---</span>
+<span class="out"># ▶ Started Agent Workflow</span>
+<span class="out">#   ▶ Started Retrieve Documents</span>
+<span class="out">#   <span class="ok">✔</span> Finished Retrieve Documents</span>
+<span class="out">#   ▶ Started Verify Claims</span>
+<span class="out">#   <span class="ok">✔</span> Finished Verify Claims</span>
+<span class="out"># <span class="ok">✔</span> Finished Agent Workflow</span>
+
+<span class="cm"># 4. Later, the workflow regresses: a code change drops the verification step</span>
+<span class="kw">with</span> trace(<span class="st">"Agent Workflow"</span>):
+    <span class="kw">with</span> trace(<span class="st">"Retrieve Documents"</span>):
+        <span class="kw">pass</span>
+    <span class="cm"># "Verify Claims" never runs</span>
+
+<span class="cm"># 5. Diff the current run against the saved golden baseline</span>
+trace.diff(<span class="st">"golden_run.sqlite"</span>)
+<span class="out"># --- Trace Diff (Golden vs Current) ---</span>
+<span class="er-band"><span class="er"># ❌ Missing step: Verify Claims</span></span></pre>
+      </div>
+      <p class="caption">That last line is the entire pitch. The same diff engine powers the <code>gate</code> CLI whose real failing output — severity, fingerprints, per-step changes, exit code 1 — is captured on <a href="https://dprovenance.dev/#demo">the homepage demo</a>.</p>
+    </div>
+  </section>
+
+  <section id="together">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · not mutually exclusive</p>
+      <h2>Gate LangChain agents while keeping LangSmith</h2>
+      <p class="lede">Here is the part vendor comparison pages usually skip: <strong>you don't have to choose.</strong> DProvenanceKit ships a LangChain adapter — <code>DProvenanceTracer</code> and <code>DProvenanceCallbackHandler</code> — and the handler is a normal LangChain callback, so it runs alongside LangSmith's own tracing in the same invocation. Keep LangSmith for the dashboards it is good at, and add a structural regression gate to the same LangChain / LangGraph agents in CI:</p>
+      <div class="code">
+        <div class="code-bar"><span>gate_langchain_agent.py</span><span>python</span></div>
+        <pre><span class="cm"># pip install "dprovenancekit[langchain]"</span>
+<span class="kw">from</span> dprovenancekit <span class="kw">import</span> SQLiteTraceStore
+<span class="kw">from</span> dprovenancekit.integrations.langchain <span class="kw">import</span> DProvenanceTracer, LangChainTraceEvent
+
+store = SQLiteTraceStore(LangChainTraceEvent, <span class="st">"traces.sqlite"</span>)
+tracer = DProvenanceTracer(store)
+
+<span class="kw">with</span> tracer.trace(context_id=<span class="st">"customer-42"</span>) <span class="kw">as</span> cb:
+    result = chain.invoke(question, config={<span class="st">"callbacks"</span>: [cb]})
+
+<span class="cm"># afterwards: query / diff / fingerprint the recorded run via `store`.</span></pre>
+      </div>
+      <p class="caption">Same story for the <a href="https://dprovenance.dev/openai-agents/">OpenAI Agents SDK</a>, where DProvenanceKit is officially listed in the SDK's docs as an external tracing processor — one <code>register()</code> call, and it coexists with the SDK's built-in exporter.</p>
+    </div>
+  </section>
+
+  <section id="validation">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 05</span> · validation</p>
+      <h2>Small tool, serious test surface</h2>
+      <p class="lede">A regression gate you can't trust is worse than no gate. The detection engine is validated three ways:</p>
+      <ul class="facts">
+        <li><strong>380+ tests</strong> cover the SDK, the diff engine, the pytest plugin, the CLI, and the adapters.</li>
+        <li><strong>Precision 1.000 / Recall 1.000 / F1 1.000</strong> across 8 standard + 5 adversarial regression-detection scenarios, on a benchmark corpus that ships with the library — run <code>dprovenancekit evaluate</code> yourself; no vendor benchmark server involved.</li>
+        <li><strong>Trace Specification v1</strong> — a conformance suite with frozen golden vectors keeps the Python SDK behaviorally equivalent to the <a href="https://github.com/Therealdk8890/DProvenanceKit">original Swift implementation</a>, case-for-case.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="langsmith-better">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 06</span> · the other column</p>
+      <h2>When LangSmith is the better choice</h2>
+      <p class="lede">This is a genuine section, not a formality. As of July 2026, LangSmith is the better tool when:</p>
+      <ul class="facts">
+        <li><strong>Your team lives in a shared dashboard.</strong> LangSmith's monitoring dashboards, alerting, trace search, and cross-run analytics are a real product; DProvenanceKit's hosted dashboard is an optional early-access add-on, not the core.</li>
+        <li><strong>You want hosted evals with humans in the loop.</strong> Annotation queues, inline annotation, online LLM-as-judge evaluations, and datasets/experiments are LangSmith platform features with no DProvenanceKit equivalent.</li>
+        <li><strong>Your stack isn't Python or Swift.</strong> LangSmith ships Python and TypeScript SDKs (with Go and Java also listed on langchain.com); DProvenanceKit's cross-language story is exactly Python + Swift via Trace Spec v1, no further.</li>
+        <li><strong>You want a managed service, not a library.</strong> If nobody on the team should own trace storage or report plumbing, a hosted platform with a free Developer tier is the pragmatic call.</li>
+      </ul>
+      <p class="lede" style="margin-top:18px;margin-bottom:0">If several of those describe you, use LangSmith — and consider running the DProvenanceKit gate next to it, since the two coexist in the same agent (see <a href="#together"># 04</a>).</p>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 07</span> · get started</p>
+      <h2>Try the open-source gate on one agent</h2>
+      <p class="lede">The honest test of any <strong>open source LangSmith alternative</strong> claim is what happens in the first ten minutes. Record one golden run, break the agent on purpose, and watch the diff fail. No account, nothing leaves your machine.</p>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><button type="button" id="copy-btn" aria-label="Copy install command">copy</button></div>
+        <pre><span class="t-dollar">$ </span>pip install dprovenancekit</pre>
+      </div>
+      <p class="ctas">
+        <a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKitPython">View on GitHub →</a>
+        <span class="cta-links"><a href="https://pypi.org/project/dprovenancekit/">PyPI</a> · <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a></span>
+      </p>
+      <p class="caption">Then: the <a href="https://dprovenance.dev/guides/regression-testing-for-ai-agents/">regression testing guide</a> for the concepts, and the <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">CI gate guide</a> to wire it into CI.</p>
+    </div>
+  </section>
+
+  <div class="wrap disclosure">
+    <p><em>This comparison was written by the DProvenanceKit maintainer; LangSmith specifics were verified against langchain.com and docs.langchain.com on July 3, 2026. Spotted something stale or unfair? Corrections are welcome via <a href="https://github.com/Therealdk8890/DProvenanceKitPython/issues">GitHub issue</a>.</em></p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Apache-2.0 · © 2026 DProvenanceKit</span>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">GitHub</a>
+    <a href="https://pypi.org/project/dprovenancekit/">PyPI</a>
+    <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a>
+    <a href="https://dprovenance.dev/">dprovenance.dev</a>
+    <a href="https://dprovenance.dev/guides/regression-testing-for-ai-agents/">Regression testing guide</a>
+    <a href="https://dprovenance.dev/guides/ci-gate-for-llm-agents/">CI gate guide</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var btn = document.getElementById('copy-btn');
+  if (!btn) return;
+  var CMD = 'pip install dprovenancekit';
+  function done(ok) {
+    btn.textContent = ok ? 'copied ✓' : 'copy failed';
+    setTimeout(function () { btn.textContent = 'copy'; }, 1600);
+  }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = CMD;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    done(ok);
+  }
+  btn.addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(CMD).then(function () { done(true); }, fallback);
+    } else {
+      fallback();
+    }
+  });
+})();
+</script>
+</body>
+</html>
