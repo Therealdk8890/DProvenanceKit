@@ -6,6 +6,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-15
+
+### Fixed
+- **Swift Package Index Xcode compatibility builds now compile the full package on iOS.**
+  The Quickstart and Foundation Models regression demo keep their `@main` entry points in
+  conventionally named source files instead of `main.swift`, avoiding Xcode's conflicting
+  top-level-code interpretation when it builds the generated `DProvenanceKit-Package` scheme.
+
+### Changed
+- CI now builds the same generated full-package Xcode scheme that Swift Package Index selects
+  for both macOS and iOS, rather than checking only selected iOS library schemes.
+
 ## [0.6.0] - 2026-07-13
 
 ### Added
@@ -263,7 +275,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.1...HEAD
+[0.6.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.3.0...0.4.0
