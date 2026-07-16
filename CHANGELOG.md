@@ -6,6 +6,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`FoundationModelsLiveQuickstart`** calls Apple's real on-device model when available,
+  then prints the answer, captured event timeline, drop/integrity status, and standalone SQLite
+  artifact path. An unavailable model still produces a visible `fm_model_availability` trace.
+
+### Fixed
+- **Swift 6.2+ main-actor call sites can use `run`, `runReturningID`, `withEngine`, and
+  `withSpan` without manually annotating closures `@Sendable`.** The async scope APIs now use
+  caller-executor semantics on compilers that support them, while preserving the existing API
+  for older Swift 6 compilers.
+
 ## [0.6.1] - 2026-07-15
 
 ### Fixed

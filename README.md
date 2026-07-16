@@ -14,6 +14,8 @@ DProvenanceKit records reasoning paths locally, shows exactly what changed betwe
 
 > **New here?** Start with **[dpk-starter](https://github.com/Therealdk8890/dpk-starter)** — clone, `swift run`, and in five minutes watch a silent AI fallback get caught by a structural diff, gated as a CI anomaly, and signed into an offline-verifiable proof pack. This README is the reference documentation.
 
+> **Using Apple Foundation Models?** On an Apple Intelligence-capable Mac, `swift run FoundationModelsLiveQuickstart` calls the real on-device model and immediately prints the captured event timeline, integrity status, and SQLite trace path.
+
 > **Working in Python?** There's a full Python port — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and CI regression gate, plus adapters for LangChain, the OpenAI Agents SDK, LlamaIndex, and CrewAI: `pip install dprovenancekit`.
 
 ---
@@ -281,7 +283,7 @@ Your package or app target must declare an Apple platform at or above the packag
 
 ### Platform support
 
-The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The command-line executables (`dpk`, `GenerateSample`) are macOS-only.
+The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The runnable command-line entry points (`dpk`, `GenerateSample`, `Quickstart`, and the Foundation Models demos) are intended for macOS.
 
 ### 1. Define your events
 
@@ -365,6 +367,15 @@ try await FMTrace.run(contextID: "onboarding-chat", store: fmStore) {
 ```
 
 Every prompt, response, tool call, and generation error is now a queryable trace event. Already have working FoundationModels code? `session.recordProvenance()` ingests the transcript after the fact — zero refactor. Full guide, including redaction and streaming: **[docs/foundation-models.md](docs/foundation-models.md)**.
+
+Try the live model before integrating it into an app:
+
+```sh
+swift run FoundationModelsLiveQuickstart
+swift run FoundationModelsLiveQuickstart -- "Summarize why provenance matters."
+```
+
+On an eligible Mac, the command prints the model answer followed by the persisted `fm_model_availability → fm_instructions → fm_prompt → fm_response` timeline, drop/integrity status, and SQLite file path. When the model is unavailable, it still records and explains the availability result instead of failing silently.
 
 > **See it catch a real regression:** `swift run FoundationModelsRegressionDemo` — an agent that silently stops calling its tool after a model update, caught as a `HIGH`-risk regression and failed in CI. [Walkthrough →](docs/foundation-models-regression-demo.md)
 
