@@ -20,9 +20,10 @@ extension FMTranscriptSnapshot {
 
 /// Pure Transcript-to-IR conversion. Segment text uses the verified pattern:
 /// `.text` yields the segment content, `.structure` yields
-/// `content.jsonString`; unknown segment kinds are skipped and counted so
-/// ingestion summaries can surface data loss. Unknown Entry kinds map to
-/// `.unknown(description:)` via the entry's CustomStringConvertible.
+/// `content.jsonString`; non-text segment kinds (attachment, custom, unknown)
+/// are skipped and counted so ingestion summaries can surface data loss.
+/// Reasoning and unknown Entry kinds map to `.unknown(description:)` via the
+/// entry's CustomStringConvertible.
 @available(iOS 26.0, macOS 26.0, visionOS 26.0, *)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
@@ -67,6 +68,14 @@ enum FMTranscriptBridge {
                     text: text(from: response.segments, skipped: &skipped),
                     assetIDCount: response.assetIDs.count
                 ))
+            #if canImport(FoundationModels, _version: 2.0)
+            // The OS 27 SDK (FoundationModels 2.0) adds .reasoning; older
+            // SDKs can't name it, so it's compiled in conditionally and
+            // routes like unknown kinds — 26.x-SDK builds reach the same
+            // .unknown mapping via @unknown default at runtime.
+            case .reasoning:
+                out.append(.unknown(description: String(describing: entry)))
+            #endif
             @unknown default:
                 out.append(.unknown(description: String(describing: entry)))
             }
@@ -79,6 +88,11 @@ enum FMTranscriptBridge {
             switch segment {
             case .text(let textSegment): return textSegment.content
             case .structure(let structuredSegment): return structuredSegment.content.jsonString
+            #if canImport(FoundationModels, _version: 2.0)
+            case .attachment, .custom:
+                skipped += 1
+                return nil
+            #endif
             @unknown default:
                 skipped += 1
                 return nil
@@ -97,8 +111,15 @@ extension FMGenerationOptionsSnapshot {
     /// `.greedy`, anything else is `.random` with parameters unrecoverable.
     init?(bridging options: GenerationOptions) {
         guard options != GenerationOptions() else { return nil }
+        #if canImport(FoundationModels, _version: 2.0)
+        // FoundationModels 2.0 (OS 27 SDK) renames `sampling` to the
+        // back-deployed `samplingMode`; older SDKs only declare `sampling`.
+        let mode = options.samplingMode
+        #else
+        let mode = options.sampling
+        #endif
         let sampling: Sampling
-        if let mode = options.sampling {
+        if let mode {
             sampling = (mode == .greedy) ? .greedy : .random
         } else {
             sampling = .unspecified
