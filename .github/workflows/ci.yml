@@ -74,6 +74,9 @@ jobs:
       - name: Run Foundation Models regression demo
         run: swift run FoundationModelsRegressionDemo --out="$RUNNER_TEMP/fm-regression.json"
 
+      - name: Build live Foundation Models quickstart
+        run: swift build --product FoundationModelsLiveQuickstart
+
       - name: Generate WebVisualizer export
         run: swift run DProvenanceKitCLI web-export --out="$RUNNER_TEMP/web-export.json"
 

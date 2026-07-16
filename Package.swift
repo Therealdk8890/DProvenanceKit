@@ -50,6 +50,10 @@ let package = Package(
         .executable(
             name: "FoundationModelsRegressionDemo",
             targets: ["FoundationModelsRegressionDemo"]
+        ),
+        .executable(
+            name: "FoundationModelsLiveQuickstart",
+            targets: ["FoundationModelsLiveQuickstart"]
         )
     ],
     targets: [
@@ -96,6 +100,12 @@ let package = Package(
         .executableTarget(
             name: "FoundationModelsRegressionDemo",
             dependencies: ["DProvenanceKit", "DProvenanceFoundationModels"]
+        ),
+        // Calls the real on-device model when available, then prints the persisted
+        // trace timeline and SQLite path so first use has an immediate visible payoff.
+        .executableTarget(
+            name: "FoundationModelsLiveQuickstart",
+            dependencies: ["DProvenanceFoundationModels"]
         ),
         .testTarget(
             name: "DProvenanceKitTests",

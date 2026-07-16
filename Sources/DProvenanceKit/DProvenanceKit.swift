@@ -102,6 +102,22 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
     }
 
+    #if compiler(>=6.2)
+    /// Swift 6.2's caller-executor semantics keep actor-isolated recording closures
+    /// on their originating actor. This lets `@MainActor` app code use the documented
+    /// `run { ... }` shape without spelling `@Sendable` or moving work to a helper.
+    nonisolated(nonsending) public static func run<R>(
+        contextID: String,
+        store: any TraceStore<T>,
+        schemaVersion: Int = 1,
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let run = ActiveTraceRun(contextID: contextID, store: store, schemaVersion: schemaVersion)
+        return try await TraceContext.$currentRun.withValue(run) {
+            try await block()
+        }
+    }
+    #else
     public static func run<R>(
         contextID: String,
         store: any TraceStore<T>,
@@ -113,6 +129,7 @@ public enum DProvenanceKit<T: TraceableEvent> {
             try await block()
         }
     }
+    #endif
 
     /// Records a run and returns both the block's result and the run's `runID`.
     ///
@@ -133,6 +150,21 @@ public enum DProvenanceKit<T: TraceableEvent> {
     /// parameter, so a separate name keeps every existing `run { }` call site stable.
     /// The closure receives the `ActiveTraceRun`; ignore it with `{ _ in … }` and use
     /// ambient `DProvenanceKit.record` if you prefer.
+    #if compiler(>=6.2)
+    @discardableResult
+    nonisolated(nonsending) public static func runReturningID<R>(
+        contextID: String,
+        store: any TraceStore<T>,
+        schemaVersion: Int = 1,
+        _ block: (ActiveTraceRun) async throws -> R
+    ) async rethrows -> (result: R, runID: UUID) {
+        let run = ActiveTraceRun(contextID: contextID, store: store, schemaVersion: schemaVersion)
+        let result = try await TraceContext.$currentRun.withValue(run) {
+            try await block(run)
+        }
+        return (result, run.runID)
+    }
+    #else
     @discardableResult
     public static func runReturningID<R>(
         contextID: String,
@@ -146,6 +178,7 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
         return (result, run.runID)
     }
+    #endif
 
     public static func runSync<R>(
         contextID: String,
@@ -159,6 +192,17 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
     }
 
+    #if compiler(>=6.2)
+    nonisolated(nonsending) public static func withEngine<R>(
+        name: String,
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let newStack = TraceContext.engineStack + [name]
+        return try await TraceContext.$engineStack.withValue(newStack) {
+            try await block()
+        }
+    }
+    #else
     public static func withEngine<R>(
         name: String,
         _ block: () async throws -> R
@@ -168,6 +212,7 @@ public enum DProvenanceKit<T: TraceableEvent> {
             try await block()
         }
     }
+    #endif
 
     public static func withEngineSync<R>(
         name: String,
@@ -179,6 +224,19 @@ public enum DProvenanceKit<T: TraceableEvent> {
         }
     }
 
+    #if compiler(>=6.2)
+    nonisolated(nonsending) public static func withSpan<R>(
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let newSpanID = UUID().uuidString
+        let parent = TraceContext.currentSpanID
+        return try await TraceContext.$currentSpanID.withValue(newSpanID) {
+            try await TraceContext.$parentSpanID.withValue(parent) {
+                try await block()
+            }
+        }
+    }
+    #else
     public static func withSpan<R>(
         _ block: () async throws -> R
     ) async rethrows -> R {
@@ -190,6 +248,7 @@ public enum DProvenanceKit<T: TraceableEvent> {
             }
         }
     }
+    #endif
 
     public static func withSpanSync<R>(
         _ block: () throws -> R
@@ -207,6 +266,19 @@ public enum DProvenanceKit<T: TraceableEvent> {
     /// random UUID. The span id doubles as the node label in the trace viewer and
     /// only needs to be unique within a run, so a stable name like "Draft
     /// Generation" groups every event of the run under one meaningful node.
+    #if compiler(>=6.2)
+    nonisolated(nonsending) public static func withSpan<R>(
+        named name: String,
+        _ block: () async throws -> R
+    ) async rethrows -> R {
+        let parent = TraceContext.currentSpanID
+        return try await TraceContext.$currentSpanID.withValue(name) {
+            try await TraceContext.$parentSpanID.withValue(parent) {
+                try await block()
+            }
+        }
+    }
+    #else
     public static func withSpan<R>(
         named name: String,
         _ block: () async throws -> R
@@ -218,6 +290,7 @@ public enum DProvenanceKit<T: TraceableEvent> {
             }
         }
     }
+    #endif
 
     public static func withSpanSync<R>(
         named name: String,

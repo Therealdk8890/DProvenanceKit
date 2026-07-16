@@ -4,7 +4,16 @@ Apple's FoundationModels framework gives you an on-device LLM. `DProvenanceFound
 
 The module is built around one parity invariant: **live capture and post-hoc ingestion of the same transcript produce byte-exact equal payloads.** Payloads carry no volatile data — no entry ids, no call ids, no timestamps, no UUIDs. The trace envelope owns time; linkage is `(turnIndex, invocationIndex)`. That's what makes FM runs diff cleanly across days, devices, and OS releases.
 
-> **New here?** Start with the runnable [regression demo](foundation-models-regression-demo.md) — `swift run FoundationModelsRegressionDemo` — to see the whole loop catch an agent that silently drops a tool call after a model update.
+> **New here?** On an Apple Intelligence-capable Mac, run `swift run FoundationModelsLiveQuickstart` to call the real on-device model and immediately see the captured timeline, integrity status, and SQLite path. Then run the SDK-free [regression demo](foundation-models-regression-demo.md) — `swift run FoundationModelsRegressionDemo` — to see DProvenanceKit catch an agent that silently drops a tool call after a model update.
+
+Use the built-in prompt or supply your own:
+
+```sh
+swift run FoundationModelsLiveQuickstart
+swift run FoundationModelsLiveQuickstart -- "Summarize why provenance matters."
+```
+
+If the model is unavailable, the quickstart still persists an `fm_model_availability` event and prints Apple's mapped reason, so setup failure is visible rather than silent.
 
 ## The three one-liners
 
