@@ -367,7 +367,16 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         for idString in runIDs {
             guard let uuid = UUID(uuidString: idString) else { continue }
             guard let run = try await fetchRun(id: uuid) else { continue }
-            if needsInProcessFilter && !dsl.ast.evaluate(run: run) { continue }
+            if needsInProcessFilter {
+                // A payload predicate can neither match nor clear a run with zero
+                // decodable events: evaluating one over the empty array would report
+                // "no event matches" for payloads that were never inspectable, so a
+                // NEGATED predicate would positively assert such a run is clean.
+                // Excluding it here keeps payload queries scoped to runs whose
+                // payloads can actually be read (structural queries still surface it).
+                guard !run.events.isEmpty || run.undecodedEventCount == 0 else { continue }
+                if !dsl.ast.evaluate(run: run) { continue }
+            }
             runs.append(run)
         }
 
@@ -393,6 +402,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         try stmt.bind(id.uuidString, at: 1)
 
         var events: [TraceEvent<T>] = []
+        var undecodedCount = 0
         let decoder = JSONDecoder()
 
         // Fetch context_id from the runs table
@@ -431,11 +441,28 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
                 )
                 events.append(event)
+            } else {
+                // The row is durably on disk but its payload no longer decodes as `T`
+                // (schema drift or corruption). Omitting it silently would present a
+                // subset as the whole run — and hide the run entirely if every row
+                // failed — so the miss is counted on the returned run instead.
+                undecodedCount += 1
             }
         }
-        
-        guard !events.isEmpty else { return nil }
-        return TraceRun(runID: id, contextID: contextID, events: events)
+
+        // nil means "this run has no persisted events" — it must NOT mean "the events
+        // exist but none decode as T", or payload-schema drift makes whole runs vanish
+        // from getRun/queryRuns while their rows sit on disk.
+        guard !events.isEmpty || undecodedCount > 0 else { return nil }
+        if undecodedCount > 0 {
+            DPKLog.store.error("fetchRun(\(id.uuidString, privacy: .public)): \(undecodedCount) of \(events.count + undecodedCount) persisted events failed to decode as \(String(describing: T.self), privacy: .public) and are omitted; see TraceRun.undecodedEventCount")
+        }
+        return TraceRun(
+            runID: id,
+            contextID: contextID,
+            events: events,
+            undecodedEventCount: undecodedCount
+        )
     }
 
     public func lineageEdges(of id: UUID) async throws -> [TraceEdge] {
@@ -532,17 +559,20 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         }
         
         var events: [UUID: TraceEvent<T>] = [:]
+        var undecodedCount = 0
         let decoder = JSONDecoder()
-        
+
         while try stmt.step() {
             guard let idStr = stmt.columnString(at: 0),
                   let runIDStr = stmt.columnString(at: 1),
                   let contextID = stmt.columnString(at: 2),
-                  let engine = stmt.columnString(at: 3),
                   let id = UUID(uuidString: idStr),
                   let runID = UUID(uuidString: runIDStr) else {
                 continue
             }
+            // NULL engine is data, not malformation — fetchRun reads the same rows as
+            // "Unknown", and a guard here would silently drop them from this path only.
+            let engine = stmt.columnString(at: 3) ?? "Unknown"
             
             let payloadData = stmt.columnData(at: 6)
             
@@ -568,9 +598,17 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
                 )
                 events[id] = event
+            } else {
+                // Same contract as fetchRun: a persisted row that no longer decodes as
+                // `T` must not vanish silently. Callers detect the miss as a requested
+                // id absent from the result; the log carries the count.
+                undecodedCount += 1
             }
         }
-        
+
+        if undecodedCount > 0 {
+            DPKLog.store.error("getEvents: \(undecodedCount) of \(events.count + undecodedCount) matching persisted events failed to decode as \(String(describing: T.self), privacy: .public) and are omitted from the result")
+        }
         return events
     }
 }

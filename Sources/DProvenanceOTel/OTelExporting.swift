@@ -6,8 +6,10 @@ import DProvenanceKit
 /// partial-success responses would report delivery that never happened.
 public struct OTelExportReceipt: Sendable, Equatable {
     public let runsExported: Int
-    /// Zero-event runs. Neither shipping store can return one (both guard on
-    /// non-empty event lists); the path exists for hand-assembled arrays.
+    /// Zero-event runs. The SQLite store returns one when every persisted event
+    /// fails to decode as the payload type (`TraceRun.undecodedEventCount` carries
+    /// the omission) — a nonzero count here is the export-side trace of that run.
+    /// The in-memory store still cannot produce one.
     public let runsSkipped: Int
     /// Includes synthesized and GenAI-promoted spans.
     public let spanCount: Int
