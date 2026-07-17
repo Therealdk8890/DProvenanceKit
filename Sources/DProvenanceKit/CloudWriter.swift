@@ -32,13 +32,20 @@ public actor CloudWriter {
     private var attemptCount = 0
     private var quarantineQueue: [Batch] = []
 
-    private let circuitBreaker = CircuitBreaker()
-    
-    public init(endpoint: URL, apiKey: String, buffer: TraceWriteBuffer, session: URLSession = .shared) {
+    private let circuitBreaker: CircuitBreaker
+
+    public init(
+        endpoint: URL,
+        apiKey: String,
+        buffer: TraceWriteBuffer,
+        session: URLSession = .shared,
+        circuitBreaker: CircuitBreaker = CircuitBreaker()
+    ) {
         self.endpoint = endpoint
         self.apiKey = apiKey
         self.buffer = buffer
         self.session = session
+        self.circuitBreaker = circuitBreaker
     }
     
     public func start() {
@@ -96,24 +103,27 @@ public actor CloudWriter {
         await processNextBatch(maxBatch: 1000)
         try? await Task.sleep(nanoseconds: sleepMs * 1_000_000)
     }
+
+    #if DEBUG
+    /// Test hook: run exactly one processing pass (no background ticker, no trailing
+    /// sleep). Used to drive the idle-tick / probe-window path deterministically.
+    func processOnceForTesting(drainAll: Bool = false) async {
+        await processNextBatch(drainAll: drainAll)
+    }
+    #endif
     
     private func processNextBatch(drainAll: Bool = false, maxBatch: Int = 1000, deadline: Date? = nil) async {
         guard !isSending else { return }
         isSending = true
         defer { isSending = false }
 
-        let waitTime = await circuitBreaker.timeUntilAllowed()
-        if waitTime > 0 {
-            // Under a caller deadline (flush), don't block past it waiting for the
-            // breaker to reopen — return and let the caller decide to time out.
-            if let deadline, Date().addingTimeInterval(waitTime) >= deadline {
-                return
-            }
-            try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
-        }
-
-        guard await circuitBreaker.allowRequest() else { return }
-
+        // Determine the unit of work BEFORE consulting the circuit breaker. The breaker
+        // grants exactly one probe when it moves .open -> .halfOpen, and that probe is
+        // only "spent" honestly by a send that then records success or failure. If we
+        // asked the breaker for permission first and then found nothing to drain, an idle
+        // tick during the probe window would consume the probe and strand the breaker in
+        // .halfOpen forever — permanently wedging the writer even after the endpoint
+        // recovered. Draining first means an empty buffer returns here, breaker untouched.
         let batch: Batch
         if let inflight = inflightBatch {
             batch = inflight
@@ -130,7 +140,20 @@ public actor CloudWriter {
             inflightBatch = batch
             attemptCount = 0
         }
-        
+
+        let waitTime = await circuitBreaker.timeUntilAllowed()
+        if waitTime > 0 {
+            // Under a caller deadline (flush), don't block past it waiting for the
+            // breaker to reopen — return and let the caller decide to time out. The
+            // batch stays inflight and is retried on the next pass, never dropped.
+            if let deadline, Date().addingTimeInterval(waitTime) >= deadline {
+                return
+            }
+            try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+        }
+
+        guard await circuitBreaker.allowRequest() else { return }
+
         let maxAttempts = 10
         let baseBackoff: Double = 1.0
         let maxBackoff: Double = 60.0

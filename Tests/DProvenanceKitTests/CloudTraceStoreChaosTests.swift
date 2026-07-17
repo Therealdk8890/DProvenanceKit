@@ -185,6 +185,60 @@ final class CloudTraceStoreChaosTests: XCTestCase {
         let elapsed = Date().timeIntervalSince(start)
         XCTAssertLessThan(elapsed, 8.0, "flush should give up promptly, not hang indefinitely")
     }
+
+    func testWriterRecoversAfterOutageWhenBufferIdleDuringProbeWindow() async throws {
+        // Regression: an empty drain must never consume the circuit breaker's single
+        // half-open probe. The writer previously called allowRequest() BEFORE draining,
+        // so an idle tick landing in the probe window (breaker .open and decayed, buffer
+        // momentarily empty — exactly the recover-after-outage state) moved the breaker to
+        // .halfOpen and returned with nothing sent. Because .halfOpen then refuses every
+        // request and reports timeUntilAllowed == 0, the writer spun without ever sending
+        // again for the process lifetime. Draining first keeps the probe for real work.
+        let buffer = TraceWriteBuffer(config: OfflineConfig())
+        let breaker = CircuitBreaker(maxFailures: 1, decayTimeout: 0.2)
+        let endpoint = URL(string: "https://api.dprovenance.cloud/ingest")!
+        let writer = CloudWriter(
+            endpoint: endpoint, apiKey: "test", buffer: buffer, session: session,
+            circuitBreaker: breaker
+        )
+
+        // Trip the breaker open, as a sustained outage would.
+        await breaker.recordFailure()
+        let openState = await breaker.state
+        XCTAssertEqual(openState, .open, "precondition: breaker tripped open")
+
+        // Wait past the decay window so the next probe would be granted.
+        try await Task.sleep(nanoseconds: 250_000_000)
+
+        // An idle tick with an empty buffer during the probe window. This must NOT
+        // spend the probe — on the buggy ordering the breaker ends up stranded .halfOpen.
+        await writer.processOnceForTesting()
+        let afterIdle = await breaker.state
+        XCTAssertNotEqual(
+            afterIdle, .halfOpen,
+            "an empty drain must not consume the half-open probe"
+        )
+
+        // Real work now arrives and the endpoint is healthy again: it must be delivered.
+        var sent = 0
+        MockURLProtocol.requestHandler = { request in
+            sent += 1
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (response, Data())
+        }
+        buffer.enqueue(TraceEventRow(
+            id: UUID().uuidString, runID: UUID().uuidString, contextID: "1",
+            priority: TracePriority.structural.rawValue, sequence: 1, engine: "test",
+            spanID: nil, parentSpanID: nil, type: "chaos", payload: Data("x".utf8), timestamp: 0
+        ))
+
+        try await writer.flush(timeout: 2.0)
+
+        XCTAssertEqual(sent, 1, "writer must resume sending after the outage recovers")
+        XCTAssertEqual(buffer.currentDepth, 0, "the event must be delivered, not stuck")
+        let recovered = await breaker.state
+        XCTAssertEqual(recovered, .closed, "a successful send should close the breaker")
+    }
 }
 
 actor CounterActor {
