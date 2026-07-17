@@ -4,11 +4,23 @@ public struct TraceRun<T: TraceableEvent>: Sendable {
     public let runID: UUID
     public let contextID: String
     public let events: [TraceEvent<T>]
-    
-    public init(runID: UUID, contextID: String, events: [TraceEvent<T>]) {
+    /// Events persisted for this run whose payloads could not be decoded as `T` and are
+    /// therefore absent from `events`. Non-zero when the stored payload schema has
+    /// drifted from `T` (or a payload blob is corrupt) — the rows are still on disk and
+    /// readable through `RawTraceStore`, just not representable as `T`. A diff or query
+    /// over a run with a non-zero count sees a subset, not the whole run.
+    public let undecodedEventCount: Int
+
+    public init(
+        runID: UUID,
+        contextID: String,
+        events: [TraceEvent<T>],
+        undecodedEventCount: Int = 0
+    ) {
         self.runID = runID
         self.contextID = contextID
         self.events = events
+        self.undecodedEventCount = undecodedEventCount
     }
 }
 

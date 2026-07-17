@@ -27,6 +27,15 @@ public struct AttestableTrace: Codable, Sendable, Equatable {
     }
 
     public init<T: TraceableEvent>(run: TraceRun<T>, edges: [TraceEdge] = []) throws {
+        // A run with undecoded events is a SUBSET of what was recorded. Signing it
+        // would produce a cryptographically valid attestation that presents that
+        // subset as the whole run — the exact dishonesty the count exists to prevent.
+        // Re-read the store with the payload type the rows were written as, or attest
+        // from the raw rows, but never silently shed the omission at the signing
+        // boundary.
+        guard run.undecodedEventCount == 0 else {
+            throw TraceAttestationError.undecodedEvents(count: run.undecodedEventCount)
+        }
         self.runID = run.runID
         self.contextID = run.contextID
         self.events = try run.events.map(AttestableTraceEvent.init)
@@ -475,6 +484,10 @@ public enum TraceAttestationError: Error, Equatable {
     /// reference events archived in other runs), but every edge must anchor to this
     /// run's events through the edge set; an unanchored edge is a construction error.
     case danglingEdge(TraceEdge)
+    /// The run carries events that could not be decoded as its payload type
+    /// (`TraceRun.undecodedEventCount > 0`), so `run.events` is a subset of what was
+    /// recorded. An attestation over a subset would present it as the whole run.
+    case undecodedEvents(count: Int)
 }
 
 private enum TraceAttestationValidator {
