@@ -64,5 +64,7 @@ Execution duration does not affect behavioral equivalence unless timing itself i
 ### Invariant G — Alignment Explainability
 Every equivalence determination must be supported by an auditable alignment rationale. The engine must emit verifiable evidence (e.g., "Event A ↔ Event X (similarity = 0.95), causal constraints preserved") rather than an opaque boolean result.
 
+The `ExplainabilityAuditor` fidelity scores (coverage, completeness, causal ordering, no-hallucinations) check this invariant *structurally*: they verify the engine's evidence chain is internally coherent — every claim backed by a recorded binding, evaluation, and verdict. Because the audited evidence is co-produced by the same engine run, the scores are self-consistency diagnostics, not independent verification: on the shipped pipeline, coverage and completeness are 1.0 by construction, and a wrong-but-coherently-recorded alignment scores 1.0. No score gates any engine result; the check that *does* gate equivalence is the semantic model itself (Definitions 1–5).
+
 ### Invariant H — Representation Invariance
 Equivalent executions remain equivalent under permitted trace transformations that preserve semantic content. True behavioral differences are distinct from instrumentation artifacts. Changes in logging granularity, event grouping, or structurally benign representation shifts do not break equivalence provided the underlying causal relationships and semantic payloads satisfy the explicit model bounds.

@@ -9,6 +9,11 @@ import Foundation
 ///
 /// Ambiguous verdicts are exempt: ambiguity is an honest "not confident" outcome, not a claim of
 /// equivalence, so a sub-threshold equivalence decision under an ambiguous step is expected.
+///
+/// Scope: this audits agreement between the step and its own recorded decision — evidence
+/// co-produced by the same engine run — not an independent semantic re-check. A decision that
+/// is itself wrong (equivalent == true for a genuinely different pair) passes; so does a
+/// fabricated single-sided ("added"/"removed") step, which carries no pair to check.
 public struct NoHallucinationInvariant: FidelityInvariant {
     public init() {}
 
