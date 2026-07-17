@@ -6,6 +6,11 @@ import Foundation
 /// must be a corresponding `BindingDecision` recorded by the matcher. A match the interpreter
 /// reports without a backing binding is an ungrounded claim — the explanation references a
 /// pairing the evidence does not support.
+///
+/// On the shipped `DefaultAlignmentInterpreter` this is 1.0 by construction: the interpreter
+/// only emits a two-sided step when a binding exists. A lower score therefore indicates a
+/// corrupted or hand-assembled map, or an interpreter bug — it cannot flag a semantically
+/// wrong (but recorded) binding. Empty maps score 1.0 vacuously.
 public struct CoverageInvariant: FidelityInvariant {
     public init() {}
 

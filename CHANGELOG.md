@@ -6,6 +6,14 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Fidelity invariants documented as self-consistency diagnostics.** The
+  `ExplainabilityAuditor` / `FidelityVector` docs (and SEMANTICS.md Invariant G) now state
+  precisely what the scores verify — the coherence of the engine's own evidence chain — and
+  what they cannot: semantic correctness of an alignment. Coverage and completeness are 1.0
+  by construction on the shipped pipeline, scores dilute proportionally, and nothing gates
+  on them. Behavior is unchanged.
+
 ### Added
 - **`CloudTraceStore.retentionStats()` makes quarantine visible in the honesty surface.**
   The new `CloudRetentionStats` reports drops AND the in-memory quarantine (per tier, edges

@@ -6,6 +6,11 @@ import Foundation
 /// for that exact (base, comparison) pair. This audits the matcher -> semantics -> interpretation
 /// chain: a reported match with no recorded equivalence evaluation means the causal chain behind
 /// the claim is incomplete (the engine asserted a pairing it never evaluated).
+///
+/// On the shipped default pipeline this is 1.0 by construction: the interpreter records an
+/// equivalence decision for every pairing it emits. A lower score indicates a corrupted or
+/// hand-assembled map, or a pipeline bug — the decision's *content* (was the evaluation
+/// right?) is outside this check's reach. Empty maps score 1.0 vacuously.
 public struct CompletenessInvariant: FidelityInvariant {
     public init() {}
 
