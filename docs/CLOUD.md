@@ -2,7 +2,7 @@
 
 > **Status: experimental.** The ingestion path — buffering, load-shedding, retry, circuit breaking, quarantine — is real and chaos-tested. The query path is not implemented, and no server ships with this repository. DProvenanceKit's core promise remains local-first (see [DESIGN.md](../DESIGN.md)); this store is an early client-side building block for the "distributed trace federation" direction the README lists as planned. A hosted team version — shared traces, CI regression gates, monitoring — is a separate commercial offering ([COMMERCIAL.md](../COMMERCIAL.md)).
 
-Sometimes traces need to leave the device — a fleet of agents, a CI box, a beta cohort. `CloudTraceStore` is a `TraceStore` that ships events to an HTTP endpoint you operate, engineered around one rule: **recording never blocks and never lies**. Events buffer in memory offline-first, ship in background batches, back off through failures, and when something is finally lost or undeliverable, it's counted or quarantined — never silently gone.
+Sometimes traces need to leave the device — a fleet of agents, a CI box, a beta cohort. `CloudTraceStore` is a `TraceStore` that ships events to an HTTP endpoint you operate, engineered around one rule: **recording never blocks and never lies**. Events buffer in memory offline-first, ship in background batches, back off through failures, and when something is finally lost or undeliverable, it's counted (`dropStats`) or quarantined (`retentionStats().quarantined`) — and `retentionStats().preservedIntegrity` is the one bit that covers both. Quarantine is in-memory only: a quarantined batch is retrievable while the process lives and gone when it exits, which is exactly why it shows up in the report rather than being presented as delivered.
 
 ## Minimal end-to-end example
 
@@ -55,6 +55,16 @@ if !drops.preservedIntegrity {
 }
 ```
 
+`dropStats` covers what was *destroyed on this device*. Before trusting that a run actually reached the server, check the combined report — a quarantined batch is not dropped, but it is not delivered either:
+
+```swift
+try await store.flush(timeout: 10)
+let retention = await store.retentionStats()
+if !retention.preservedIntegrity {
+    print("\(retention.quarantined.total) undelivered items (events + edges) quarantined, \(retention.dropped.total) dropped — server-side data for these runs is incomplete")
+}
+```
+
 Payloads that fail `JSONEncoder` inside `record` are counted by priority tier in `dropStats`, just like buffer shedding and failed SQLite batch inserts. A structural or critical encode failure flips `preservedIntegrity` to `false`, so a run with diff-relevant loss is not presented as trustworthy.
 
 ## Failure handling
@@ -96,11 +106,14 @@ let snapshot = engine.snapshot()
 print("contaminated spans:", snapshot.manifest.contaminatedSpans)
 ```
 
-One sharp edge to know:
+Two sharp edges to know:
 
-- **Quarantine is in-memory only.** Quarantined batches do not survive process exit; there is no persistence or automatic re-drive.
+- **Quarantine is in-memory only.** Quarantined batches do not survive process exit; there is no persistence or automatic re-drive. Flush successfully, then retrieve `queryQuarantinedEvents` and check `retentionStats()` before the process ends, or the batch is gone. The order matters: `retentionStats()` covers drops and quarantine, not the pending buffer or an in-flight batch — it is a complete account only after `flush()` has returned normally. (Retrieving quarantined events copies them; nothing removes them from quarantine.)
+- **A successful `flush()` does not mean everything was delivered.** `flush` returns once everything is delivered *or quarantined* — a poison batch (400) resolves the flush without reaching the server. `retentionStats().quarantined` is how that outcome surfaces; `dropStats` deliberately excludes it.
 
 Round-tripped identity is preserved: the wire row carries the recorded `event.id`, so a quarantined event comes back with the ID it was recorded with, and ID-based correlation — including the replay manifest's duplicate detection — matches it to the original. Lineage edges drained with a quarantined batch stay attached to it (`CloudWriter.getQuarantinedEdges()`).
+
+One caveat on retrieval: `queryQuarantinedEvents` decodes each quarantined row back into `T`. A row whose payload no longer decodes (payload-schema drift since it was recorded) is omitted from the result — the omission is logged with a count, and the row stays quarantined and counted in `retentionStats()`, but it cannot be fed to the replay engine as a typed event.
 
 ## Wire contract
 
@@ -151,6 +164,7 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     public func flush() async throws                       // 30 s default timeout
     public func flush(timeout: TimeInterval) async throws  // throws CloudWriterError.flushTimedOut
     public var dropStats: TraceDropStats { get }
+    public func retentionStats() async -> CloudRetentionStats  // drops + quarantine, one integrity bit
     public func negotiateCapabilities() async throws                                  // stub: 2xx check only
     public func queryRuns(_ dsl: TraceQueryDSL<T>) async throws -> [TraceRun<T>]      // always [] on success
     public func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>]
@@ -160,6 +174,13 @@ public enum CloudTraceStoreError: Error {
     case notImplemented
     case serverError(Int)
     case unsupportedSchema(expected: String, received: String)
+}
+
+public struct CloudRetentionStats: Sendable, Equatable {
+    public init(dropped: TraceDropStats, quarantined: TraceDropStats)
+    public let dropped: TraceDropStats            // destroyed on-device (== dropStats)
+    public let quarantined: TraceDropStats        // undelivered, in-memory, edges count as structural
+    public var preservedIntegrity: Bool { get }   // dropped AND quarantined both clean
 }
 
 public enum CloudWriterError: Error, Equatable {

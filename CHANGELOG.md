@@ -7,6 +7,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`CloudTraceStore.retentionStats()` makes quarantine visible in the honesty surface.**
+  The new `CloudRetentionStats` reports drops AND the in-memory quarantine (per tier, edges
+  as structural) with one combined `preservedIntegrity` bit — closing the gap where a poison
+  batch resolved `flush()` successfully while `dropStats.preservedIntegrity` stayed `true`
+  over undelivered critical events. `CloudWriter.quarantinedStats()` backs it, computed from
+  the quarantine queue itself. `queryQuarantinedEvents` now logs rows it omits because their
+  payload no longer decodes, instead of silently shrinking the one retrieval path.
 - **`FoundationModelsLiveQuickstart`** calls Apple's real on-device model when available,
   then prints the answer, captured event timeline, drop/integrity status, and standalone SQLite
   artifact path. An unavailable model still produces a visible `fm_model_availability` trace.
