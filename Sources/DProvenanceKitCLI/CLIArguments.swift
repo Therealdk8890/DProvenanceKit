@@ -12,6 +12,7 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
     case emptyValue(String)
     case invalidValue(flag: String, value: String, reason: String)
     case minF1RequiresGate
+    case requireRoleBindingRequiresProofPack
     case missingRequiredFlag(String)
 
     var description: String {
@@ -30,6 +31,8 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
             return "invalid value '\(value)' for '\(flag)': \(reason)"
         case .minF1RequiresGate:
             return "--min-f1 has no effect without --gate; pass --gate or drop --min-f1"
+        case .requireRoleBindingRequiresProofPack:
+            return "--require-role-binding only applies to proof packs; pass --proof-pack or drop it"
         case .missingRequiredFlag(let flag):
             return "missing required flag \(flag)"
         }
@@ -56,6 +59,9 @@ struct CLIInvocation: Equatable {
     var inPath: String?
     /// verify: treat `--in` as a proof pack (attestation + embedded artifacts).
     var proofPack = false
+    /// verify --proof-pack: fail a v1 (value-presence-only) pack instead of accepting it
+    /// with a warning — require the role to be signer-vouched (v2).
+    var requireRoleBinding = false
     /// Normalized (lowercased) 64-hex-character signer key IDs.
     var trustedKeyIDs: Set<String> = []
 }
@@ -67,7 +73,7 @@ enum CLIArguments {
     private static let booleanFlags: [CLIInvocation.Mode: Set<String>] = [
         .evaluate: ["--gate"],
         .diagnose: [], .stability: [], .webExport: [], .attestDemo: [],
-        .verify: ["--proof-pack"],
+        .verify: ["--proof-pack", "--require-role-binding"],
     ]
     private static let valueFlags: [CLIInvocation.Mode: Set<String>] = [
         .evaluate: ["--min-f1"],
@@ -126,6 +132,8 @@ enum CLIArguments {
                     invocation.gate = true
                 case "--proof-pack":
                     invocation.proofPack = true
+                case "--require-role-binding":
+                    invocation.requireRoleBinding = true
                 default:
                     throw CLIArgumentError.unknownFlag(raw)
                 }
@@ -134,6 +142,9 @@ enum CLIArguments {
 
         if invocation.minF1 != nil, !invocation.gate {
             throw CLIArgumentError.minF1RequiresGate
+        }
+        if invocation.requireRoleBinding, !invocation.proofPack {
+            throw CLIArgumentError.requireRoleBindingRequiresProofPack
         }
         if invocation.mode == .verify, invocation.inPath == nil {
             throw CLIArgumentError.missingRequiredFlag("--in=<attestation.json>")

@@ -17,8 +17,14 @@ public struct ProofPackArtifact: Codable, Equatable, Sendable {
 
     /// Producer-defined label for what the artifact is (for example `claim-proof-report`).
     /// Must be non-empty; the verifier rejects unlabeled artifacts.
+    ///
+    /// In a `proofPackVersion: 2` pack the `role` is signer-vouched: verification requires
+    /// it to appear co-located with `sha256` in a signed event payload, so it cannot be
+    /// relabeled after signing. In a v1 pack `role` is producer-asserted only (see
+    /// `ProofPackBindingStrength`).
     public let role: String
-    /// Informational media type (for example `application/json`). Not covered by any check.
+    /// Informational media type (for example `application/json`). Not covered by any
+    /// binding check in either version — a consumer must not treat it as signer-vouched.
     public let mediaType: String
     public let encoding: Encoding
     /// The artifact bytes, encoded per `encoding`.
@@ -56,9 +62,19 @@ public struct ProofPackArtifact: Codable, Equatable, Sendable {
 /// bytes the trace vouches for (see `docs/PROOF_PACK.md`).
 ///
 /// Wrapping adds nothing to the attestation's canonical or signed bytes — a document signed
-/// before proof packs existed can be wrapped, and unwrapping never invalidates it.
+/// before proof packs existed can be wrapped, and unwrapping never invalidates it. This holds
+/// in both versions: v2 strengthens the *binding check* (the role must be co-located with the
+/// digest in a signed payload), not the signed bytes, so any existing attestation whose trace
+/// already records `{role, sha256}` per `docs/PROOF_PACK.md` can be wrapped as v2 without
+/// re-signing.
 public struct ProofPackDocument: Codable, Equatable, Sendable {
-    public static let schemaVersion = 1
+    /// The version new packs are stamped with by default. v2 binds the artifact `role`
+    /// (not just its `sha256`) into what the signature covers; see `ProofPackVerifier`.
+    public static let schemaVersion = 2
+    /// The oldest `proofPackVersion` the verifier still accepts. v1 packs verify but bind
+    /// only on digest presence, so their `role`/`mediaType` are producer-asserted — the
+    /// verification result labels this via `ProofPackBindingStrength.valuePresenceOnly`.
+    public static let minimumSupportedVersion = 1
 
     public let proofPackVersion: Int
     /// An unmodified `TraceAttestationDocument`; verified exactly as `dpk verify` does.
@@ -88,10 +104,14 @@ public struct ProofPackDocument: Codable, Equatable, Sendable {
         try JSONDecoder().decode(ProofPackDocument.self, from: data)
     }
 
+    /// Verify the pack. Pass `requireRoleBinding: true` to fail-close on packs whose `role`
+    /// is not signer-vouched (any v1 pack), so a consumer that integrates on the pass/fail
+    /// bit cannot be handed a value-presence-only pack with an attacker-chosen role.
     public func verify(
-        trustedKeyIDs: Set<String>? = nil
+        trustedKeyIDs: Set<String>? = nil,
+        requireRoleBinding: Bool = false
     ) -> ProofPackVerification {
-        ProofPackVerifier.verify(self, trustedKeyIDs: trustedKeyIDs)
+        ProofPackVerifier.verify(self, trustedKeyIDs: trustedKeyIDs, requireRoleBinding: requireRoleBinding)
     }
 }
 
@@ -113,8 +133,12 @@ public enum ProofPackVerificationFailure: Sendable, Equatable {
     case attestationFailed(TraceAttestationVerificationFailure)
     /// The recomputed SHA-256 of the embedded bytes does not equal the declared digest.
     case artifactDigestMismatch(index: Int)
-    /// The declared digest does not appear as a string leaf in any signed event payload.
+    /// The declared digest does not appear as a string leaf in any signed event payload
+    /// (v1), or the digest is not co-located with the artifact's `role` (v2).
     case artifactNotBound(index: Int)
+    /// The caller required role-bound (v2) verification, but the pack is a v1 pack whose
+    /// binding covers only the digest — its `role` is producer-asserted, not signer-vouched.
+    case roleBindingRequired
 }
 
 extension ProofPackVerificationFailure: CustomStringConvertible {
@@ -132,12 +156,29 @@ extension ProofPackVerificationFailure: CustomStringConvertible {
             return "artifactDigestMismatch(index: \(index))"
         case .artifactNotBound(let index):
             return "artifactNotBound(index: \(index))"
+        case .roleBindingRequired:
+            return "roleBindingRequired"
         }
     }
 }
 
+/// How strongly the signature covers an artifact's binding — the difference between "the
+/// signer vouched for these bytes under this role" and "the signer vouched for these bytes,
+/// and the producer asserts this role."
+public enum ProofPackBindingStrength: String, Sendable, Equatable {
+    /// v2: the artifact's `role` and `sha256` were found co-located in a signed event
+    /// payload, so the signature covers the bytes-to-role binding. A relabel after
+    /// signing fails verification.
+    case roleBound
+    /// v1: only the artifact's `sha256` was found in a signed payload. The bytes are
+    /// signer-vouched, but `role` (and `mediaType`) are producer-asserted and could have
+    /// been changed after signing without invalidating the pack. Re-issue as v2 to bind
+    /// the role.
+    case valuePresenceOnly
+}
+
 /// Where a verified artifact is anchored in the signed trace: the first event whose payload
-/// carries the artifact's digest as a string leaf.
+/// carries the artifact's digest (v1) or its digest co-located with its role (v2).
 public struct ProofPackArtifactBinding: Sendable, Equatable {
     public let artifactIndex: Int
     public let role: String
@@ -145,19 +186,23 @@ public struct ProofPackArtifactBinding: Sendable, Equatable {
     /// Zero-based position of the binding event in `trace.events`.
     public let eventIndex: Int
     public let eventTypeIdentifier: String
+    /// Whether the signature covers this artifact's `role`, or only its bytes.
+    public let strength: ProofPackBindingStrength
 
     public init(
         artifactIndex: Int,
         role: String,
         sha256: String,
         eventIndex: Int,
-        eventTypeIdentifier: String
+        eventTypeIdentifier: String,
+        strength: ProofPackBindingStrength
     ) {
         self.artifactIndex = artifactIndex
         self.role = role
         self.sha256 = sha256
         self.eventIndex = eventIndex
         self.eventTypeIdentifier = eventTypeIdentifier
+        self.strength = strength
     }
 }
 
@@ -181,6 +226,14 @@ public struct ProofPackVerification: Sendable, Equatable {
         self.bindings = bindings
         self.failure = failure
     }
+
+    /// The weakest binding strength across all artifacts, or nil when the pack is invalid
+    /// (no bindings). `valuePresenceOnly` here means at least one artifact's role is
+    /// producer-asserted, not signer-vouched — surface it before trusting the role.
+    public var bindingStrength: ProofPackBindingStrength? {
+        guard isValid, !bindings.isEmpty else { return nil }
+        return bindings.contains { $0.strength == .valuePresenceOnly } ? .valuePresenceOnly : .roleBound
+    }
 }
 
 public enum ProofPackVerifier {
@@ -192,7 +245,8 @@ public enum ProofPackVerifier {
     /// Every artifact must bind; the first failure stops the run.
     public static func verify(
         _ pack: ProofPackDocument,
-        trustedKeyIDs: Set<String>? = nil
+        trustedKeyIDs: Set<String>? = nil,
+        requireRoleBinding: Bool = false
     ) -> ProofPackVerification {
         func failure(
             _ reason: ProofPackVerificationFailure,
@@ -206,8 +260,17 @@ public enum ProofPackVerifier {
             )
         }
 
-        guard pack.proofPackVersion == ProofPackDocument.schemaVersion else {
+        guard pack.proofPackVersion >= ProofPackDocument.minimumSupportedVersion,
+              pack.proofPackVersion <= ProofPackDocument.schemaVersion else {
             return failure(.unsupportedVersion)
+        }
+        // v2 binds the role alongside the digest; v1 binds digest presence only. The
+        // version is validated above, so anything below the current schema is exactly v1.
+        let packBindsRole = pack.proofPackVersion >= 2
+        // Caller policy: reject a value-presence-only (v1) pack up front, before spending
+        // cryptography on a binding it has already declared insufficient.
+        guard !requireRoleBinding || packBindsRole else {
+            return failure(.roleBindingRequired)
         }
         guard !pack.artifacts.isEmpty else {
             return failure(.noArtifacts)
@@ -259,6 +322,12 @@ public enum ProofPackVerifier {
             }
             guard let eventIndex = payloads.firstIndex(where: { payload in
                 guard let payload else { return false }
+                if packBindsRole {
+                    // v2: the role must be signer-vouched, so a signed payload object must
+                    // carry this artifact's role under a `role` key beside its digest under
+                    // a `sha256` key — a relabel after signing leaves no such object.
+                    return containsRoleBinding(payload, sha256: artifact.sha256, role: artifact.role)
+                }
                 return containsStringLeaf(payload, equalTo: artifact.sha256)
             }) else {
                 return failure(.artifactNotBound(index: index), attestation: attestationResult)
@@ -268,7 +337,8 @@ public enum ProofPackVerifier {
                 role: artifact.role,
                 sha256: artifact.sha256,
                 eventIndex: eventIndex,
-                eventTypeIdentifier: pack.attestation.trace.events[eventIndex].typeIdentifier
+                eventTypeIdentifier: pack.attestation.trace.events[eventIndex].typeIdentifier,
+                strength: packBindsRole ? .roleBound : .valuePresenceOnly
             ))
         }
 
@@ -291,6 +361,31 @@ public enum ProofPackVerifier {
             return array.contains { containsStringLeaf($0, equalTo: target) }
         case let object as [String: Any]:
             return object.values.contains { containsStringLeaf($0, equalTo: target) }
+        default:
+            return false
+        }
+    }
+
+    /// Reports whether some JSON object in `value` has a `role` key equal to `role` AND a
+    /// `sha256` key equal to `sha256` — the canonical shape a producer records per
+    /// `docs/PROOF_PACK.md` (`{"role": "...", "sha256": "..."}`).
+    ///
+    /// The check matches these two SPECIFIC keys, not arbitrary sibling strings. Binding the
+    /// role's value against any string in the object would let an attacker relabel an
+    /// artifact to any other string the signer happened to co-locate (a `status`, a `stage`,
+    /// a free-form note), none of which the signer vouched as the artifact's *role*. Keying
+    /// the check on `role`/`sha256` is what actually makes the role signer-vouched — and
+    /// requiring both in the same object stops splicing one artifact's digest onto another's
+    /// role from elsewhere in the same signed trace.
+    private static func containsRoleBinding(_ value: Any, sha256: String, role: String) -> Bool {
+        switch value {
+        case let object as [String: Any]:
+            if (object["sha256"] as? String) == sha256, (object["role"] as? String) == role {
+                return true
+            }
+            return object.values.contains { containsRoleBinding($0, sha256: sha256, role: role) }
+        case let array as [Any]:
+            return array.contains { containsRoleBinding($0, sha256: sha256, role: role) }
         default:
             return false
         }

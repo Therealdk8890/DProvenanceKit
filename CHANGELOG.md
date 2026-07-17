@@ -6,15 +6,26 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Changed
-- **Fidelity invariants documented as self-consistency diagnostics.** The
-  `ExplainabilityAuditor` / `FidelityVector` docs (and SEMANTICS.md Invariant G) now state
-  precisely what the scores verify — the coherence of the engine's own evidence chain — and
-  what they cannot: semantic correctness of an alignment. Coverage and completeness are 1.0
-  by construction on the shipped pipeline, scores dilute proportionally, and nothing gates
-  on them. Behavior is unchanged.
+> **Source-breaking (proof packs).** `ProofPackVerificationFailure` gains a `.roleBindingRequired`
+> case — an exhaustive `switch` over it without a `default` will no longer compile — and the
+> public `ProofPackArtifactBinding.init` gains a required `strength:` parameter, breaking any
+> code that constructs one directly. Both are permitted pre-1.0; flagged here for consumers.
 
 ### Added
+- **Proof pack `proofPackVersion: 2` binds the artifact `role`, not just its bytes.** In v1,
+  an artifact's `role`/`mediaType` sat outside the signature: a genuinely-signed pack could
+  be re-wrapped with a different `role` (same bytes) and still verify VALID — even under
+  `--trusted-key` — with the attacker's role reported as if vouched. v2 requires a signed
+  event payload object with a **`role` key equal to the artifact's role and a `sha256` key
+  equal to its digest** (the shape producers were already told to record), so a relabel after
+  signing fails to bind — and matching the specific keys, not any sibling string, keeps a
+  co-located `status`/`stage` value from being usable as the role. New packs default to v2.
+  `ProofPackVerification.bindingStrength` / `ProofPackArtifactBinding.strength` report
+  `.roleBound` (v2) vs `.valuePresenceOnly` (v1), and `dpk verify --proof-pack` prints a
+  warning for v1 packs. For fail-closed integration, `verify(requireRoleBinding: true)` (CLI
+  `--require-role-binding`) rejects a v1 pack outright with `.roleBindingRequired`.
+  `mediaType` remains informational and unsigned in both versions.
+
 - **`CloudTraceStore.retentionStats()` makes quarantine visible in the honesty surface.**
   The new `CloudRetentionStats` reports drops AND the in-memory quarantine (per tier, edges
   as structural) with one combined `preservedIntegrity` bit — closing the gap where a poison
@@ -25,6 +36,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`FoundationModelsLiveQuickstart`** calls Apple's real on-device model when available,
   then prints the answer, captured event timeline, drop/integrity status, and standalone SQLite
   artifact path. An unavailable model still produces a visible `fm_model_availability` trace.
+
+### Changed
+- **v1 proof packs still verify but are labeled.** They are accepted for backward
+  compatibility with binding strength `.valuePresenceOnly`; re-issue as v2 to bind the role.
+  A committed `docs/test-vectors/proof-pack-v2.json` vector is checked by the suite alongside
+  the existing v1 vector.
+- **Fidelity invariants documented as self-consistency diagnostics.** The
+  `ExplainabilityAuditor` / `FidelityVector` docs (and SEMANTICS.md Invariant G) now state
+  precisely what the scores verify — the coherence of the engine's own evidence chain — and
+  what they cannot: semantic correctness of an alignment. Coverage and completeness are 1.0
+  by construction on the shipped pipeline, scores dilute proportionally, and nothing gates
+  on them. Behavior is unchanged.
 
 ### Fixed
 - **Swift 6.2+ main-actor call sites can use `run`, `runReturningID`, `withEngine`, and
