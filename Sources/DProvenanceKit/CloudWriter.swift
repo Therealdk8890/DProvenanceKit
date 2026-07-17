@@ -97,6 +97,32 @@ public actor CloudWriter {
     public func getQuarantinedEdges() -> [TraceEdge] {
         return quarantineQueue.flatMap { $0.edges }
     }
+
+    /// Per-tier tally of everything sitting in quarantine, computed from the queue
+    /// itself so it can never drift from what `getQuarantinedEvents` would return.
+    /// Edges count as `structural`, mirroring how a lost edge is tallied elsewhere:
+    /// they change what lineage traversal contains.
+    public func quarantinedStats() -> TraceDropStats {
+        var stats = TraceDropStats.zero
+        for batch in quarantineQueue {
+            for event in batch.events {
+                // Rows are built by record() from TracePriority.rawValue, so an
+                // out-of-range tier only occurs through misuse — fail toward
+                // visibility (critical), never silence. This deliberately diverges
+                // from the buffer's shed-path fallback (`?? .telemetry`): a shed
+                // row is gone either way, but a mis-tiered quarantined row still
+                // exists and must not read as "safe to lose".
+                switch TracePriority(rawValue: event.priority) ?? .critical {
+                case .telemetry: stats.telemetry &+= 1
+                case .diagnostic: stats.diagnostic &+= 1
+                case .structural: stats.structural &+= 1
+                case .critical: stats.critical &+= 1
+                }
+            }
+            stats.structural &+= UInt64(batch.edges.count)
+        }
+        return stats
+    }
     
     private func tick() async {
         let sleepMs: UInt64 = 500

@@ -89,8 +89,22 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
 
     /// Buffer congestion drops plus payloads that failed to encode in `record`.
     /// Quarantined batches are NOT counted here — they remain retrievable via
-    /// `queryQuarantinedEvents`.
+    /// `queryQuarantinedEvents`. That deliberately makes this the wrong signal for
+    /// "did everything reach the server?": a quarantined critical event leaves
+    /// `preservedIntegrity` true here while the data sits undelivered in RAM. Check
+    /// `retentionStats().preservedIntegrity` for the delivery-trust bit.
     public var dropStats: TraceDropStats { buffer.dropStats + dropTally.snapshot }
+
+    /// Drops AND quarantine in one report. `flush()` returning normally means
+    /// everything was delivered *or quarantined* — so a successful flush with
+    /// `retentionStats().quarantined.total > 0` is the honest signal that recorded
+    /// events did not reach the server and will not survive process exit.
+    public func retentionStats() async -> CloudRetentionStats {
+        CloudRetentionStats(
+            dropped: dropStats,
+            quarantined: await writer.quarantinedStats()
+        )
+    }
     
     private struct QueryPayload: Encodable {
         let schemaVersion: String
@@ -160,11 +174,16 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
 
     public func queryQuarantinedEvents(_ dsl: TraceQueryDSL<T>) async throws -> [TraceEvent<T>] {
         let rows = await writer.getQuarantinedEvents()
-        
+
+        var undecodedCount = 0
         let allEvents = rows.compactMap { row -> TraceEvent<T>? in
             guard let runID = UUID(uuidString: row.runID),
                   let payload = try? JSONDecoder().decode(T.self, from: row.payload),
                   let eventID = UUID(uuidString: row.id) else {
+                // A quarantined row that no longer decodes as T must not vanish from
+                // the ONE path that can retrieve it — the row stays in quarantine
+                // (and in retentionStats); the log carries the omission.
+                undecodedCount += 1
                 return nil
             }
             
@@ -181,7 +200,11 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
                 timestamp: Date(timeIntervalSince1970: TimeInterval(row.timestamp) / 1_000_000.0)
             )
         }
-        
+
+        if undecodedCount > 0 {
+            DPKLog.cloud.error("queryQuarantinedEvents: \(undecodedCount) of \(rows.count) quarantined rows failed to decode as \(String(describing: T.self), privacy: .public) and are omitted from the result; the rows remain quarantined")
+        }
+
         var runs: [UUID: [TraceEvent<T>]] = [:]
         for e in allEvents {
             runs[e.runID, default: []].append(e)
