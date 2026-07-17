@@ -1,0 +1,76 @@
+{
+  "artifacts" : [
+    {
+      "content" : "{\"claims\":[{\"id\":\"c1\",\"verdict\":\"supported\"},{\"id\":\"c2\",\"verdict\":\"refuted\"}]}",
+      "encoding" : "utf8",
+      "mediaType" : "application/json",
+      "role" : "claim-proof-report",
+      "sha256" : "dee3305ee6e5bdba63a73521aaa9ca1cbc5842ad0e69e7db1fe4204b92e06ac0"
+    }
+  ],
+  "attestation" : {
+    "attestation" : {
+      "algorithm" : "P256-SHA256",
+      "canonicalization" : "DPK-BINARY-V1",
+      "contextID" : "proof-pack-case-1",
+      "edgeCount" : 0,
+      "eventCount" : 3,
+      "issuedAtUnixMicroseconds" : 1700000200000000,
+      "keyID" : "4269889431e3131966fcaf6a457141943ed2c35b5b917ae62cb339546f523551",
+      "publicKeyBase64" : "BFFcPW6545a5BNP+yn9U/c0MwemXvzddylFa0KbDtANfRTa+OlDzGPv5pUdZAqIhUCvvDVfgjFOyzApW8X2fk1Q=",
+      "runID" : "30000000-0000-0000-0000-000000000001",
+      "signatureBase64" : "MEUCIQDisy2BFxtX+zG7EUNV1p7+36O1YhqDovUcglFV09G3pQIgMxvP+luU6Ss91Dyya2iloIRG+QmNavW6PfgnKe1q0oA=",
+      "traceDigest" : "865c0a60d2eed24b63dac6a5450eb38010a433475a3f9884d97fd5f4cfc11f59",
+      "version" : 1
+    },
+    "trace" : {
+      "contextID" : "proof-pack-case-1",
+      "edges" : [
+
+      ],
+      "events" : [
+        {
+          "contextID" : "proof-pack-case-1",
+          "engineName" : "OnDeviceAgent",
+          "id" : "40000000-0000-0000-0000-000000000001",
+          "payloadJSON" : "{\"artifacts\":[],\"priority\":2,\"typeIdentifier\":\"policy-check\"}",
+          "priority" : 2,
+          "runID" : "30000000-0000-0000-0000-000000000001",
+          "schemaVersion" : 1,
+          "sequence" : 0,
+          "spanID" : "report",
+          "timestampUnixMicroseconds" : 1700000000500000,
+          "typeIdentifier" : "policy-check"
+        },
+        {
+          "contextID" : "proof-pack-case-1",
+          "engineName" : "OnDeviceAgent",
+          "id" : "40000000-0000-0000-0000-000000000002",
+          "payloadJSON" : "{\"artifacts\":[{\"role\":\"claim-proof-report\",\"sha256\":\"dee3305ee6e5bdba63a73521aaa9ca1cbc5842ad0e69e7db1fe4204b92e06ac0\"}],\"priority\":3,\"typeIdentifier\":\"artifact-emitted\"}",
+          "priority" : 3,
+          "runID" : "30000000-0000-0000-0000-000000000001",
+          "schemaVersion" : 1,
+          "sequence" : 1,
+          "spanID" : "report",
+          "timestampUnixMicroseconds" : 1700000000750000,
+          "typeIdentifier" : "artifact-emitted"
+        },
+        {
+          "contextID" : "proof-pack-case-1",
+          "engineName" : "OnDeviceAgent",
+          "id" : "40000000-0000-0000-0000-000000000003",
+          "payloadJSON" : "{\"artifacts\":[],\"priority\":3,\"typeIdentifier\":\"final-decision\"}",
+          "priority" : 3,
+          "runID" : "30000000-0000-0000-0000-000000000001",
+          "schemaVersion" : 1,
+          "sequence" : 2,
+          "spanID" : "report",
+          "timestampUnixMicroseconds" : 1700000001000000,
+          "typeIdentifier" : "final-decision"
+        }
+      ],
+      "runID" : "30000000-0000-0000-0000-000000000001"
+    }
+  },
+  "proofPackVersion" : 2
+}

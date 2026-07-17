@@ -60,7 +60,7 @@ struct DProvenanceKitCLI {
         }
         if invocation.mode == .verify {
             if invocation.proofPack {
-                runVerifyProofPack(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
+                runVerifyProofPack(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs, requireRoleBinding: invocation.requireRoleBinding)
             } else {
                 runVerify(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
             }
@@ -310,13 +310,13 @@ struct DProvenanceKitCLI {
     /// embedded artifact's recomputed SHA-256 against its declared digest and against the
     /// signed event payloads (docs/PROOF_PACK.md). All verification logic lives in the
     /// library (`ProofPackDocument.verify`); this arm only decodes and reports.
-    static func runVerifyProofPack(inPath: String, trustedKeyIDs: Set<String>) {
+    static func runVerifyProofPack(inPath: String, trustedKeyIDs: Set<String>, requireRoleBinding: Bool) {
         let trustSet: Set<String>? = trustedKeyIDs.isEmpty ? nil : trustedKeyIDs
 
         do {
             let data = try Data(contentsOf: URL(fileURLWithPath: inPath))
             let pack = try ProofPackDocument.decodeJSON(data)
-            let result = pack.verify(trustedKeyIDs: trustSet)
+            let result = pack.verify(trustedKeyIDs: trustSet, requireRoleBinding: requireRoleBinding)
             guard result.isValid else {
                 printErr("INVALID: \(result.failure.map(String.init(describing:)) ?? "unknown failure")")
                 if let attestation = result.attestation {
@@ -338,6 +338,14 @@ struct DProvenanceKitCLI {
             }
             for binding in result.bindings {
                 print("Artifact: \(binding.role)  sha256=\(binding.sha256.prefix(12))…  bound by event[\(binding.eventIndex)] \(binding.eventTypeIdentifier)")
+            }
+            switch result.bindingStrength {
+            case .roleBound?:
+                print("Binding: role signer-vouched (proofPackVersion \(pack.proofPackVersion))")
+            case .valuePresenceOnly?:
+                print("Binding: WARNING — bytes signer-vouched, but role/mediaType are producer-asserted, NOT covered by the signature (proofPackVersion \(pack.proofPackVersion)); re-issue as v\(ProofPackDocument.schemaVersion) to bind the role")
+            case nil:
+                break
             }
         } catch {
             printErr("verify failed: \(error)")
@@ -367,6 +375,8 @@ struct DProvenanceKitCLI {
           --in=<path>       verify: attestation document (or proof pack) to verify
           --proof-pack      verify: treat --in as a proof pack and also check that each
                             embedded artifact's SHA-256 is bound inside the signed trace
+          --require-role-binding  verify --proof-pack: reject a v1 (value-presence-only)
+                            pack instead of warning — require the role to be signer-vouched
           --trusted-key=<id> verify: require this signer key ID (64 hex chars, repeatable)
           -h, --help        Show this help
 

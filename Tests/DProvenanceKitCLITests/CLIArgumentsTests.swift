@@ -111,6 +111,22 @@ final class CLIArgumentsTests: XCTestCase {
         }
     }
 
+    // MARK: - --require-role-binding
+
+    func testRequireRoleBindingIsAcceptedWithProofPack() throws {
+        let invocation = try CLIArguments.parse(
+            ["verify", "--in=pack.json", "--proof-pack", "--require-role-binding"]
+        )
+        XCTAssertTrue(invocation.requireRoleBinding)
+        XCTAssertFalse(try CLIArguments.parse(["verify", "--in=pack.json", "--proof-pack"]).requireRoleBinding)
+    }
+
+    func testRequireRoleBindingWithoutProofPackIsRejected() {
+        XCTAssertThrowsError(try CLIArguments.parse(["verify", "--in=pack.json", "--require-role-binding"])) { error in
+            XCTAssertEqual(error as? CLIArgumentError, .requireRoleBindingRequiresProofPack)
+        }
+    }
+
     // MARK: - --min-f1
 
     func testMalformedMinF1IsRejected() {
