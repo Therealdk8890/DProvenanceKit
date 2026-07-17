@@ -50,6 +50,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on them. Behavior is unchanged.
 
 ### Fixed
+- **`RegressionRisk` no longer misses materially-changed or skipped critical steps.** The risk
+  verdict was derived only from `.removed`/`.reordered` alignment states, but a critical step
+  that was changed or skipped binds to a same-type event (type match alone clears the matcher
+  threshold), gets classified `.ambiguous`, and so escaped the verdict entirely — a tampered or
+  skipped critical decision reported `RegressionRisk.none` on the flagship `strictAuditV1`
+  profile, the exact regressions the engine exists to catch (SEMANTICS.md Def 5 / Invariant A/E).
+  The verdict is now derived from the equivalence outcome: a critical step that is removed, bound
+  below the profile's `semanticThreshold`, or reordered relative to another **critical** step
+  fires HIGH. Reorder is computed over critical pairs only, so a benign structural/diagnostic step
+  moving past a stationary critical no longer fires a false HIGH. Alignment states, findings, and
+  every calibrated corpus case are unchanged; this only corrects the risk level. Behavior change:
+  runs that previously (incorrectly) reported `.none` may now report `.high`.
 - **Swift 6.2+ main-actor call sites can use `run`, `runReturningID`, `withEngine`, and
   `withSpan` without manually annotating closures `@Sendable`.** The async scope APIs now use
   caller-executor semantics on compilers that support them, while preserving the existing API
