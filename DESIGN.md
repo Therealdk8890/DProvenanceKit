@@ -34,6 +34,8 @@ Internally an event travels as a generic envelope, `TraceEvent<T>`, carrying the
 
 A note on the clocks. Every event carries both a wall-clock `timestamp` and a monotonic per-run `sequence`. **`sequence` is authoritative**; `timestamp` is for display and coarse range filtering only. The reason is in §9 — it's the crux of the worked case study.
 
+`TraceRun` enforces this at construction: its initializer normalizes the `events` array to ascending `sequence` (ties keep the caller's relative order). Store load paths already deliver sorted arrays, so this matters for hand-assembled runs — e.g. events a consumer decoded from its own JSON — which would otherwise carry their assembly order into diffing and alignment. A hand-assembled run and a store-loaded run holding the same events always analyze identically.
+
 ---
 
 ## 3. Ambient context via `@TaskLocal`

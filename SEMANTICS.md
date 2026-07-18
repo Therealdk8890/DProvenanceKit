@@ -58,6 +58,8 @@ A trace where an invoice is generated *before* a customer is created is not equi
 
 The engine has no dependency graph, so it enforces this conservatively: a relative-order inversion of any **critical** step is treated as non-equivalent and drives `RegressionRisk.high`, in *every* alignment mode — including the `.linear` profiles (`strictAuditV1`). `.linear` only suppresses reorder detection for non-critical (structural/telemetry) events, where order shifts are the common benign case. This is critical-*order* sensitivity, not true dependency inference: it may flag a genuinely independent pair of critical events, which is the safe direction for a regression gate.
 
+Relative order is measured over the run's normalized event arrays: `TraceRun` sorts events by ascending `sequence` at construction, so the positions the verdict and the `.reordered` findings are computed from coincide with the authoritative causal order — regardless of the order a caller assembled the array.
+
 ### Invariant F — Temporal Variance
 Execution duration does not affect behavioral equivalence unless timing itself is an explicit semantic requirement modeled in the payload. A sequence executing in 10ms is behaviorally equivalent to the same sequence executing in 200ms.
 

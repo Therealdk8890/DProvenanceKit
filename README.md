@@ -244,7 +244,7 @@ Current Corpus:
 
 > These are **conformance benchmarks over a curated set of known failure modes** — evidence the engine behaves correctly on the regressions it's designed to catch, not a claim that it detects *every possible* reasoning regression. The perfect scores reflect a controlled diagnostic corpus, not statistical generalization to arbitrary traces.
 
-See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, confusion matrices, runtime analysis, and benchmark corpus details.
+See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, per-case TP/FP/FN results, and benchmark corpus details. Runtime timings are deliberately excluded from the public contract — they vary by machine and runner load; measure locally with the CLI output from the run you care about.
 
 ---
 

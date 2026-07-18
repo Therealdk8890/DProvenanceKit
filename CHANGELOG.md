@@ -64,6 +64,22 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   artifact path. An unavailable model still produces a visible `fm_model_availability` trace.
 
 ### Changed
+- **`TraceRun` now normalizes its events to ascending `sequence` at construction** (ties
+  keep the caller's relative order). DESIGN.md declares `sequence` the authoritative causal
+  order, but the alignment and diff engines measure order over the events array, and nothing
+  sorted it — so a hand-assembled run (e.g. events decoded from a consumer's own JSON) could
+  silently produce different regression verdicts than the same run loaded from a store.
+  Store-loaded runs were always sorted and are unaffected. Behavior changes only for
+  hand-built arrays whose assembly order contradicted their sequences: a causal inversion of
+  two critical steps now correctly fires the regression verdict, with backing `.reordered`
+  findings — verdict and findings still share one ordering basis, so the verdict fires only
+  when an array-position inversion exists. Two consequences for those hand-built runs:
+  the diff engine no longer manufactures spurious added/removed pairs against a
+  store-loaded twin, and `attest(run:)`/`verify(_:for:)` now succeed where they previously
+  threw `nonMonotonicSequence` (fail-to-pass only: the sequence values are inside the
+  signed canonical bytes, so no previously-valid attestation changes digest and permuting
+  an array can never alter the verified causal order). The raw `AttestableTrace(events:)`
+  path is untouched and remains strict.
 - **v1 proof packs still verify but are labeled.** They are accepted for backward
   compatibility with binding strength `.valuePresenceOnly`; re-issue as v2 to bind the role.
   A committed `docs/test-vectors/proof-pack-v2.json` vector is checked by the suite alongside
