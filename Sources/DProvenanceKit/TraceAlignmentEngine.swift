@@ -48,23 +48,70 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
             evidenceCollector: collector
         )
         
-        // Pass 4: Regression Risk Analysis (carried over from legacy for now until it's also separated).
-        // Two failure modes degrade a critical reasoning step: removing it, or reordering it.
-        // Reordering critical steps can invert a dependency (e.g. GenerateInvoice before
-        // CreateCustomer). The engine has no dependency graph, so this is critical-*order*
-        // sensitivity, not true dependency inference; it fires only on .critical steps so that
-        // reordering of structural/diagnostic steps (the common, benign case) stays .none.
-        let removedCritical = alignments.filter { $0.state.isRemoved && $0.baseEvent?.payload.priority == .critical }
-        let reorderedCritical = alignments.filter { $0.state.isReordered && $0.baseEvent?.payload.priority == .critical }
+        // Pass 4: Regression Risk Analysis.
+        //
+        // SEMANTICS.md Def 5 / Invariant A/E: a critical reference step is a regression when it
+        // is NOT mapped to an equivalent counterpart in causal order. Three ways that happens:
+        //   1. removed — no counterpart at all;
+        //   2. reordered — its causal order versus another CRITICAL step inverted;
+        //   3. changed — bound to a counterpart the equivalence model rejected (score below the
+        //      profile's semanticThreshold and payloads differ).
+        //
+        // This is derived HERE, from the equivalence outcome and critical-only order, rather
+        // than only from the interpreter's coarse display states. Earlier this pass read only
+        // `.removed`/`.reordered`; but a materially changed critical binds to a same-type event
+        // (type match alone clears the matcher's threshold) and is filed `.ambiguous`, which
+        // never surfaced — so a tampered/skipped critical step escaped the risk verdict entirely.
+        // Reorder is computed over critical pairs only, so a benign structural/diagnostic step
+        // moving past a stationary critical no longer fires a false HIGH.
+        let threshold = configuration.profile.semanticThreshold
+        var removedCriticalTypes: [String] = []
+        var changedCriticalTypes: [String] = []
+        // (baseIdx, compIdx) of each matched CRITICAL pair, using the SAME array-index basis
+        // the interpreter uses to assign `.reordered` (see DefaultAlignmentInterpreter's
+        // matchedPairs). Deriving the verdict from the same positions the emitted
+        // `.reorderedExecution` findings use guarantees the two can never disagree about
+        // whether — or where — a reorder happened.
+        var criticalPairs: [(baseIdx: Int, compIdx: Int, type: String)] = []
+        for alignment in alignments {
+            guard let b = alignment.baseEvent, b.payload.priority == .critical else { continue }
+            guard let c = alignment.comparisonEvent else {
+                removedCriticalTypes.append(b.payload.typeIdentifier)
+                continue
+            }
+            // Identical payloads are equivalent by construction; otherwise consult the same
+            // score the matcher/equivalence model used. Below the threshold ⇒ not equivalent.
+            if b.payload != c.payload {
+                let (score, _) = configuration.scoreMatch(base: b, comp: c)
+                if score < threshold { changedCriticalTypes.append(b.payload.typeIdentifier) }
+            }
+            if let baseIdx = baseEvents.firstIndex(where: { $0.id == b.id }),
+               let compIdx = compEvents.firstIndex(where: { $0.id == c.id }) {
+                criticalPairs.append((baseIdx, compIdx, b.payload.typeIdentifier))
+            }
+        }
+        // Causal-order inversion between two CRITICAL steps: x precedes y in the base but
+        // follows it in the comparison. Restricting to critical pairs means a benign
+        // structural/diagnostic step moving past a stationary critical is not a regression
+        // (that produced a false HIGH); non-critical reorders still surface as `.reordered`
+        // findings for display, they just don't drive the risk verdict.
+        var reorderedCriticalTypes: [String] = []
+        for x in criticalPairs {
+            let inverts = criticalPairs.contains { y in
+                x.baseIdx != y.baseIdx && x.baseIdx < y.baseIdx && x.compIdx > y.compIdx
+            }
+            if inverts { reorderedCriticalTypes.append(x.type) }
+        }
+
         let risk: RegressionRisk
-        if !removedCritical.isEmpty {
-            let criticalTypes = removedCritical.compactMap { $0.baseEvent?.payload.typeIdentifier }.joined(separator: ", ")
-            risk = RegressionRisk(level: .high, strength: 0.95, reasoning: "Critical reasoning steps removed: \(criticalTypes)")
-        } else if !reorderedCritical.isEmpty {
-            let reorderedTypes = reorderedCritical.compactMap { $0.baseEvent?.payload.typeIdentifier }.joined(separator: ", ")
-            risk = RegressionRisk(level: .high, strength: 1.0, reasoning: "Critical reasoning steps reordered: \(reorderedTypes)")
+        if !removedCriticalTypes.isEmpty {
+            risk = RegressionRisk(level: .high, strength: 0.95, reasoning: "Critical reasoning steps removed: \(removedCriticalTypes.joined(separator: ", "))")
+        } else if !reorderedCriticalTypes.isEmpty {
+            risk = RegressionRisk(level: .high, strength: 1.0, reasoning: "Critical reasoning steps reordered: \(reorderedCriticalTypes.joined(separator: ", "))")
+        } else if !changedCriticalTypes.isEmpty {
+            risk = RegressionRisk(level: .high, strength: 0.9, reasoning: "Critical reasoning steps changed beyond equivalence: \(changedCriticalTypes.joined(separator: ", "))")
         } else {
-            risk = RegressionRisk(level: .none, strength: 1.0, reasoning: "No critical steps removed or reordered.")
+            risk = RegressionRisk(level: .none, strength: 1.0, reasoning: "No critical steps removed, reordered, or materially changed.")
         }
         
         var vArtifacts: VerificationArtifacts? = nil

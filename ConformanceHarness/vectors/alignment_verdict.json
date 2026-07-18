@@ -135,8 +135,8 @@
         }
       ],
       "expected": {
-        "regression_level": "none",
-        "regression_strength": 1.0,
+        "regression_level": "high",
+        "regression_strength": 0.9,
         "alignment_state_kinds": [
           "ambiguous",
           "exactMatch"
