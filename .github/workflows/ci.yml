@@ -152,8 +152,10 @@ jobs:
 
       # Ten @unchecked Sendable hand-locked classes, previously with no TSan coverage.
       # Scope to the burst/chaos/buffer suites so the race check stays fast.
+      # InMemoryTraceStore is included because its suite carries a real concurrent
+      # writes test that the previous filter silently skipped.
       - name: Test concurrency suites under ThreadSanitizer
-        run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker|CloudTraceStoreRead'
+        run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker|CloudTraceStoreRead|InMemoryTraceStore'
 
   boundary-guard:
     name: Free/paid boundary guard
