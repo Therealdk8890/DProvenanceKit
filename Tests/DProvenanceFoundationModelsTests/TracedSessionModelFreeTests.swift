@@ -1,3 +1,6 @@
+// Outer compiler gate mirrors the FM session sources: on Swift 6.0/6.1 those files
+// compile out, so tests referencing their types must compile out with them (#57).
+#if compiler(>=6.2)
 #if canImport(FoundationModels)
 import XCTest
 import Foundation
@@ -131,3 +134,4 @@ final class TracedSessionModelFreeTests: XCTestCase {
     }
 }
 #endif
+#endif  // compiler(>=6.2)
