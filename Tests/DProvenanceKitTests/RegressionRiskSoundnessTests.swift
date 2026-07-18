@@ -75,23 +75,25 @@ final class RegressionRiskSoundnessTests: XCTestCase {
         XCTAssertEqual(r.regressionRisk.level, .none, "an unchanged critical step must not fire a regression")
     }
 
-    func testReorderVerdictAgreesWithReorderFindingsOnUnsortedArrays() {
-        // A caller may build a TraceRun whose events array order differs from `sequence`
-        // order (nothing sorts it). The reorder VERDICT and the emitted `.reordered` findings
-        // must not contradict each other. Here the comparison array order matches the base
-        // (A then B) while the two criticals carry swapped sequences — array-index basis sees
-        // no inversion, so both must report no reorder. (The earlier sequence-based verdict
-        // would have fired a HIGH "reordered" with zero backing `.reordered` findings.)
+    func testSequenceInversionFiresRegardlessOfArrayAssemblyOrder() {
+        // A caller may hand the initializer an events array whose order differs from
+        // `sequence` order (e.g. events decoded from the caller's own JSON). `sequence`
+        // is authoritative (DESIGN.md §2): `TraceRun.init` normalizes the array, so the
+        // engine sees the same causal order a store-loaded run would produce. Here the
+        // comparison's criticals genuinely inverted causally — B ran before A per
+        // `sequence` — even though the caller assembled the array as [A, B]. The verdict
+        // must fire, WITH backing `.reordered` findings here: verdict and findings share
+        // one index basis over the normalized array, so the verdict can only fire when an
+        // array-position inversion exists. (The state label is not always `.reordered` —
+        // an inverted pair whose score also falls below the threshold files `.ambiguous`;
+        // with identical payloads, as here, the reorder label is guaranteed.)
         let base = run([ev(0, "A", "x"), ev(1, "B", "y")])
-        let comp = run([ev(1, "A", "x"), ev(0, "B", "y")])   // array [A,B]; sequences swapped
+        let comp = run([ev(1, "A", "x"), ev(0, "B", "y")])   // assembled [A,B]; causally B ran first
         let r = engine().align(base: base, comparison: comp)
 
-        // No array-position inversion occurred, and payloads are identical, so there is no
-        // regression. The interpreter agrees (no `.reordered` states). The earlier
-        // sequence-based verdict fired a spurious HIGH "reordered" here with zero backing
-        // `.reordered` findings — this pins that the two now use the same basis.
-        XCTAssertFalse(r.alignments.contains { $0.state.isReordered }, "no array-position inversion occurred")
-        XCTAssertEqual(r.regressionRisk.level, .none, "verdict must match the (empty) reorder findings, not fire on a sequence-only inversion")
+        XCTAssertTrue(r.alignments.contains { $0.state.isReordered }, "the causal inversion must surface as `.reordered` findings")
+        XCTAssertEqual(r.regressionRisk.level, .high, "a causal inversion of two criticals must fire HIGH regardless of array assembly order")
+        XCTAssertTrue(r.regressionRisk.reasoning.contains("reordered"), "the verdict must name the reorder the findings report")
     }
 
     func testBenignStructuralReorderDoesNotFireFalseHigh() {
