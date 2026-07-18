@@ -285,6 +285,13 @@ Your package or app target must declare an Apple platform at or above the packag
 
 The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The runnable command-line entry points (`dpk`, `GenerateSample`, `Quickstart`, and the Foundation Models demos) are intended for macOS.
 
+### Toolchain requirements
+
+- **Core libraries** (`DProvenanceKit`, `DProvenanceOTel`, the CLI): Swift 6.0+ (`swift-tools-version: 6.0`). CI builds this floor on a Swift 6.1 runner so it cannot silently rot.
+- **Foundation Models surface** (`session.traced(...)` and the rest of `DProvenanceFoundationModels`' FM session APIs): **Swift 6.2+ (Xcode 26+)**, because the adapter uses Swift 6.2 concurrency syntax. On older toolchains the FM session surface compiles out cleanly — your build succeeds, and the snapshot/diff/redaction types in the same module remain available; only the live-session tracing APIs are absent. If `session.traced(...)` doesn't resolve, your toolchain is the reason.
+
+Deployment targets are independent of the toolchain floor: building with Xcode 26 still deploys to macOS 13 / iOS 16.
+
 ### 1. Define your events
 
 Any `enum` or `struct` that conforms to `TraceableEvent`. `typeIdentifier` must be stable across schema versions; `priority` controls survival under load.

@@ -76,6 +76,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on them. Behavior is unchanged.
 
 ### Fixed
+- **Swift 6.0/6.1 consumers can build the package again.** `DProvenanceFoundationModels`'
+  FM session files use `nonisolated(nonsending)` (Swift 6.2+ syntax), and inactive
+  `#if canImport` regions must still parse — so any consumer build on Swift 6.0/6.1
+  failed at parse time even though it never used the FM APIs (#57, first hit by
+  dpk-starter on a stock `macos-15` runner). The FM session surface (and the tests that
+  reference it) now sits behind an outer `#if compiler(>=6.2)` gate, whose inactive
+  branch is lexed but not parsed: on older toolchains those files compile out exactly as
+  they already did on SDKs without FoundationModels, and the module's snapshot/diff/
+  redaction types remain available. A new CI job builds the library targets on a Swift
+  6.1 runner — the environment that reproduced #57 — so both this gate and the core
+  library's `#if compiler(>=6.2)` fallback branches are now compiled on every PR instead
+  of shipped untested. README documents the toolchain floor explicitly.
 - **`CloudWriter` no longer wedges permanently after an outage that recovers while the
   buffer is idle.** The circuit breaker's single half-open probe could be consumed by an
   idle tick that had nothing to send, stranding the breaker in `.halfOpen` so the writer

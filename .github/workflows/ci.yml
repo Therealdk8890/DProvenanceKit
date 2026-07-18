@@ -140,6 +140,40 @@ jobs:
           DPK_WEB_EXPORT_JSON: ${{ runner.temp }}/web-export.json
         run: npm run test:smoke
 
+  swift-floor:
+    # Proves the documented Swift 6.0/6.1 floor on every PR. This is the exact
+    # environment that first broke a consumer (#57: dpk-starter on a stock macos-15
+    # runner, Swift 6.1.2): without the FM module's outer `#if compiler(>=6.2)` gate
+    # the build fails at parse time, and the core library's own compiler-gated
+    # fallback branches (DProvenanceKit.swift) are never compiled anywhere else —
+    # the macos-26 jobs always take the 6.2 side of every `#if compiler(>=6.2)`.
+    # Library targets only: DProvenanceUI and the demo executables track the
+    # latest-Xcode job above and are not part of the consumer floor contract.
+    name: Swift 6.1 floor (library targets)
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Print toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build core library
+        run: swift build --target DProvenanceKit
+
+      - name: Build Foundation Models module (FM surface compiles out pre-6.2)
+        run: swift build --target DProvenanceFoundationModels
+
+      - name: Build OTel bridges
+        run: |
+          swift build --target DProvenanceOTel
+          swift build --target DProvenanceFoundationModelsOTel
+
+      - name: Build CLI
+        run: swift build --product dpk
+
   thread-sanitizer:
     name: Thread sanitizer (concurrency tests)
     runs-on: macos-26

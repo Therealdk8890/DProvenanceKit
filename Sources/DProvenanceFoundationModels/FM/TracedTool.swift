@@ -1,3 +1,6 @@
+// Outer compiler gate: keeps Swift 6.0/6.1 consumer builds from parsing this file's
+// FM-session surface — see TracedLanguageModelSession.swift and issue #57.
+#if compiler(>=6.2)
 #if canImport(FoundationModels)
 import Foundation
 import Synchronization
@@ -200,3 +203,4 @@ final class FMStandaloneInvocationCounter: Sendable {
     }
 }
 #endif
+#endif  // compiler(>=6.2)
