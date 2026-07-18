@@ -1,3 +1,10 @@
+// `nonisolated(nonsending)` below is Swift 6.2+ syntax, and inactive `#if canImport`
+// regions must still PARSE — only compiler()/swift() conditions exempt their inactive
+// branch from parsing (it is lexed only). Without this outer gate, a Swift 6.0/6.1
+// consumer build fails at parse time even though FoundationModels is not importable
+// there (#57). Deployment floors are unchanged; on older toolchains this file simply
+// compiles out, exactly as it already did on SDKs without FoundationModels.
+#if compiler(>=6.2)
 #if canImport(FoundationModels)
 import Foundation
 import FoundationModels
@@ -577,3 +584,4 @@ public final class TracedLanguageModelSession: Sendable {
     }
 }
 #endif
+#endif  // compiler(>=6.2)

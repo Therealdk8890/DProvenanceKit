@@ -244,7 +244,7 @@ Current Corpus:
 
 > These are **conformance benchmarks over a curated set of known failure modes** — evidence the engine behaves correctly on the regressions it's designed to catch, not a claim that it detects *every possible* reasoning regression. The perfect scores reflect a controlled diagnostic corpus, not statistical generalization to arbitrary traces.
 
-See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, confusion matrices, runtime analysis, and benchmark corpus details.
+See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, per-case TP/FP/FN results, and benchmark corpus details. Runtime timings are deliberately excluded from the public contract — they vary by machine and runner load; measure locally with the CLI output from the run you care about.
 
 ---
 
@@ -284,6 +284,13 @@ Your package or app target must declare an Apple platform at or above the packag
 ### Platform support
 
 The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The runnable command-line entry points (`dpk`, `GenerateSample`, `Quickstart`, and the Foundation Models demos) are intended for macOS.
+
+### Toolchain requirements
+
+- **Core libraries** (`DProvenanceKit`, `DProvenanceOTel`, the CLI): Swift 6.0+ (`swift-tools-version: 6.0`). CI builds this floor on a Swift 6.1 runner so it cannot silently rot.
+- **Foundation Models surface** (`session.traced(...)` and the rest of `DProvenanceFoundationModels`' FM session APIs): **Swift 6.2+ (Xcode 26+)**, because the adapter uses Swift 6.2 concurrency syntax. On older toolchains the FM session surface compiles out cleanly — your build succeeds, and the snapshot/diff/redaction types in the same module remain available; only the live-session tracing APIs are absent. If `session.traced(...)` doesn't resolve, your toolchain is the reason.
+
+Deployment targets are independent of the toolchain floor: building with Xcode 26 still deploys to macOS 13 / iOS 16.
 
 ### 1. Define your events
 

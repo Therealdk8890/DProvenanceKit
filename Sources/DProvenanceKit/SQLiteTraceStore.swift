@@ -542,25 +542,47 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         if ids.isEmpty { return [:] }
         try await flush()
         
-        // SQLite limits IN clauses, so we batch if necessary, but graphs are usually small.
+        // SQLite caps bound parameters per statement (999 before 3.32, 32766 stock
+        // after, higher on Apple's build). Lineage/impact closures pass unbounded id
+        // sets, so chunk below the oldest cap rather than trust whichever build is
+        // linked. The result is a dictionary, so per-chunk merge order is irrelevant.
+        let chunkSize = 900
         let idStrings = ids.map { $0.uuidString }
-        let placeholders = Array(repeating: "?", count: idStrings.count).joined(separator: ", ")
-        
+
+        var events: [UUID: TraceEvent<T>] = [:]
+        var undecodedCount = 0
+        let decoder = JSONDecoder()
+
+        for chunkStart in stride(from: 0, to: idStrings.count, by: chunkSize) {
+            let chunk = idStrings[chunkStart..<min(chunkStart + chunkSize, idStrings.count)]
+            try fetchEventsChunk(chunk, decoder: decoder, into: &events, undecodedCount: &undecodedCount)
+        }
+
+        if undecodedCount > 0 {
+            DPKLog.store.error("getEvents: \(undecodedCount) of \(events.count + undecodedCount) matching persisted events failed to decode as \(String(describing: T.self), privacy: .public) and are omitted from the result")
+        }
+        return events
+    }
+
+    private func fetchEventsChunk(
+        _ chunk: ArraySlice<String>,
+        decoder: JSONDecoder,
+        into events: inout [UUID: TraceEvent<T>],
+        undecodedCount: inout Int
+    ) throws {
+        let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ", ")
+
         let sql = """
         SELECT e.id, e.run_id, r.context_id, e.engine, e.span_id, e.parent_span_id, e.payload, e.timestamp, e.sequence, e.schema_version
         FROM trace_events e
         JOIN runs r ON e.run_id = r.run_id
         WHERE e.id IN (\(placeholders))
         """
-        
+
         let stmt = try reader().prepare(sql)
-        for (i, idString) in idStrings.enumerated() {
+        for (i, idString) in chunk.enumerated() {
             try stmt.bind(idString, at: Int32(i + 1))
         }
-        
-        var events: [UUID: TraceEvent<T>] = [:]
-        var undecodedCount = 0
-        let decoder = JSONDecoder()
 
         while try stmt.step() {
             guard let idStr = stmt.columnString(at: 0),
@@ -573,9 +595,9 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             // NULL engine is data, not malformation — fetchRun reads the same rows as
             // "Unknown", and a guard here would silently drop them from this path only.
             let engine = stmt.columnString(at: 3) ?? "Unknown"
-            
+
             let payloadData = stmt.columnData(at: 6)
-            
+
             let spanID = stmt.columnString(at: 4)
             let parentSpanID = stmt.columnString(at: 5)
             let timestampMs = stmt.columnInt64(at: 7)
@@ -605,10 +627,5 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 undecodedCount += 1
             }
         }
-
-        if undecodedCount > 0 {
-            DPKLog.store.error("getEvents: \(undecodedCount) of \(events.count + undecodedCount) matching persisted events failed to decode as \(String(describing: T.self), privacy: .public) and are omitted from the result")
-        }
-        return events
     }
 }
