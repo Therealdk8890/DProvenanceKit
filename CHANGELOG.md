@@ -101,6 +101,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on them. Behavior is unchanged.
 
 ### Fixed
+- **`SQLiteTraceStore.getEvents(ids:)` now performs the IN-clause chunking it always
+  promised.** Id sets are batched 900 per statement, so lineage/impact closures over more
+  than ~1,000 events can no longer exceed a stock SQLite build's 999-parameter cap; a
+  2,050-id regression test (chunks of 900/900/250) pins every id coming back exactly
+  once across chunk boundaries. (#75)
 - **Swift 6.0/6.1 consumers can build the package again.** `DProvenanceFoundationModels`'
   FM session files use `nonisolated(nonsending)` (Swift 6.2+ syntax), and inactive
   `#if canImport` regions must still parse — so any consumer build on Swift 6.0/6.1
