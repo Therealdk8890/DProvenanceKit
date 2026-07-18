@@ -3,6 +3,10 @@ import Foundation
 public struct TraceRun<T: TraceableEvent>: Sendable {
     public let runID: UUID
     public let contextID: String
+    /// The run's events in ascending `sequence` order — the authoritative causal order.
+    /// The initializer normalizes whatever array it is given (ties keep the caller's
+    /// relative order), so two runs holding the same events diff, align, and gate
+    /// identically whether they were loaded from a store or assembled by hand.
     public let events: [TraceEvent<T>]
     /// Events persisted for this run whose payloads could not be decoded as `T` and are
     /// therefore absent from `events`. Non-zero when the stored payload schema has
@@ -19,7 +23,11 @@ public struct TraceRun<T: TraceableEvent>: Sendable {
     ) {
         self.runID = runID
         self.contextID = contextID
-        self.events = events
+        // Store load paths already deliver sequence-ordered arrays; hand-built runs
+        // (e.g. events decoded from a consumer's own JSON) may not. Causal analysis
+        // must not depend on assembly order, so the one choke point every run passes
+        // through enforces the order the analysis engines assume.
+        self.events = events.sorted { $0.sequence < $1.sequence }
         self.undecodedEventCount = undecodedEventCount
     }
 }

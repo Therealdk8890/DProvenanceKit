@@ -71,7 +71,9 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
         // the interpreter uses to assign `.reordered` (see DefaultAlignmentInterpreter's
         // matchedPairs). Deriving the verdict from the same positions the emitted
         // `.reorderedExecution` findings use guarantees the two can never disagree about
-        // whether — or where — a reorder happened.
+        // whether — or where — a reorder happened. `TraceRun` normalizes its events to
+        // ascending `sequence` at construction, so for engine inputs this index basis and
+        // the authoritative sequence order coincide.
         var criticalPairs: [(baseIdx: Int, compIdx: Int, type: String)] = []
         for alignment in alignments {
             guard let b = alignment.baseEvent, b.payload.priority == .critical else { continue }
