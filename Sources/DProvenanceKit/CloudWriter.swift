@@ -25,6 +25,10 @@ public actor CloudWriter {
     private let session: URLSession
 
     private var writeTask: Task<Void, Never>?
+    /// Kept separately because `Task` exposes cancellation but not completion state.
+    /// The detached loop clears this through `writerTaskDidStop`, allowing shutdown
+    /// to poll against one deadline without awaiting a non-cooperative task forever.
+    private var writeTaskIsRunning = false
     private var isShuttingDown = false
     private var isSending = false
 
@@ -49,7 +53,8 @@ public actor CloudWriter {
     }
     
     public func start() {
-        guard writeTask == nil else { return }
+        guard writeTask == nil, !isShuttingDown else { return }
+        writeTaskIsRunning = true
         writeTask = Task.detached { [weak self] in
             while true {
                 guard let self = self else { break }
@@ -58,6 +63,7 @@ public actor CloudWriter {
                 
                 await self.tick()
             }
+            await self?.writerTaskDidStop()
         }
     }
     
@@ -82,18 +88,71 @@ public actor CloudWriter {
         }
     }
 
+    /// Compatibility wrapper for callers that used the original best-effort shutdown.
+    /// New code should call `shutdown(timeout:)` so an incomplete drain is observable.
     public func shutdown() async {
-        isShuttingDown = true
-        await writeTask?.value
-        try? await flush()
+        try? await shutdown(timeout: 30.0)
     }
+
+    /// Stops the background ticker and then performs a bounded, honest drain.
+    ///
+    /// Cancellation only wakes the ticker from its sleep; `inflightBatch` and buffered
+    /// rows remain owned by this actor and are delivered by `flush(timeout:)`. On
+    /// timeout they remain retained for an explicit retry. One deadline covers BOTH
+    /// waiting for the ticker to exit and the final drain.
+    public func shutdown(timeout: TimeInterval) async throws {
+        let deadline = Date().addingTimeInterval(max(0, timeout))
+        isShuttingDown = true
+        writeTask?.cancel()
+
+        while writeTaskIsRunning {
+            guard Date() < deadline else {
+                throw CloudWriterError.flushTimedOut(undelivered: undeliveredCount)
+            }
+            // Actor reentrancy lets `writerTaskDidStop()` clear the flag.
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        writeTask = nil
+
+        let remaining = max(0, deadline.timeIntervalSinceNow)
+        try await flush(timeout: remaining)
+    }
+
+    private var undeliveredCount: Int {
+        buffer.currentDepth
+            + buffer.pendingEdgeCount
+            + (inflightBatch?.count ?? 0)
+    }
+
+    private func writerTaskDidStop() {
+        writeTaskIsRunning = false
+    }
+
+    #if DEBUG
+    /// Installs a deliberately cancellation-ignoring ticker for deterministic timeout
+    /// tests. It exercises shutdown's task-wait deadline without involving URLSession,
+    /// whose cancellation behavior varies by URLProtocol implementation.
+    func startNonCooperativeTaskForShutdownTesting(duration: TimeInterval) {
+        guard writeTask == nil else { return }
+        writeTaskIsRunning = true
+        writeTask = Task.detached { [weak self] in
+            let end = Date().addingTimeInterval(duration)
+            while Date() < end {
+                // Intentionally ignore cancellation. The loop is short and test-only.
+                _ = 1 &+ 1
+            }
+            await self?.writerTaskDidStop()
+        }
+    }
+    #endif
 
     public func getQuarantinedEvents() -> [TraceEventRow] {
         return quarantineQueue.flatMap { $0.events }
     }
 
-    /// Lineage edges that were drained alongside a batch the server rejected (400) or
-    /// that exhausted retries. Like quarantined events, they are retained — not lost.
+    /// Lineage edges that were drained alongside a batch the server permanently
+    /// rejected (400, 409, or 422) or that exhausted retries. Like quarantined
+    /// events, they are retained — not lost.
     public func getQuarantinedEdges() -> [TraceEdge] {
         return quarantineQueue.flatMap { $0.edges }
     }
@@ -186,22 +245,37 @@ public actor CloudWriter {
         
         while attemptCount < maxAttempts {
             do {
-                let statusCode = try await sendBatch(batch)
-                
-                if statusCode == 400 {
-                    DPKLog.cloud.error("Poison batch detected (400 Bad Request); quarantining \(batch.events.count) events and \(batch.edges.count) edges.")
+                let statusCode = try await sendBatch(batch, deadline: deadline)
+
+                if Self.isPermanentRejection(statusCode) {
+                    DPKLog.cloud.error("Permanent batch rejection (HTTP \(statusCode)); quarantining \(batch.events.count) events and \(batch.edges.count) edges.")
                     quarantineQueue.append(batch)
                     inflightBatch = nil
                     attemptCount = 0
                     await circuitBreaker.recordSuccess()
                     return
                 }
-                
+
                 inflightBatch = nil
                 attemptCount = 0
                 await circuitBreaker.recordSuccess()
                 return
             } catch {
+                // Cancellation of THIS task is caller intent — shutdown(timeout:)
+                // cancelling the ticker mid-send — not endpoint feedback. Counting it
+                // would burn the retry budget instantly (backoff sleeps are no-ops
+                // once cancelled) and open the breaker with zero real failures,
+                // stalling the final drain for the breaker's full recovery window.
+                // Leave the batch inflight; the caller's uncancelled flush delivers
+                // it. Deliberately narrow: a URLError(.cancelled) arriving on an
+                // UNCANCELLED task (TLS-pinning delegate rejection, session
+                // invalidation) is endpoint/session feedback and must keep counting,
+                // or the batch would retry forever with the breaker bypassed and no
+                // quarantine ever surfacing it.
+                if error is CancellationError || Task.isCancelled {
+                    DPKLog.cloud.info("Send cancelled mid-flight; batch of \(batch.events.count) events and \(batch.edges.count) edges retained inflight for the final drain.")
+                    return
+                }
                 attemptCount += 1
                 await circuitBreaker.recordFailure()
                 
@@ -235,11 +309,19 @@ public actor CloudWriter {
         }
     }
     
-    private func sendBatch(_ batch: Batch) async throws -> Int {
+    private func sendBatch(_ batch: Batch, deadline: Date? = nil) async throws -> Int {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        // A caller deadline (flush/shutdown) bounds each attempt so URLSession's
+        // 60s default can't overshoot it by an entire request. The deadline-less
+        // ticker path keeps the session default: it has no deadline to overshoot,
+        // and shortening it would newly fail slow-but-succeeding bulk ingests.
+        if let deadline {
+            request.timeoutInterval = max(0.5, min(30.0, deadline.timeIntervalSinceNow))
+        }
 
         let eventObjects = batch.events.map { event in
             [
@@ -252,7 +334,12 @@ public actor CloudWriter {
                 "span_id": event.spanID ?? NSNull(),
                 "parent_span_id": event.parentSpanID ?? NSNull(),
                 "type": event.type,
-                "payload": (try? JSONSerialization.jsonObject(with: event.payload)) ?? event.payload.base64EncodedString(),
+                // .fragmentsAllowed keeps single-value payloads (a String raw-value
+                // enum encodes as a bare JSON string) riding the wire as real JSON.
+                // Without it they fell into the base64 fallback, which the typed
+                // read path cannot reverse — the simplest legal event type would
+                // round-trip as permanently undecodable.
+                "payload": (try? JSONSerialization.jsonObject(with: event.payload, options: [.fragmentsAllowed])) ?? event.payload.base64EncodedString(),
                 "timestamp": event.timestamp,
                 "schema_version": event.schemaVersion
             ] as [String : Any]
@@ -275,10 +362,19 @@ public actor CloudWriter {
             throw URLError(.badServerResponse)
         }
         
-        if !(200...299).contains(httpResponse.statusCode) && httpResponse.statusCode != 400 {
+        if !(200...299).contains(httpResponse.statusCode)
+            && !Self.isPermanentRejection(httpResponse.statusCode) {
             throw URLError(.badServerResponse)
         }
         
         return httpResponse.statusCode
+    }
+
+    /// FastAPI uses 422 for request-validation failures and the hosted store uses
+    /// 409 when an existing ID conflicts with different content. Neither can be
+    /// repaired by replaying the same bytes, just like a 400 malformed request.
+    /// Rate limits and server failures remain retryable.
+    private static func isPermanentRejection(_ statusCode: Int) -> Bool {
+        statusCode == 400 || statusCode == 409 || statusCode == 422
     }
 }

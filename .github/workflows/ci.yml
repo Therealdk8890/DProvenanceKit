@@ -153,7 +153,7 @@ jobs:
       # Ten @unchecked Sendable hand-locked classes, previously with no TSan coverage.
       # Scope to the burst/chaos/buffer suites so the race check stays fast.
       - name: Test concurrency suites under ThreadSanitizer
-        run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker'
+        run: swift test --sanitize=thread --filter 'Stress|Chaos|WriteBuffer|CircuitBreaker|CloudTraceStoreRead'
 
   boundary-guard:
     name: Free/paid boundary guard
@@ -180,6 +180,11 @@ jobs:
             exit 1
           fi
           echo "OK: no premium-namespaced paths in the public tree."
+
+      - name: Keep active public release versions aligned
+        run: |
+          sh .github/scripts/check-release-surfaces.sh --self-test
+          sh .github/scripts/check-release-surfaces.sh
 
   secret-scan:
     name: Secret scan (no keys in the public tree)

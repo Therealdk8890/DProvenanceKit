@@ -5,7 +5,8 @@ import Foundation
 /// caller needs before trusting that a run reached the server.
 ///
 /// `dropStats` alone cannot answer "did everything I recorded get delivered?": a
-/// poison batch (HTTP 400) or a batch that exhausts its retries is quarantined —
+/// permanently rejected batch (HTTP 400, 409, or 422) or a batch that exhausts its
+/// retries is quarantined —
 /// retrievable via `queryQuarantinedEvents`, so it is deliberately NOT counted as a
 /// drop — yet it is also not on the server, and quarantine does not survive process
 /// exit. A caller reading only `dropStats.preservedIntegrity` would see `true` while
@@ -15,8 +16,9 @@ public struct CloudRetentionStats: Sendable, Equatable {
     /// Identical to `CloudTraceStore.dropStats`.
     public let dropped: TraceDropStats
     /// Events (and lineage edges, counted as `structural`) sitting in the in-memory
-    /// quarantine: rejected by the server (400) or out of retries. Retrievable via
-    /// `queryQuarantinedEvents` while the process lives; gone when it exits.
+    /// quarantine: permanently rejected by the server (400, 409, or 422) or out of
+    /// retries. Retrievable via `queryQuarantinedEvents` while the process lives;
+    /// gone when it exits.
     public let quarantined: TraceDropStats
 
     public init(dropped: TraceDropStats, quarantined: TraceDropStats) {
