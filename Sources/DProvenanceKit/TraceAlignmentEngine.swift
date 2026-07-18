@@ -11,10 +11,9 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
     public let metaTraceCallback: (@Sendable (TraceEvent<AlignmentMetaEvent>) -> Void)?
     public let captureMode: VerificationCaptureMode
     
-    private let matcher: TraceMatcher
-    private let semantics: EquivalenceModel
-    private let interpreter: AlignmentInterpreter
-    
+    private let semantics: DefaultEquivalenceModel<T>
+    private let interpreter: DefaultAlignmentInterpreter<T>
+
     public init(
         configuration: AlignmentConfiguration<T>,
         captureMode: VerificationCaptureMode = .disabled,
@@ -23,7 +22,6 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
         self.configuration = configuration
         self.captureMode = captureMode
         self.metaTraceCallback = metaTraceCallback
-        self.matcher = DefaultTraceMatcher(configuration: configuration)
         self.semantics = DefaultEquivalenceModel(configuration: configuration)
         self.interpreter = DefaultAlignmentInterpreter(configuration: configuration, metaTraceCallback: metaTraceCallback)
     }
@@ -37,16 +35,35 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
         let compEvents = comparison.events.filter { $0.payload.priority >= minimumPriority }
         
         let collector: EvidenceCollector = (captureMode == .evidenceOnly) ? AlignmentEvidenceCollector() : NullEvidenceCollector()
-        
-        let bindings = matcher.match(base: baseEvents, comparison: compEvents, evidenceCollector: collector)
-        
-        let alignments = interpreter.interpret(
+
+        let (bindings, candidateIndex) = DefaultTraceMatcher<T>.matchAndIndex(
+            config: configuration,
             base: baseEvents,
             comparison: compEvents,
-            bindings: bindings,
-            equivalence: { a, b in semantics.evaluate(a, b, evidenceCollector: collector) },
             evidenceCollector: collector
         )
+
+        let alignments: [EventAlignment<T>]
+        if collector is NullEvidenceCollector {
+            // No evidence artifact is being built, so there are no collector side effects to
+            // preserve and the interpreter can reuse the matcher's candidate table instead of
+            // re-scoring every base × comparison pair. Identical output by construction — see
+            // `interpretWithCandidates` and AlignmentFastPathParityTests.
+            alignments = interpreter.interpretWithCandidates(
+                base: baseEvents,
+                comparison: compEvents,
+                bindings: bindings,
+                candidates: candidateIndex
+            )
+        } else {
+            alignments = interpreter.interpret(
+                base: baseEvents,
+                comparison: compEvents,
+                bindings: bindings,
+                equivalence: { a, b in semantics.evaluate(a, b, evidenceCollector: collector) },
+                evidenceCollector: collector
+            )
+        }
         
         // Pass 4: Regression Risk Analysis.
         //
@@ -75,6 +92,14 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
         // ascending `sequence` at construction, so for engine inputs this index basis and
         // the authoritative sequence order coincide.
         var criticalPairs: [(baseIdx: Int, compIdx: Int, type: String)] = []
+        var baseIndexByID = [UUID: Int](minimumCapacity: baseEvents.count)
+        for (i, event) in baseEvents.enumerated() where baseIndexByID[event.id] == nil {
+            baseIndexByID[event.id] = i
+        }
+        var compIndexByID = [UUID: Int](minimumCapacity: compEvents.count)
+        for (j, event) in compEvents.enumerated() where compIndexByID[event.id] == nil {
+            compIndexByID[event.id] = j
+        }
         for alignment in alignments {
             guard let b = alignment.baseEvent, b.payload.priority == .critical else { continue }
             guard let c = alignment.comparisonEvent else {
@@ -87,8 +112,7 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
                 let (score, _) = configuration.scoreMatch(base: b, comp: c)
                 if score < threshold { changedCriticalTypes.append(b.payload.typeIdentifier) }
             }
-            if let baseIdx = baseEvents.firstIndex(where: { $0.id == b.id }),
-               let compIdx = compEvents.firstIndex(where: { $0.id == c.id }) {
+            if let baseIdx = baseIndexByID[b.id], let compIdx = compIndexByID[c.id] {
                 criticalPairs.append((baseIdx, compIdx, b.payload.typeIdentifier))
             }
         }
@@ -97,12 +121,38 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
         // structural/diagnostic step moving past a stationary critical is not a regression
         // (that produced a false HIGH); non-critical reorders still surface as `.reordered`
         // findings for display, they just don't drive the risk verdict.
+        //
+        // Linear-scan form of the original all-pairs check, flagging exactly the same pairs:
+        // x is flagged iff some pair with a strictly greater base index has a strictly
+        // smaller comparison index, i.e. the suffix minimum of comparison indices over
+        // strictly-greater base indices undercuts x's comparison index. Flagged types are
+        // emitted in the original `criticalPairs` order so the verdict string is unchanged.
         var reorderedCriticalTypes: [String] = []
-        for x in criticalPairs {
-            let inverts = criticalPairs.contains { y in
-                x.baseIdx != y.baseIdx && x.baseIdx < y.baseIdx && x.compIdx > y.compIdx
+        if !criticalPairs.isEmpty {
+            let byBaseIdx = criticalPairs.indices.sorted { criticalPairs[$0].baseIdx < criticalPairs[$1].baseIdx }
+            var flagged = [Bool](repeating: false, count: criticalPairs.count)
+            var suffixMin = Int.max
+            var upper = byBaseIdx.count - 1
+            while upper >= 0 {
+                // Pairs tied on baseIdx form one group: "strictly greater" excludes the group
+                // itself, so the group is flagged against the suffix minimum beyond it before
+                // its own comparison indices join that minimum.
+                var lower = upper
+                let groupBaseIdx = criticalPairs[byBaseIdx[upper]].baseIdx
+                while lower > 0 && criticalPairs[byBaseIdx[lower - 1]].baseIdx == groupBaseIdx {
+                    lower -= 1
+                }
+                for g in lower...upper where suffixMin < criticalPairs[byBaseIdx[g]].compIdx {
+                    flagged[byBaseIdx[g]] = true
+                }
+                for g in lower...upper {
+                    suffixMin = Swift.min(suffixMin, criticalPairs[byBaseIdx[g]].compIdx)
+                }
+                upper = lower - 1
             }
-            if inverts { reorderedCriticalTypes.append(x.type) }
+            for (idx, pair) in criticalPairs.enumerated() where flagged[idx] {
+                reorderedCriticalTypes.append(pair.type)
+            }
         }
 
         let risk: RegressionRisk
@@ -138,6 +188,24 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
 }
 
 extension AlignmentConfiguration {
+    /// Allocation-free twin of `scoreMatch` for the matcher's O(base × comparison) candidate
+    /// scan, where only the score participates in any decision. Delegates to
+    /// `AlignmentProfile.combinedScore` — the single specialized home of the scan arithmetic.
+    /// AlignmentFastPathParityTests holds this bit-identical to `scoreMatch`.
+    internal func scoreOnly(base: TraceEvent<T>, comp: TraceEvent<T>) -> Double {
+        profile.combinedScore(
+            typesEqual: base.payload.typeIdentifier == comp.payload.typeIdentifier,
+            payloadSim: equivalenceEvaluator.evaluateSimilarity(base: base.payload, comparison: comp.payload),
+            baseParentSpanID: base.parentSpanID,
+            compParentSpanID: comp.parentSpanID,
+            baseSequence: base.sequence,
+            compSequence: comp.sequence
+        )
+    }
+
+    /// Scoring arithmetic is mirrored by `AlignmentProfile.combinedScore` (the matcher scan's
+    /// allocation-free form) — any change here must be made there too, with the contributions
+    /// accumulated in the same order so the two stay bit-identical.
     internal func scoreMatch(base: TraceEvent<T>, comp: TraceEvent<T>) -> (Double, AlignmentExplanation) {
         var score = 0.0
         var evidence: [HeuristicEvidence] = []
