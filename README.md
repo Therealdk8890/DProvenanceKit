@@ -102,9 +102,11 @@ let diff = engine.diff(base: runA, comparison: runB)
 
 OpenTelemetry answers **what happened** — request tracing, latency, service health, infrastructure monitoring.
 
-DProvenanceKit answers **why the AI reached this conclusion** — decision lineage, logic diffs, regression detection, execution auditing.
+DProvenanceKit answers **how the AI reached this conclusion** — the observable decision path: decision lineage, logic diffs, regression detection, execution auditing.
 
 > OpenTelemetry traces requests. DProvenanceKit traces reasoning.
+
+"Reasoning" here means the observable, instrumented execution path — prompts, tool calls, outputs, decisions, and application-defined events. DProvenanceKit does not claim visibility into the model's hidden internal deliberation; the [attestation threat model](docs/ATTESTATION.md#threat-model) states that boundary explicitly.
 
 It also signs the local reasoning record so its integrity can be checked later. When you explicitly choose to export, **[DProvenanceOTel](docs/otel-bridge.md)** converts finished runs to standard OTLP spans for Langfuse or any OTLP/HTTP collector. Local capture and attestation remain the trust boundary; export is optional.
 
@@ -464,7 +466,7 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 | [Trace inspector UI](docs/UI.md) | SwiftUI trace inspector for Apple platforms; macOS includes a native database picker |
 | [DESIGN.md](DESIGN.md) | Engine internals: the concurrency tradeoff, backpressure, durability, known limitations |
 | [SEMANTICS.md](SEMANTICS.md) | The formal semantic model behind alignment and behavioral equivalence |
-| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, confusion matrices |
+| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, per-case results, the measured operating envelope |
 | [Alignment validation walkthrough](walkthrough.md) | Case study: validating the alignment engine against the corpus |
 
 ---

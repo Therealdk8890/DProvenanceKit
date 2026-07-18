@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-18
+
 > **Source-breaking (proof packs).** `ProofPackVerificationFailure` gains a `.roleBindingRequired`
 > case — an exhaustive `switch` over it without a `default` will no longer compile — and the
 > public `ProofPackArtifactBinding.init` gains a required `strength:` parameter, breaking any
@@ -408,7 +410,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.4.0...0.5.0
