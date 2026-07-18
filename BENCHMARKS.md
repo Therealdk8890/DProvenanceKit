@@ -73,6 +73,43 @@ Runtime timings are intentionally omitted from the public contract because they 
 
 *(Note: The adversarial dataset runs under a stricter `AlignmentProfile` with a higher semantic threshold and tighter bounds to stress edge cases such as dependency inversion and partial truncation. **Adversarial configuration adjustments do not alter equivalence semantics; they adjust sensitivity thresholds for stress evaluation only.**)*
 
+## Operating Envelope (Informative)
+
+The conformance contract above is about *correctness*; this section is about *cost*. It is
+informative, not contractual: absolute numbers vary by machine, but the growth curve does
+not. Reproduce with:
+
+```sh
+swift run -c release AlignmentScaleBenchmark
+```
+
+The alignment matcher scores every base×comparison event pair, so `align()` cost grows
+**quadratically** with trace size. The diff engine does not, and stays effectively free.
+Measured on an Apple M4 (Mac16,8, release build, deterministic synthetic traces, 10%
+critical events; "ambiguity stress" = only 10 distinct event types, so every event has
+hundreds of same-type match candidates):
+
+| Events | `align()` — distinct types | `align()` — ambiguity stress | `diff()` |
+|-------:|---------------------------:|-----------------------------:|---------:|
+|    100 |                    0.008 s |                      0.011 s | < 1 ms   |
+|  1,000 |                     0.60 s |                       0.78 s |     1 ms |
+| 10,000 |                     59.8 s |                       78.6 s |     8 ms |
+
+Practical guidance:
+
+- **Up to ~1,000 events per run**, alignment is sub-second — fine for interactive use and
+  per-PR CI gates.
+- **A few thousand events** costs seconds to tens of seconds — acceptable for a nightly
+  gate, noticeable in a per-commit one.
+- **~10,000 events** costs a minute or more per comparison — batch/offline territory. If
+  your runs are this large, gate on `diff()` (structural, near-free at every size) and
+  reserve `align()` for the runs the diff flags.
+
+These numbers are the honest cost of the current all-pairs matcher. Reducing the
+quadratic constant (e.g. bucketing candidates by `typeIdentifier`) is possible without
+changing semantics, but any such change must reproduce this table's verdicts exactly —
+the conformance corpus above is the gate.
+
 ## The Corpus Scenarios
 
 ### Standard Scenarios

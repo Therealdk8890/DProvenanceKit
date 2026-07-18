@@ -12,6 +12,13 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > code that constructs one directly. Both are permitted pre-1.0; flagged here for consumers.
 
 ### Added
+- **`AlignmentScaleBenchmark` + a published operating envelope.** A deterministic
+  release-mode benchmark (`swift run -c release AlignmentScaleBenchmark`) times
+  `align()` and `diff()` at 100 / 1,000 / 10,000 events, including a matching-ambiguity
+  stress case, and BENCHMARKS.md now publishes the measured envelope as an informative
+  (non-contractual) section: `align()` is quadratic in trace size (~0.6 s at 1k events,
+  ~60–79 s at 10k on an M4), `diff()` is effectively free at every size, with guidance
+  on when to gate on which. Runtime timings remain outside the conformance contract.
 - **`CloudTraceStore` now implements its complete versioned read surface.** Typed
   capability negotiation, paginated `queryRuns` (including the limit overload),
   `getRun`, `getEvents`, lineage, and impact reads share one authenticated `/v1`

@@ -95,6 +95,13 @@ let package = Package(
             name: "Quickstart",
             dependencies: ["DProvenanceKit"]
         ),
+        // Measures align()/diff() wall-clock at increasing trace sizes so the
+        // documented operating envelope (BENCHMARKS.md) stays reproducible.
+        // Run in release mode: `swift run -c release AlignmentScaleBenchmark`.
+        .executableTarget(
+            name: "AlignmentScaleBenchmark",
+            dependencies: ["DProvenanceKit"]
+        ),
         // A polished, runnable Foundation Models regression scenario (post-hoc transcript
         // ingestion) that ends in a failing CI gate and a WebVisualizer export.
         .executableTarget(
