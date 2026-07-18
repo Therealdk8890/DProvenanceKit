@@ -102,9 +102,11 @@ let diff = engine.diff(base: runA, comparison: runB)
 
 OpenTelemetry answers **what happened** — request tracing, latency, service health, infrastructure monitoring.
 
-DProvenanceKit answers **why the AI reached this conclusion** — decision lineage, logic diffs, regression detection, execution auditing.
+DProvenanceKit answers **how the AI reached this conclusion** — the observable decision path: decision lineage, logic diffs, regression detection, execution auditing.
 
 > OpenTelemetry traces requests. DProvenanceKit traces reasoning.
+
+"Reasoning" here means the observable, instrumented execution path — prompts, tool calls, outputs, decisions, and application-defined events. DProvenanceKit does not claim visibility into the model's hidden internal deliberation; the [attestation threat model](docs/ATTESTATION.md#threat-model) states that boundary explicitly.
 
 It also signs the local reasoning record so its integrity can be checked later. When you explicitly choose to export, **[DProvenanceOTel](docs/otel-bridge.md)** converts finished runs to standard OTLP spans for Langfuse or any OTLP/HTTP collector. Local capture and attestation remain the trust boundary; export is optional.
 
@@ -274,7 +276,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.6.1")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")
 ]
 ```
 
@@ -454,7 +456,7 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 | Guide | What's inside |
 | ----- | ------------- |
 | [Trace attestation](docs/ATTESTATION.md) | Offline signing and verification, Secure Enclave keys, canonicalization, public vector, threat model |
-| [Proof packs](docs/PROOF_PACK.md) | One offline-verifiable JSON document carrying a signed attestation plus the artifact bytes it vouches for |
+| [Proof packs](docs/PROOF_PACK.md) | One offline-verifiable JSON document carrying a signed attestation plus role-bound artifact bytes |
 | [Foundation Models integration](docs/foundation-models.md) | Trace Apple's on-device LLM: live sessions, post-hoc transcripts, traced tools, redaction policy |
 | [OpenTelemetry bridge](docs/otel-bridge.md) | Export runs as OTLP spans to Langfuse or any OTLP/HTTP collector |
 | [Trace replay](docs/REPLAY.md) | Reconstruct a run's span tree as of any point in time, with integrity manifests |
@@ -464,16 +466,16 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 | [Trace inspector UI](docs/UI.md) | SwiftUI trace inspector for Apple platforms; macOS includes a native database picker |
 | [DESIGN.md](DESIGN.md) | Engine internals: the concurrency tradeoff, backpressure, durability, known limitations |
 | [SEMANTICS.md](SEMANTICS.md) | The formal semantic model behind alignment and behavioral equivalence |
-| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, confusion matrices |
+| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, per-case results, the measured operating envelope |
 | [Alignment validation walkthrough](walkthrough.md) | Case study: validating the alignment engine against the corpus |
 
 ---
 
 # Status
 
-**Public beta — [0.6.1](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.6.1) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.7.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.7.0) is released; APIs may continue to evolve before 1.0.**
 
-**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof packs](docs/PROOF_PACK.md) that bind artifact bytes to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
+**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof-pack v2](docs/PROOF_PACK.md) documents that bind each artifact's bytes and role to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
 **Planned:** richer graph/lineage visualization, key-policy and rotation helpers, distributed trace federation, and hosted/team workflows.
 
