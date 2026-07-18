@@ -2,8 +2,9 @@ import XCTest
 @testable import DProvenanceKit
 import Foundation
 
-/// Regression coverage for the quarantine-visibility gap: a poison batch (400) or a
-/// retry-exhausted batch moved to the in-memory quarantine, `flush()` returned
+/// Regression coverage for the quarantine-visibility gap: a permanently rejected
+/// batch (400, 409, or 422) or a retry-exhausted batch moved to the in-memory
+/// quarantine, `flush()` returned
 /// success, and `dropStats.preservedIntegrity` stayed `true` — the documented trust
 /// pattern reported full delivery while (possibly critical) events sat undelivered
 /// in RAM, to be lost uncounted on process exit. `retentionStats()` is the surface

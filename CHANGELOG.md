@@ -12,6 +12,32 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 > code that constructs one directly. Both are permitted pre-1.0; flagged here for consumers.
 
 ### Added
+- **`CloudTraceStore` now implements its complete versioned read surface.** Typed
+  capability negotiation, paginated `queryRuns` (including the limit overload),
+  `getRun`, `getEvents`, lineage, and impact reads share one authenticated `/v1`
+  contract and one fail-closed status/response validator. Payload-schema drift is
+  exposed through `TraceRun.undecodedEventCount`; malformed identity, graph, type,
+  priority, schema-version, and pagination evidence is rejected rather than coerced
+  or silently dropped. Hosted reads refuse to run while any prior batch remains
+  quarantined, avoiding a stale read that pretends poison/exhausted writes arrived.
+  `shutdown(timeout:)` closes intake before a bounded final drain, with one deadline
+  covering ticker exit and delivery — each send attempt is bounded by the remaining
+  deadline budget rather than URLSession's 60-second default, and a shutdown that
+  cancels the ticker mid-send leaves the in-flight batch retained without counting
+  the cancellation against the circuit breaker — so racing/post-close events and
+  edges are either delivered or counted, and a healthy endpoint never reads as an
+  outage during shutdown. Single-value payloads (for example a `String` raw-value
+  event enum) ride the ingest wire as JSON and round-trip through the typed read
+  path instead of falling into an irreversible base64 form. Ingest now treats the
+  server's permanent 400, 409, and 422 rejections as quarantine outcomes while
+  keeping 429 and 5xx retryable. Source compatibility note: `CloudTraceStoreError`
+  gains `.undeliveredQuarantine(count:)` and `.invalidResponse(endpoint:reason:)`,
+  so exhaustive switches must add the new cases (or a `default`).
+- **CI now guards the public release surfaces.** `.github/scripts/check-release-surfaces.sh`
+  (wired into the required boundary-guard job, with a `--self-test` mode) fails the build
+  when the README, COMMERCIAL.md, or site install snippets disagree with the newest
+  released CHANGELOG version. It checks surface consistency only; tag existence at
+  release time remains a release-checklist step.
 - **Proof pack `proofPackVersion: 2` binds the artifact `role`, not just its bytes.** In v1,
   an artifact's `role`/`mediaType` sat outside the signature: a genuinely-signed pack could
   be re-wrapped with a different `role` (same bytes) and still verify VALID — even under
@@ -50,6 +76,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   on them. Behavior is unchanged.
 
 ### Fixed
+- **`CloudWriter` no longer wedges permanently after an outage that recovers while the
+  buffer is idle.** The circuit breaker's single half-open probe could be consumed by an
+  idle tick that had nothing to send, stranding the breaker in `.halfOpen` so the writer
+  never sent again for the process lifetime and `flush()` threw `flushTimedOut` forever.
+  The unit of work is now determined before the breaker is consulted, so an empty drain
+  returns without touching the probe. (#66)
+- **The typed SQLite store no longer silently drops rows whose payloads fail to decode.**
+  `TraceRun.undecodedEventCount` surfaces schema-drifted rows, fully-undecodable runs stay
+  visible, payload-predicate queries exclude zero-inspectable runs instead of reporting a
+  false clean, and `AttestableTrace` refuses to attest a partial view via
+  `TraceAttestationError.undecodedEvents(count:)`. (#67)
 - **`RegressionRisk` no longer misses materially-changed or skipped critical steps.** The risk
   verdict was derived only from `.removed`/`.reordered` alignment states, but a critical step
   that was changed or skipped binds to a same-type event (type match alone clears the matcher

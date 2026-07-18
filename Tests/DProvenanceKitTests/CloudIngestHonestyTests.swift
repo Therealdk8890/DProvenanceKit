@@ -76,6 +76,19 @@ final class CloudIngestHonestyTests: XCTestCase {
         }
     }
 
+    private final class RequestCounter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var count = 0
+
+        func increment() {
+            lock.withLock { count += 1 }
+        }
+
+        var value: Int {
+            lock.withLock { count }
+        }
+    }
+
     func testRecordedEventIDAndSchemaVersionReachTheWireUnchanged() async throws {
         let collector = EnvelopeCollector()
         MockURLProtocol.requestHandler = { request in
@@ -140,9 +153,10 @@ final class CloudIngestHonestyTests: XCTestCase {
     }
 
     func testQueryQuarantinedEventsRoundTripsIdentityAndSchemaVersion() async throws {
-        // The consumer-facing quarantine read path: a 400-rejected event must come
-        // back through queryQuarantinedEvents with the id and schemaVersion it was
-        // recorded with — this is what lets the replay engine match it to the run.
+        // The consumer-facing quarantine read path: a permanently rejected event
+        // must come back through queryQuarantinedEvents with the id and
+        // schemaVersion it was recorded with — this is what lets the replay engine
+        // match it to the run.
         MockURLProtocol.requestHandler = { request in
             (HTTPURLResponse(url: request.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!, Data())
         }
@@ -192,5 +206,82 @@ final class CloudIngestHonestyTests: XCTestCase {
         let quarantinedEdges = await writer.getQuarantinedEdges()
         XCTAssertEqual(quarantinedEdges, [edge],
                        "edges drained with a poison batch must be quarantined with it, not lost")
+    }
+
+    func testConflictAndValidationRejectionsAreQuarantinedWithoutRetry() async throws {
+        for statusCode in [409, 422] {
+            let buffer = TraceWriteBuffer(config: OfflineConfig())
+            let writer = CloudWriter(
+                endpoint: URL(string: "https://api.dprovenance.cloud/ingest")!,
+                apiKey: "test", buffer: buffer, session: session
+            )
+            let counter = RequestCounter()
+            MockURLProtocol.requestHandler = { request in
+                counter.increment()
+                return (
+                    HTTPURLResponse(
+                        url: request.url!, statusCode: statusCode,
+                        httpVersion: nil, headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            buffer.enqueue(TraceEventRow(
+                id: UUID().uuidString, runID: UUID().uuidString, contextID: "ctx",
+                priority: TracePriority.structural.rawValue, sequence: 0, engine: "engine",
+                spanID: nil, parentSpanID: nil, type: "step", payload: Data("{}".utf8),
+                timestamp: 0, schemaVersion: 1
+            ))
+
+            try await writer.flush(timeout: 1.0)
+
+            let quarantinedEvents = await writer.getQuarantinedEvents()
+            XCTAssertEqual(counter.value, 1, "HTTP \(statusCode) must not be retried")
+            XCTAssertEqual(
+                quarantinedEvents.count, 1,
+                "HTTP \(statusCode) must retain the rejected event in quarantine"
+            )
+        }
+    }
+
+    func testRateLimitAndServerFailuresRemainRetryable() async throws {
+        for statusCode in [429, 500] {
+            let buffer = TraceWriteBuffer(config: OfflineConfig())
+            let writer = CloudWriter(
+                endpoint: URL(string: "https://api.dprovenance.cloud/ingest")!,
+                apiKey: "test", buffer: buffer, session: session
+            )
+            let counter = RequestCounter()
+            MockURLProtocol.requestHandler = { request in
+                counter.increment()
+                return (
+                    HTTPURLResponse(
+                        url: request.url!, statusCode: statusCode,
+                        httpVersion: nil, headerFields: nil
+                    )!,
+                    Data()
+                )
+            }
+            buffer.enqueue(TraceEventRow(
+                id: UUID().uuidString, runID: UUID().uuidString, contextID: "ctx",
+                priority: TracePriority.structural.rawValue, sequence: 0, engine: "engine",
+                spanID: nil, parentSpanID: nil, type: "step", payload: Data("{}".utf8),
+                timestamp: 0, schemaVersion: 1
+            ))
+
+            do {
+                try await writer.flush(timeout: 0.05)
+                XCTFail("HTTP \(statusCode) should remain pending for retry")
+            } catch let error as CloudWriterError {
+                XCTAssertEqual(error, .flushTimedOut(undelivered: 1))
+            }
+
+            let quarantinedEvents = await writer.getQuarantinedEvents()
+            XCTAssertGreaterThanOrEqual(counter.value, 1)
+            XCTAssertTrue(
+                quarantinedEvents.isEmpty,
+                "HTTP \(statusCode) must not be classified as a permanent rejection"
+            )
+        }
     }
 }
