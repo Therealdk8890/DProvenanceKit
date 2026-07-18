@@ -16,7 +16,7 @@ observability in production tend to need.
 |------------|---------|
 | **Join the pilot** (free/discounted design partner) | [Open the pilot form →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) |
 | **Ask about a paid tier / SLA / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
-| **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.6.1")`. Nothing to sign. |
+| **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to sign. |
 
 We typically respond within 1–2 business days.
 
@@ -90,11 +90,13 @@ checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
 
 **What's in the free library (not a paid feature):** the core recording, querying, and
 diff/regression engine, **provenance/lineage** (record what each reasoning step was derived
-from, then trace, diff, and export it), the **FoundationModels adapter**
-(`DProvenanceFoundationModels`), and the **OpenTelemetry / OTLP exporter** (`DProvenanceOTel`)
-that sends traces — lineage attributes included — to Langfuse, an OTel collector, or any OTLP
-backend. On-device capture and getting your traces *out* to the tools you already run are free
-by design — the paid tiers are the hosted, cross-machine, and support layers on top.
+from, then trace, diff, and export it), **local P-256 trace attestation and role-bound proof
+packs** (including offline verification), the **FoundationModels adapter**
+(`DProvenanceFoundationModels`), and the **OpenTelemetry / OTLP exporter**
+(`DProvenanceOTel`) that sends traces — lineage attributes included — to Langfuse, an OTel
+collector, or any OTLP backend. On-device capture, signing, verification, and getting your
+traces *out* to the tools you already run are free by design — the paid tiers are the hosted,
+cross-machine, and support layers on top.
 
 ## How we decide free vs. paid
 
@@ -106,8 +108,9 @@ Concretely, three categories:
 
 - **Free, always — the open-source library.** Anything in the Apache-2.0 library that runs
   *in your process, on your machine*: capture, query, diff, regression detection, lineage
-  recording, and exporting your traces to a backend *you* run. Paywalling these would only
-  slow adoption, and adoption is the whole strategy in an empty niche.
+  recording, local trace attestation, proof-pack generation and offline verification, and
+  exporting your traces to a backend *you* run. Paywalling these would only slow adoption,
+  and adoption is the whole strategy in an empty niche.
 - **Paid — hosted services.** Anything DProvenanceKit runs *for you, across machines*: hosted
   trace and lineage sharing, a managed CI regression gate, cross-run/cross-machine analytics
   dashboards, production monitoring, plus support, SLAs, indemnity, and compliance. This code
