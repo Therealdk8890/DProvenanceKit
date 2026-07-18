@@ -85,30 +85,37 @@ swift run -c release AlignmentScaleBenchmark
 
 The alignment matcher scores every base×comparison event pair, so `align()` cost grows
 **quadratically** with trace size. The diff engine does not, and stays effectively free.
-Measured on an Apple M4 (Mac16,8, release build, deterministic synthetic traces, 10%
-critical events; "ambiguity stress" = only 10 distinct event types, so every event has
-hundreds of same-type match candidates):
+Measured on an Apple M4 (Mac16,8, 14 cores, release build, deterministic synthetic
+traces, 10% critical events; "ambiguity stress" = only 10 distinct event types, so every
+event has hundreds of same-type match candidates):
 
 | Events | `align()` — distinct types | `align()` — ambiguity stress | `diff()` |
 |-------:|---------------------------:|-----------------------------:|---------:|
-|    100 |                    0.008 s |                      0.011 s | < 1 ms   |
-|  1,000 |                     0.60 s |                       0.78 s |     1 ms |
-| 10,000 |                     59.8 s |                       78.6 s |     8 ms |
+|    100 |                    0.001 s |                      0.001 s | < 1 ms   |
+|  1,000 |                    0.007 s |                      0.008 s |     1 ms |
+| 10,000 |                     0.20 s |                       0.41 s |     7 ms |
 
 Practical guidance:
 
-- **Up to ~1,000 events per run**, alignment is sub-second — fine for interactive use and
-  per-PR CI gates.
-- **A few thousand events** costs seconds to tens of seconds — acceptable for a nightly
-  gate, noticeable in a per-commit one.
-- **~10,000 events** costs a minute or more per comparison — batch/offline territory. If
-  your runs are this large, gate on `diff()` (structural, near-free at every size) and
-  reserve `align()` for the runs the diff flags.
+- **Up to ~10,000 events per run**, alignment is sub-second — fine for interactive use
+  and per-PR CI gates.
+- Beyond that, budget for the quadratic curve (~4× cost per 2× events) and for the
+  candidate table's memory in low-diversity traces: with only a handful of distinct
+  event types, the matcher holds every same-type pair as a candidate, which at 10,000
+  events over 10 types is ~10M entries (a few hundred MB transiently). `diff()` stays
+  near-free at every size if you need a cheap structural pre-gate.
+- On large traces the matcher scans its scoring rows concurrently across cores (results
+  are identical to the serial scan; the fan-out only changes wall-clock). Your
+  `TraceEquivalenceEvaluator` is invoked from multiple threads at once during that scan —
+  the `@Sendable` requirement on its closures is load-bearing, so keep them pure.
 
-These numbers are the honest cost of the current all-pairs matcher. Reducing the
-quadratic constant (e.g. bucketing candidates by `typeIdentifier`) is possible without
-changing semantics, but any such change must reproduce this table's verdicts exactly —
-the conformance corpus above is the gate.
+An earlier revision of this engine measured 59.8 s / 78.6 s for the 10,000-event rows on
+the same machine; the current numbers come from removing per-pair allocation and
+unspecialized-generics overhead and reusing the matcher's candidate table downstream —
+not from changing what qualifies as a match. Any such optimization must reproduce the
+corpus verdicts exactly — the conformance contract above is the gate, and
+AlignmentFastPathParityTests holds the optimized paths bit-identical to the reference
+implementations.
 
 ## The Corpus Scenarios
 

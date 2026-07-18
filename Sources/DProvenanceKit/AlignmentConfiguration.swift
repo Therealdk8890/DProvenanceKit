@@ -86,6 +86,48 @@ public struct AlignmentProfile: Sendable, Equatable, Hashable {
         ambiguityDeltaThreshold: 0.10,
         alignmentMode: .spanAware
     )
+
+    /// The matcher scan's scoring arithmetic, operation-for-operation identical to
+    /// `AlignmentConfiguration.scoreMatch` (same contributions, accumulated in the same
+    /// order, so the two produce bit-identical scores — change them together, and keep
+    /// AlignmentFastPathParityTests passing). It lives on the non-generic profile, with the
+    /// payload similarity passed in, so the O(base × comparison) scan runs fully specialized
+    /// machine code instead of unspecialized generic calls.
+    internal func combinedScore(
+        typesEqual: Bool,
+        payloadSim: Double,
+        baseParentSpanID: String?,
+        compParentSpanID: String?,
+        baseSequence: UInt64,
+        compSequence: UInt64
+    ) -> Double {
+        var score = 0.0
+
+        // 1. Type Match
+        let typeSim = typesEqual ? 1.0 : 0.0
+        score += typeSim * typeWeight
+
+        // 2. Payload Similarity
+        score += payloadSim * payloadWeight
+
+        // 3. Structural Context (Span Awareness)
+        var structuralSim = 0.0
+        if alignmentMode != .linear {
+            if baseParentSpanID == compParentSpanID && baseParentSpanID != nil {
+                structuralSim = 1.0
+            } else if baseParentSpanID == nil && compParentSpanID == nil {
+                structuralSim = 1.0
+            }
+        }
+        score += structuralSim * structuralWeight
+
+        // 4. Temporal Locality (rough heuristic based on sequence index distance)
+        let seqDiff = abs(Int(baseSequence) - Int(compSequence))
+        let tempSim = max(0.0, 1.0 - (Double(seqDiff) / 10.0))
+        score += tempSim * temporalWeight
+
+        return score
+    }
 }
 
 public struct AnyEquivalenceEvaluator<T: TraceableEvent>: TraceEquivalenceEvaluator {
