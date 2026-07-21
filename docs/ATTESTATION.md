@@ -184,6 +184,33 @@ let identifiedSigner = decoded.verify(trustedKeyIDs: [expectedKeyID])
 for trying the verifier. A committed [version 1 test vector](test-vectors/attestation-v1.json) is
 also checked by the test suite.
 
+## Verify a stored run locally (drift-proof)
+
+A `TraceAttestationDocument` freezes each event's canonical payload bytes (`payloadJSON`) at signing
+time, and verification re-hashes *those* bytes — it never re-encodes a payload. That is what makes
+offline verification stable across OS and Swift versions, where `JSONEncoder`'s output is not
+guaranteed to be byte-for-byte identical.
+
+The SQLite store persists the signed document alongside the run so the same guarantee extends to
+local re-verification after an app restart or OS upgrade:
+
+```swift
+let store = try SQLiteTraceStore<MyEvent>(fileURL: url)
+let run = try await store.getRun(id: runID)!
+let document = try TraceAttestationDocument.signed(run: run, using: key)
+try store.saveAttestation(document)          // persisted in the `attestations` table
+// …later, in a new process / after an OS update…
+let result = try store.verifyStoredAttestation(runID: runID, trustedKeyIDs: [expectedKeyID])
+// result?.isValid == true — re-verified against the frozen bytes, no re-encoding
+```
+
+Prefer this over `TraceAttestationVerifier.verify(_:for run:)` for durable local verification: that
+overload rebuilds the trace from live typed events and therefore re-encodes each payload, so a
+Foundation JSON output change across versions could invalidate an otherwise-genuine signature.
+`saveAttestation` must be called before `close()`; `loadAttestation`/`verifyStoredAttestation` also
+work on the read-only archive a closed store leaves behind. Re-attesting a run replaces its stored
+document (keyed by run ID).
+
 ## Canonicalization and signature format
 
 Version 1 uses these identifiers:

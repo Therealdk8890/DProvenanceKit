@@ -157,7 +157,30 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 try database.execute("CREATE INDEX IF NOT EXISTS idx_edge_target ON trace_edges(target_id, edge_type);")
                 database.userVersion = 2
             }
-            
+
+            // Attestation persistence (schema v3). Stores the self-contained,
+            // drift-proof `TraceAttestationDocument` bytes so a signed run can be
+            // re-verified after an app restart or OS upgrade WITHOUT re-deriving and
+            // re-encoding its payloads — which would risk `JSONEncoder` output drifting
+            // across Foundation versions and invalidating a genuine signature. The
+            // document froze its canonical payload bytes at signing time; we persist and
+            // re-verify THOSE exact bytes, extending the portable document's offline
+            // guarantee to local re-verification. Gated on user_version so a DB already
+            // at v2 (edges) still gains the table exactly once. Keyed by run_id:
+            // re-attesting a run replaces its stored document.
+            if database.userVersion < 3 {
+                try database.execute("""
+                CREATE TABLE IF NOT EXISTS attestations (
+                    run_id TEXT PRIMARY KEY,
+                    document BLOB NOT NULL,
+                    key_id TEXT NOT NULL,
+                    issued_at INTEGER NOT NULL
+                );
+                """)
+                try database.execute("CREATE INDEX IF NOT EXISTS idx_attestations_issued_at ON attestations(issued_at);")
+                database.userVersion = 3
+            }
+
             // Write-behind reconciliation
             // Ensure any runs interrupted during a crash are rebuilt from trace_events
             let reconcileSQL = """
@@ -386,6 +409,69 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         return runs
     }
     
+    // MARK: - Attestation persistence
+
+    /// Persists a signed `TraceAttestationDocument` alongside the run so the run can be
+    /// re-verified later — after an app restart or OS/Swift upgrade — WITHOUT re-deriving
+    /// and re-encoding its payloads. The document already froze its canonical payload
+    /// bytes at signing time (`AttestableTraceEvent.payloadJSON`); storing and later
+    /// re-verifying *those* bytes is what makes local verification immune to
+    /// `JSONEncoder` cross-version drift, the same guarantee the portable document gives
+    /// an offline verifier.
+    ///
+    /// Keyed by `runID`: re-attesting a run replaces its stored document. The write is
+    /// serialized against the background writer through the connection's transaction lock,
+    /// so it never interleaves with an in-flight event batch. Must be called before
+    /// `close()`; afterwards the store is a read-only archive and this throws
+    /// `TraceError.storeClosed`.
+    public func saveAttestation(_ document: TraceAttestationDocument) throws {
+        if closedNow { throw TraceError.storeClosed }
+        // Compact (not pretty) to keep the stored blob small; `decodeJSON` is
+        // whitespace-insensitive, and the signature is over the frozen `payloadJSON`
+        // strings inside, not over this envelope's formatting.
+        let bytes = try document.jsonData(prettyPrinted: false)
+        try db.transaction {
+            let stmt = try db.prepare("""
+            INSERT INTO attestations (run_id, document, key_id, issued_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(run_id) DO UPDATE SET
+                document = excluded.document,
+                key_id = excluded.key_id,
+                issued_at = excluded.issued_at;
+            """)
+            try stmt.bind(document.attestation.runID.uuidString, at: 1)
+            try stmt.bind(bytes, at: 2)
+            try stmt.bind(document.attestation.keyID, at: 3)
+            try stmt.bind(document.attestation.issuedAtUnixMicroseconds, at: 4)
+            _ = try stmt.step()
+        }
+    }
+
+    /// Loads the persisted attestation document for a run, or `nil` if none was saved.
+    /// The returned document carries the exact canonical bytes that were signed, so
+    /// `document.verify(...)` re-hashes stored bytes and never re-encodes a payload.
+    /// Available after `close()` too — the read-only archive still serves it.
+    public func loadAttestation(runID: UUID) throws -> TraceAttestationDocument? {
+        let stmt = try reader().prepare("SELECT document FROM attestations WHERE run_id = ?")
+        try stmt.bind(runID.uuidString, at: 1)
+        guard try stmt.step() else { return nil }
+        return try TraceAttestationDocument.decodeJSON(stmt.columnData(at: 0))
+    }
+
+    /// Verifies a run against its PERSISTED attestation — the drift-proof local path.
+    /// Returns `nil` if no attestation was stored for `runID`. Unlike
+    /// `TraceAttestationVerifier.verify(_:for run:)`, this never rebuilds the trace from
+    /// live events, so a payload re-encoding that differs byte-for-byte from what was
+    /// signed (e.g. Foundation JSON output drifting across an OS upgrade) cannot
+    /// invalidate a genuine signature. Pass `trustedKeyIDs` to pin the signer.
+    public func verifyStoredAttestation(
+        runID: UUID,
+        trustedKeyIDs: Set<String>? = nil
+    ) throws -> TraceAttestationVerification? {
+        guard let document = try loadAttestation(runID: runID) else { return nil }
+        return document.verify(trustedKeyIDs: trustedKeyIDs)
+    }
+
     public func getRun(id: UUID) async throws -> TraceRun<T>? {
         // Flush pending writes first so a run recorded moments ago is visible, matching
         // `queryRuns`' read-your-writes contract.

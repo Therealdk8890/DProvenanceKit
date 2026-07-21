@@ -124,6 +124,10 @@ public extension TraceStore {
 public enum TraceError: Error {
     case nodeNotFound(UUID)
     case notImplemented
+    /// A write was attempted after `close()`. The store is then a read-only archive,
+    /// so persisting a new attestation would touch the quiesced file — surfaced as an
+    /// error rather than silently dropped, matching how post-close records are counted.
+    case storeClosed
 }
 
 
