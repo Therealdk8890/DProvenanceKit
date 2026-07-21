@@ -6,6 +6,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **`align()` on large traces is ~2 orders of magnitude faster, with unchanged semantics.**
+  The 10,000-event rows of the published operating envelope drop from 59.8 s / 78.6 s
+  (distinct types / ambiguity stress) to 0.20 s / 0.41 s on the same M4, and the
+  1,000-event rows from ~0.6–0.8 s to under 10 ms. The all-pairs matcher and its verdicts
+  are untouched — the conformance corpus still gates at 13/13 with identical TP/FP/FN —
+  but the engine no longer pays three overlapping quadratic passes to reach them: the
+  candidate scan now uses allocation-free scoring over flat hoisted arrays with interned
+  type identifiers, the interpreter's ambiguity rebuild reuses the matcher's candidate
+  table instead of re-scoring every pair, `firstIndex`/inversion scans are linear, and
+  large scans fan out across cores with order-preserving stitching. New
+  `AlignmentFastPathParityTests` pin the optimized paths bit-identical to reference
+  implementations (including the evidence-capturing path, which keeps the legacy
+  interpretation pass).
+- **`TraceEquivalenceEvaluator` closures are now invoked concurrently** during large
+  matcher scans (they always had to be `@Sendable`; that contract is now exercised).
+  Keep evaluators pure — results are deterministic and identical to the serial scan,
+  but a closure that mutates shared state under a lock will now see interleaved calls.
+
 ## [0.7.0] - 2026-07-18
 
 > **Source-breaking (proof packs).** `ProofPackVerificationFailure` gains a `.roleBindingRequired`

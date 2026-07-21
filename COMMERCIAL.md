@@ -15,7 +15,8 @@ observability in production tend to need.
 | I want to… | Do this |
 |------------|---------|
 | **Join the pilot** (free/discounted design partner) | [Open the pilot form →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) |
-| **Ask about a paid tier / SLA / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Embed DPK in your own regulated app** (OEM / on-prem / private build) | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20OEM%2Fembed%20licensing%20inquiry)** — the attestation and role-bound proof-pack, separately licensed to ship inside your product |
+| **Ask about a paid support tier / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
 | **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to sign. |
 
 We typically respond within 1–2 business days.
@@ -65,8 +66,8 @@ model/OS update would actually hurt.
 | Tier              | Best for                              | Pricing (USD)            | Includes |
 |-------------------|---------------------------------------|--------------------------|----------|
 | **Starter**       | Small teams, indie developers         | $250/mo or $2,400/yr     | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $1,500/mo or $15,000/yr  | Priority support, SLAs (99% uptime), managed OTel export pipeline (hosted trace sharing across machines & CI, regression gate), cross-machine lineage graph & analytics dashboard, up to 5 seats |
-| **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom features, on-prem/air-gapped deployment, audit logs, indemnity, SOC 2 / HIPAA-ready documentation, unlimited seats |
+| **Pro**           | Growing AI startups and products      | $1,500/mo or $15,000/yr  | Priority support (2-business-day target), CI regression-gate design, trace-vocabulary & OTel/Langfuse export review, monthly reasoning-regression review, evidence-report templates, up to 5 named contacts. *Hosted cross-machine trace sharing & analytics dashboard are in development — available early to design partners, not yet generally available.* |
+| **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom integration & architecture review, on-prem/air-gapped deployment guidance, separately-licensed private add-ons, unlimited seats. *Optional, scoped per engagement: indemnity, and support answering security/compliance questionnaires — scoped to what a maintainer-led engagement can actually deliver, not a certification we hold.* |
 
 A 30-day paid **Pilot** ($1,500, one workflow) is also available as a low-commitment entry point.
 For a buyer-facing version of the offer, pricing anchors, and pilot scope, see
@@ -84,9 +85,10 @@ checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
   to new capabilities. Premium components delivered this way are **separately licensed
   (commercial, not Apache 2.0)**; the open-source library in this repository stays Apache 2.0.
 - The in-process OTel exporter (`DProvenanceOTel`, [docs/otel-bridge.md](docs/otel-bridge.md))
-  is free and open source under Apache 2.0, like the rest of the library. The Pro tier's
-  **managed OTel export pipeline** is the hosted layer on top — shared team traces, CI
-  gates, monitoring — not the exporter itself.
+  is free and open source under Apache 2.0, like the rest of the library. The
+  **managed OTel export pipeline** — the in-development hosted layer (shared team traces, CI
+  gates, monitoring), available early to design partners — sits on top of it, not the
+  exporter itself.
 
 **What's in the free library (not a paid feature):** the core recording, querying, and
 diff/regression engine, **provenance/lineage** (record what each reasoning step was derived
@@ -134,10 +136,11 @@ locally, the more they want it shared, gated in CI, and monitored in production.
 
 ## What a commercial agreement includes
 
-- Professional support and SLAs
-- Indemnification against IP claims
-- Enterprise-only and hosted features: traces shared across machines and CI, a regression
-  gate that fails a pull request when reasoning drifts, and production monitoring
+- Professional support with response-time targets by tier
+- Optional indemnification against IP claims, scoped per engagement
+- Hosted, cross-machine features **in development** (available early to design partners):
+  traces shared across machines and CI, and production monitoring. The local CI regression
+  gate that fails a pull request when reasoning drifts already ships **free** in the library.
 - Priority bug fixes and feature requests
 - Private Slack/Discord channel or email support
 - Optional training and integration workshops
