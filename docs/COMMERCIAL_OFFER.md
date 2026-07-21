@@ -33,9 +33,14 @@ accuracy or audit problem:
 | ------- | ----- | -------- | ------- |
 | Starter Support | $250/month or $2,400/year | Indie teams, small apps, early legal workflows | Get DProvenanceKit integrated correctly and avoid obvious tracing mistakes. |
 | Pro Assurance | $1,500/month or $15,000/year | AI products with CI, review, or client-facing risk | Turn reasoning traces into repeatable gates, review artifacts, and operational confidence. |
-| Enterprise Assurance | From $50,000/year | Regulated, on-prem, or procurement-heavy teams | Private support, custom integration, deployment review, security questionnaires, and contractual coverage. |
+| Enterprise Assurance | From $50,000/year | Regulated, on-prem, or procurement-heavy teams | Private support, custom integration, deployment review, help answering security questionnaires, and optional contractual coverage. |
 
 These prices sell service and assurance, not permission to use the Apache-2.0 code.
+
+**Embed / OEM licensing (for teams shipping DPK inside a regulated product):** if you need to
+embed the attestation and role-bound proof-pack in your own app — or ship it on-prem or
+air-gapped — that is available as a separately-licensed component, priced per engagement
+(license + integration), not as a monthly tier. Email the address in `COMMERCIAL.md`.
 
 ## Starter Support
 
@@ -74,7 +79,7 @@ Includes Pro plus:
 - security and architecture review
 - on-prem or air-gapped deployment guidance
 - custom private add-ons delivered outside this Apache repo
-- support SLAs and escalation path
+- support response-time targets and escalation path
 - optional indemnity and compliance documentation
 
 Good success metric: the buyer can pass internal AI governance review with clear traceability,
