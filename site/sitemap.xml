@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://dprovenance.dev/</loc><lastmod>2026-07-03</lastmod></url>
+  <url><loc>https://dprovenance.dev/</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://dprovenance.dev/docs/</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://dprovenance.dev/docs/add-to-an-existing-agent/</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://dprovenance.dev/docs/ci-gate/</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://dprovenance.dev/docs/regression-patterns/</loc><lastmod>2026-07-22</lastmod></url>
+  <url><loc>https://dprovenance.dev/explorer/</loc><lastmod>2026-07-22</lastmod></url>
   <url><loc>https://dprovenance.dev/openai-agents/</loc><lastmod>2026-07-03</lastmod></url>
   <url><loc>https://dprovenance.dev/langchain/</loc><lastmod>2026-07-07</lastmod></url>
   <url><loc>https://dprovenance.dev/llama-index/</loc><lastmod>2026-07-07</lastmod></url>
