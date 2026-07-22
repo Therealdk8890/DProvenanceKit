@@ -196,7 +196,7 @@
             </tr>
             <tr>
               <th scope="row">Data locality</th>
-              <td><span class="yes">✓</span> Local SQLite files that live in your repo. Traces never leave your machine unless you opt into the hosted dashboard.</td>
+              <td><span class="yes">✓</span> Local SQLite files that live in your repo. Traces never leave your machine.</td>
               <td>Traces go to the hosted service by default; self-hosted and hybrid deployments are offered on the Enterprise plan (as of July 2026).</td>
             </tr>
             <tr>
@@ -216,7 +216,7 @@
             </tr>
             <tr>
               <th scope="row">Pricing model</th>
-              <td><span class="yes">✓</span> SDK, CLI, pytest plugin, Action: free and open source. Optional commercial hosted dashboard (early access).</td>
+              <td><span class="yes">✓</span> SDK, CLI, pytest plugin, Action, and the in-browser <a href="https://dprovenance.dev/explorer/">trace Explorer</a>: all free and open source.</td>
               <td>Free Developer tier (1 seat, up to 5k base traces/mo), Plus at $39/seat/mo, usage-based trace pricing beyond included volume, custom-priced Enterprise (as of July 2026).</td>
             </tr>
             <tr>
@@ -343,7 +343,7 @@ tracer = DProvenanceTracer(store)
       <h2>When LangSmith is the better choice</h2>
       <p class="lede">This is a genuine section, not a formality. As of July 2026, LangSmith is the better tool when:</p>
       <ul class="facts">
-        <li><strong>Your team lives in a shared dashboard.</strong> LangSmith's monitoring dashboards, alerting, trace search, and cross-run analytics are a real product; DProvenanceKit's hosted dashboard is an optional early-access add-on, not the core.</li>
+        <li><strong>Your team lives in a shared dashboard.</strong> LangSmith's monitoring dashboards, alerting, trace search, and cross-run analytics are a real product; DProvenanceKit has no hosted dashboard — it's a local-first library.</li>
         <li><strong>You want hosted evals with humans in the loop.</strong> Annotation queues, inline annotation, online LLM-as-judge evaluations, and datasets/experiments are LangSmith platform features with no DProvenanceKit equivalent.</li>
         <li><strong>Your stack isn't Python or Swift.</strong> LangSmith ships Python and TypeScript SDKs (with Go and Java also listed on langchain.com); DProvenanceKit's cross-language story is exactly Python + Swift via Trace Spec v1, no further.</li>
         <li><strong>You want a managed service, not a library.</strong> If nobody on the team should own trace storage or report plumbing, a hosted platform with a free Developer tier is the pragmatic call.</li>
