@@ -43,8 +43,28 @@ jobs:
       - name: Build
         run: swift build
 
-      - name: Test
-        run: swift test
+      - name: Test (with code coverage)
+        run: swift test --enable-code-coverage
+
+      # Non-gating visibility only: prints the library's line-coverage summary to the
+      # build log so the number is measured on every PR. It never fails the build —
+      # a runner-specific path hiccup must not turn a green test run red — and there is
+      # no coverage floor. Tests, .build artifacts, and scratch/ are excluded so the
+      # figure reflects the shipped Sources/.
+      - name: Coverage summary (library line coverage, non-gating)
+        continue-on-error: true
+        run: |
+          BIN=$(swift build --show-bin-path)
+          XCTEST=$(ls -d "$BIN"/*.xctest | head -1)
+          MACHO="$XCTEST/Contents/MacOS/$(basename "$XCTEST" .xctest)"
+          PROF="$BIN/codecov/default.profdata"
+          echo "coverage inputs: bundle=$XCTEST profdata=$PROF"
+          xcrun llvm-cov report "$MACHO" \
+            -instr-profile "$PROF" \
+            -ignore-filename-regex='(/Tests/|/\.build/|/scratch/)' \
+            | tee "$RUNNER_TEMP/coverage.txt"
+          echo "==== TOTAL (last line above) ===="
+          tail -n 1 "$RUNNER_TEMP/coverage.txt"
 
       - name: Run CLI evaluation (gated — fails the build on regression)
         run: swift run DProvenanceKitCLI evaluate --gate

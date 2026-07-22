@@ -11,7 +11,7 @@ FoundationModels framework, which needs the macOS 26 SDK.
 
 ```bash
 swift build          # builds all targets, including the OTel/FoundationModels bridges
-swift test           # ~260 tests across the core, UI, FoundationModels, and OTel targets
+swift test           # ~490 tests across the core, UI, FoundationModels, and OTel targets
 swift run Quickstart # end-to-end tour of the Run → Record → Query → Diff loop
 ```
 
