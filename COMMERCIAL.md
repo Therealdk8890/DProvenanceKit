@@ -16,34 +16,30 @@ observability in production tend to need.
 |------------|---------|
 | **Join the pilot** (free/discounted design partner) | [Open the pilot form →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) |
 | **Embed DPK in your own regulated app** (OEM / on-prem / private build) | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20OEM%2Fembed%20licensing%20inquiry)** — the attestation and role-bound proof-pack, separately licensed to ship inside your product |
-| **Ask about a paid support tier / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Ask about paid support or a scoped engagement** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
 | **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to sign. |
 
 We typically respond within 1–2 business days.
 
 ---
 
-## 🚀 Design Partner / Pilot Program (open now)
+## 🚀 Design partners & pilots (open now)
 
-Before the hosted/team layer is generally available, a small number of **design partners**
-get it early — **free or heavily discounted** — in exchange for feedback that shapes what
-ships. If you're building on-device or Swift AI and reasoning drift is a real risk for you,
-this is the fastest way to get the team features and steer the roadmap.
+If you're shipping on-device or Swift AI and reasoning drift is a real risk for you, a
+small number of **design partners** work directly with the maintainer — to get
+DProvenanceKit wired into your app and CI, and to steer what ships next.
 
 **What a design partner gets**
 
-- Early access to the **hosted team layer**: traces & lineage shared across machines and CI,
-  a managed regression gate that comments on your pull requests, and a cross-machine
-  analytics dashboard — at **no or reduced cost** for the pilot term.
 - A **direct line** to the maintainer (private channel) and priority on bug fixes.
-- **Roadmap input** — pilots vote on what gets built next, and integration help getting
-  DProvenanceKit wired into your app and CI.
+- **Integration help** getting capture, lineage, and the regression gate into your app and CI.
+- **Roadmap input** — partners' needs shape what gets built next.
 - Optional: a logo / short case study once you're getting value (never required).
 
 **What we ask in return**
 
 - ~30 minutes of feedback every couple of weeks during the pilot.
-- Permission to use anonymized learnings to improve the product.
+- Permission to use anonymized learnings to improve the library.
 - Honesty — including telling us what's missing or broken.
 
 **Who it's for:** teams or solo developers shipping AI in **Apple Foundation Models, Swift
@@ -52,43 +48,34 @@ model/OS update would actually hurt.
 
 **Slots are limited** so each partner gets real attention.
 👉 **[Apply to the pilot](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)** (2-minute form) — or email
-**[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20pilot%20interest&body=Company%3A%0AWhat%20you're%20building%3A%0ATeam%20size%3A%0AWhat%20you'd%20want%20from%20a%20team%2Fhosted%20version%3A%0A)** with what you're building.
+**[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20pilot%20interest&body=Company%3A%0AWhat%20you're%20building%3A%0ATeam%20size%3A%0AWhat%20you'd%20want%20help%20with%3A%0A)** with what you're building.
 
-> **Design partner vs. paid pilot:** a *design partnership* trades your feedback for free or
-> discounted early access to the hosted layer. If you'd rather evaluate on a defined paid
-> engagement, there's also a **paid 30-day Pilot ($1,500, one workflow)** under
-> [Paid tiers](#paid-tiers) below. Pick whichever fits — both are low-commitment ways in.
+> A design partnership trades your feedback for hands-on help. If you'd rather engage on a
+> defined **paid scope** — an integration review or a 30-day assurance pilot for one workflow —
+> say so in the same email and we'll scope it. Both are low-commitment ways in.
 
 ---
 
-## Paid tiers
+## What's available commercially
 
-| Tier              | Best for                              | Pricing (USD)            | Includes |
-|-------------------|---------------------------------------|--------------------------|----------|
-| **Starter**       | Small teams, indie developers         | $250/mo or $2,400/yr     | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $1,500/mo or $15,000/yr  | Priority support (2-business-day target), CI regression-gate design, trace-vocabulary & OTel/Langfuse export review, monthly reasoning-regression review, evidence-report templates, up to 5 named contacts. *Hosted cross-machine trace sharing & analytics dashboard are in development — available early to design partners, not yet generally available.* |
-| **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom integration & architecture review, on-prem/air-gapped deployment guidance, separately-licensed private add-ons, unlimited seats. *Optional, scoped per engagement: indemnity, and support answering security/compliance questionnaires — scoped to what a maintainer-led engagement can actually deliver, not a certification we hold.* |
+The library is Apache-2.0 and free. What's sold is narrow and honest — none of it is a
+hosted service, and none of it gates the open-source code:
 
-A 30-day paid **Pilot** ($1,500, one workflow) is also available as a low-commitment entry point.
-For a buyer-facing version of the offer, pricing anchors, and pilot scope, see
-[docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md). For the Stripe catalog and fulfillment
-checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
+- **OEM / embed license.** Ship the local trace attestation and role-bound proof-pack
+  **inside your own product** — on-prem, air-gapped, or a private build — under a commercial
+  license (separate from Apache 2.0). This is the primary paid path, aimed at regulated
+  Apple-native and Swift/Python ISVs that need provenance embedded in what *they* ship.
+- **Paid support & scoped engagements.** Maintainer time, by inquiry: integration review,
+  CI regression-gate design, trace-vocabulary / OTel export review, or a defined 30-day
+  assurance pilot for one workflow. Priced per engagement, not as a subscription.
+- **The D.P.K Mac app.** A separate paid product on the Mac App Store (see below) — the
+  packaged desktop workbench over the same free engine.
+- **Sponsorship.** [GitHub Sponsors](https://github.com/sponsors/Therealdk8890) and reduced
+  rates for qualifying open-source / academic use.
 
-**Notes**
-
-- Design-partner pilots are **free or discounted** during the pilot term; the prices above
-  are the standard post-pilot rates.
-- Pricing is flexible and based on factors such as number of developers, event volume,
-  deployment type (self-hosted vs. hosted), and contract length.
-- Multi-year discounts and usage-based options are available.
-- Paid tiers include access to private repositories for premium features and early access
-  to new capabilities. Premium components delivered this way are **separately licensed
-  (commercial, not Apache 2.0)**; the open-source library in this repository stays Apache 2.0.
-- The in-process OTel exporter (`DProvenanceOTel`, [docs/otel-bridge.md](docs/otel-bridge.md))
-  is free and open source under Apache 2.0, like the rest of the library. The
-  **managed OTel export pipeline** — the in-development hosted layer (shared team traces, CI
-  gates, monitoring), available early to design partners — sits on top of it, not the
-  exporter itself.
+There is **no hosted, cross-machine, or managed-SaaS tier**, and no SLA, indemnity, or
+compliance-certification offering — a local-first library that runs entirely on your machine
+is the whole point. Anything that would require running a service *for* you isn't on the menu.
 
 **What's in the free library (not a paid feature):** the core recording, querying, and
 diff/regression engine, **provenance/lineage** (record what each reasoning step was derived
@@ -96,9 +83,9 @@ from, then trace, diff, and export it), **local P-256 trace attestation and role
 packs** (including offline verification), the **FoundationModels adapter**
 (`DProvenanceFoundationModels`), and the **OpenTelemetry / OTLP exporter**
 (`DProvenanceOTel`) that sends traces — lineage attributes included — to Langfuse, an OTel
-collector, or any OTLP backend. On-device capture, signing, verification, and getting your
-traces *out* to the tools you already run are free by design — the paid tiers are the hosted,
-cross-machine, and support layers on top.
+collector, or any OTLP backend. On-device capture, signing, verification, the local CI
+regression gate, and getting your traces *out* to the tools you already run are all free by
+design.
 
 ## How we decide free vs. paid
 
@@ -106,33 +93,27 @@ One line, applied consistently so the boundary never surprises a user or a contr
 
 > **The library is free. The service is paid.**
 
-Concretely, three categories:
+Concretely, two categories:
 
 - **Free, always — the open-source library.** Anything in the Apache-2.0 library that runs
   *in your process, on your machine*: capture, query, diff, regression detection, lineage
-  recording, local trace attestation, proof-pack generation and offline verification, and
-  exporting your traces to a backend *you* run. Paywalling these would only slow adoption,
-  and adoption is the whole strategy in an empty niche.
-- **Paid — hosted services.** Anything DProvenanceKit runs *for you, across machines*: hosted
-  trace and lineage sharing, a managed CI regression gate, cross-run/cross-machine analytics
-  dashboards, production monitoring, plus support, SLAs, indemnity, and compliance. This code
-  runs on our infrastructure and is never distributed, so it is not part of the open-source
-  library.
-- **Paid — separately-licensed premium components.** A small set of enterprise capabilities
-  (air-gapped / on-prem builds, and bespoke custom features) *do* run in your environment, but
-  they are **not** part of the Apache-2.0 library. They are delivered through private
-  repositories under a **separate commercial license — not Apache 2.0** — and are never merged
-  into the public tree. Running in your process is what makes the *library* free; a commercial
-  license is what makes these premium components paid.
+  recording, local trace attestation, proof-pack generation and offline verification, the
+  local CI regression gate, and exporting your traces to a backend *you* run. Paywalling these
+  would only slow adoption, and adoption is the whole strategy in an empty niche.
+- **Paid — a commercial license to embed, plus maintainer time.** The right to ship the
+  attestation and proof-pack **inside your own product** (on-prem / air-gapped / private
+  build) under a commercial license — not Apache 2.0 — together with any bespoke premium
+  components, which are delivered through private repositories and never merged into the
+  public tree. Alongside that: paid support and scoped engagements (maintainer time). What you
+  pay for is the license to embed and the work — not access to the code, which is already free.
 
-The test for any new feature: *does it deliver its value standalone, in the user's own process,
-as part of the core library?* If yes, it ships free in the Apache-2.0 library and widens the top
-of the funnel. If its value only exists as a hosted, multi-machine, or managed service, it
-belongs in a paid tier. And anything meant to be sold as software you run — on-prem or custom —
-is built in the private premium repository under a commercial license from the start, never
-committed to the open-source tree, because an Apache-2.0 release is irrevocable. A strong free
-library makes the paid offering **more** valuable, not less: the more teams capture and record
-locally, the more they want it shared, gated in CI, and monitored in production.
+The test for any new library feature: *does it deliver its value standalone, in the user's own
+process?* If yes, it ships free in the Apache-2.0 library and widens the top of the funnel.
+Anything meant to be sold as software you embed or run privately is built in a private
+repository under a commercial license from the start, never committed to the open-source tree,
+because an Apache-2.0 release is irrevocable. A strong free library makes the paid offering
+**more** valuable, not less: the more teams capture and record locally, the more of them need
+it embedded, supported, and shipped inside regulated products.
 
 ## Where the Mac app and the web Explorer fit
 
@@ -159,26 +140,23 @@ free library; what you pay for is the packaged, interactive desktop experience o
 you'd rather not buy the app, the same engine is yours for free — build your own front end, use
 the CLI, or preview single diffs in the Explorer.
 
-## What a commercial agreement includes
+## What a commercial engagement includes
 
-- Professional support with response-time targets by tier
-- Optional indemnification against IP claims, scoped per engagement
-- Hosted, cross-machine features **in development** (available early to design partners):
-  traces shared across machines and CI, and production monitoring. The local CI regression
-  gate that fails a pull request when reasoning drifts already ships **free** in the library.
+- Professional support, scoped per engagement (no fixed-SLA promises a solo maintainer can't keep)
+- An **OEM / embed commercial license** to ship the attestation and proof-pack inside your product
 - Priority bug fixes and feature requests
-- Private Slack/Discord channel or email support
+- A private channel or email support
 - Optional training and integration workshops
 
-The library itself stays Apache 2.0 — these are services and add-ons layered on top, not a
-gate on the open-source code.
+The library itself stays Apache 2.0 — these are a license to embed plus services layered on
+top, not a gate on the open-source code.
 
 ## How to get in touch
 
 **Fastest — use a form/link:**
 
 - **Pilot:** [github.com/Therealdk8890/DProvenanceKit → new pilot issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
-- **Commercial / SLA / enterprise:** [new `commercial` issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+- **Commercial / OEM licensing / support:** [new `commercial` issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
   or email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)**
 
 **When you reach out, it helps to include:**
@@ -195,8 +173,8 @@ We typically respond within 1–2 business days and can provide a custom quote q
 
 **Can I use DProvenanceKit for free in production?**
 Yes. Under Apache 2.0 you may use it in production and in commercial products at no cost and
-with no restrictions. Commercial agreements cover support, SLAs, indemnity, and
-enterprise/hosted features — not permission to use the code.
+with no restrictions. Commercial agreements cover support, scoped engagements, and an
+OEM/embed license to ship it inside your own product — not permission to use the code.
 
 **What does a pilot cost?**
 Design-partner pilots are free or discounted for the pilot term. In exchange we ask for

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your interest in DProvenanceKit. The open-source library is free under Apache 2.0; commercial plans cover support, SLAs, managed workflows, and private add-ons.
+        Thanks for your interest in DProvenanceKit. The open-source library is free under Apache 2.0; what's offered commercially is an OEM/embed license to ship it inside your own product, plus paid support and scoped engagements — there is no hosted service.
   - type: input
     id: organization
     attributes:
@@ -20,10 +20,10 @@ body:
     attributes:
       label: Interested plan
       options:
-        - Starter support
-        - Pro assurance
-        - Enterprise / on-prem
+        - OEM / embed license (ship it inside my product)
+        - Paid support or integration engagement
         - Pilot / evaluation
+        - Sponsorship / open-source support
         - Not sure yet
     validations:
       required: true
@@ -59,7 +59,7 @@ body:
     attributes:
       label: Requirements
       description: Security, privacy, local-only, compliance, support, procurement, or deployment needs.
-      placeholder: Local-only data, private Slack support, annual invoice, SOC 2 questionnaire.
+      placeholder: Local-only data, private support channel, annual invoice, on-prem / embedded build.
   - type: input
     id: contact
     attributes:

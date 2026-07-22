@@ -8,39 +8,38 @@ hosted-service code to this repo.
 
 ## Stripe Products
 
-Create these products in Stripe:
+The only self-serve product is the one-time assurance **Pilot**. There are no recurring
+"Starter/Pro" support subscriptions and no hosted/enterprise SaaS tiers — those were removed;
+a local-first library that runs entirely on the user's machine has no service to bill for.
+OEM/embed licensing and paid support engagements are **quote/invoice by inquiry**, not self-serve.
 
 | Product | Price | Billing | Lookup key |
 | ------- | ----- | ------- | ---------- |
-| DProvenanceKit Starter Support | $250/month | Recurring monthly | `dpk_starter_monthly` |
-| DProvenanceKit Starter Support Annual | $2,400/year | Recurring annual | `dpk_starter_annual` |
-| DProvenanceKit Pro Assurance | $1,500/month | Recurring monthly | `dpk_pro_monthly` |
-| DProvenanceKit Pro Assurance Annual | $15,000/year | Recurring annual | `dpk_pro_annual` |
 | DProvenanceKit Pilot | $1,500 | One-time | `dpk_pilot_once` |
 
-Enterprise is quote/invoice only. Do not expose a public self-serve enterprise checkout.
+OEM / embed licensing and scoped support engagements are invoice-only. Do not expose a public
+self-serve enterprise or subscription checkout.
 
 ## Product Descriptions
 
-Starter Support:
-
-> Commercial support for DProvenanceKit integration: onboarding, private email support, first
-> integration review, and prioritized public bug triage. The Apache-2.0 library remains free.
-
-Pro Assurance:
-
-> Commercial assurance for AI reasoning workflows: Starter support plus CI gate design, trace
-> vocabulary review, OTel/export review, and monthly reasoning-regression review.
-
-Pilot:
+Pilot (the one self-serve product):
 
 > 30-day paid pilot for one AI workflow. Includes integration review and one reasoning assurance
-> report.
+> report. The Apache-2.0 library remains free.
+
+Everything else is invoice-only, scoped per engagement:
+
+> **OEM / embed license** — the right to ship the local attestation and role-bound proof-pack
+> inside your own product (on-prem / air-gapped / private build), under a commercial license
+> separate from Apache 2.0.
+>
+> **Support & integration engagements** — maintainer time: integration review, CI regression-gate
+> design, trace-vocabulary / OTel export review. Priced per engagement.
 
 ## Required Metadata
 
 `lookup_key` is a first-class field on the Stripe **Price**, not metadata — set it there (e.g.
-`dpk_starter_monthly` from the product table) so you can fetch and swap prices by lookup key
+`dpk_pilot_once` from the product table) so you can fetch and swap prices by lookup key
 without editing links or code. Do not also duplicate it into metadata; the two copies will drift.
 
 Set the remaining keys as **product** (or Checkout Session) metadata:
@@ -77,17 +76,15 @@ After payment:
 
 ## Public Links To Publish
 
-Use Payment Links for self-serve Starter, Pro, and Pilot purchases:
+Use a Payment Link only for the self-serve Pilot. (The retired Starter/Pro subscription links
+point at products that are no longer offered — archive those products in the Stripe Dashboard.)
 
 ```text
-Starter monthly: https://buy.stripe.com/4gMeV7dUgcnNgVT6SGfYY04
-Starter annual:  https://buy.stripe.com/bJeeV79E0gE3dJHdh4fYY03
-Pro monthly:     https://buy.stripe.com/7sY7sF2byfzZgVT5OCfYY02
-Pro annual:      https://buy.stripe.com/8x24gt4jG4Vl3534KyfYY01
-Pilot:           https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
+Pilot: https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
 ```
 
-Do not commit live secret keys, webhook signing secrets, or customer-specific links.
+OEM/embed licensing and support engagements are handled by invoice, not a public link. Do not
+commit live secret keys, webhook signing secrets, or customer-specific links.
 
 ## Preventing Secret Leaks
 
@@ -106,11 +103,12 @@ Dashboard (API keys page), then check Workbench request logs for unrecognized ac
 
 ## Invoicing
 
-For Pro annual and Enterprise buyers, prefer invoice-first sales when procurement is involved.
-Use Payment Links only for low-friction self-serve purchases.
+For OEM/embed licenses and support engagements, prefer invoice-first sales when procurement is
+involved. Use the Payment Link only for the low-friction self-serve Pilot.
 
 ## Boundary Rules
 
 The open-source library remains free for production and commercial use. Billing covers support,
-service, review, SLAs, and separately licensed private add-ons. It does not grant permission to
-use the public code; users already have that permission under Apache 2.0.
+scoped engagements, and a separately licensed OEM/embed right to ship the library inside your own
+product. It does not grant permission to use the public code; users already have that permission
+under Apache 2.0.
