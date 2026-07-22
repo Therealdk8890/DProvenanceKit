@@ -18,6 +18,8 @@ DProvenanceKit records reasoning paths locally, shows exactly what changed betwe
 
 > **Working in Python?** There's a full Python port — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and CI regression gate, plus adapters for LangChain, the OpenAI Agents SDK, LlamaIndex, and CrewAI: `pip install dprovenancekit`.
 
+> **In production:** DProvenanceKit runs inside [**D.P.K: Reasoning Traces**](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12), a first-party macOS app on the Mac App Store that replays and diffs on-device AI reasoning traces.
+
 ---
 
 ## When the evidence cannot leave the device
