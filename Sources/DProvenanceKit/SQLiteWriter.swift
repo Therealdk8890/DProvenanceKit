@@ -32,14 +32,46 @@ public actor SQLiteWriter {
         var eventCount: Int
         var fingerprintHash: Insecure.SHA1
         var isDirty: Bool
+        /// Wall-clock time (seconds since 1970) this run last received an event. Drives
+        /// the idle-eviction sweep in `runMaintenance`.
+        var lastTouchTime: TimeInterval
     }
-    
+
     private var activeRuns: [String: RunState] = [:]
-    
-    public init(db: SQLiteConnection, buffer: TraceWriteBuffer, dropTally: TraceDropTally = TraceDropTally()) {
+
+    /// Upper bound on cached run states. `activeRuns` holds one entry per run the writer
+    /// has folded metadata for, and nothing in the event stream signals "run complete",
+    /// so without a bound a long-lived process accumulates one entry per distinct run_id
+    /// forever — and rescans them all every flush. Idle entries are dropped by the
+    /// periodic maintenance pass; this cap is the hard backstop for a burst of concurrent
+    /// runs that outpaces the idle window. An evicted run re-seeds its count from the
+    /// persisted `runs.event_count` on its next event (see `updateRunState`), so eviction
+    /// never under-counts.
+    private let maxActiveRuns: Int
+
+    /// A cached run untouched for longer than this (seconds) is treated as complete and
+    /// dropped on the next maintenance pass. Re-seeding makes this safe even if it resumes.
+    private let activeRunIdleEvictionSeconds: TimeInterval
+
+    /// The re-seed SELECT, prepared once and reused (reset per call) so a workload with
+    /// high run cardinality doesn't re-parse it on every first-touch. Lazily created
+    /// because `runs` may not exist at init time (a bare writer over a not-yet-migrated
+    /// file); prepared on first use, when the table is guaranteed present. Actor-isolated
+    /// like every other cache field.
+    private var eventCountStmt: SQLiteStatement?
+
+    public init(
+        db: SQLiteConnection,
+        buffer: TraceWriteBuffer,
+        dropTally: TraceDropTally = TraceDropTally(),
+        maxActiveRuns: Int = 50_000,
+        activeRunIdleEvictionSeconds: TimeInterval = 300
+    ) {
         self.db = db
         self.buffer = buffer
         self.dropTally = dropTally
+        self.maxActiveRuns = maxActiveRuns
+        self.activeRunIdleEvictionSeconds = activeRunIdleEvictionSeconds
         // The INSERT names schema_version, but consumers may pair this writer with a
         // connection to a pre-existing store file directly (bypassing
         // SQLiteTraceStore's migration). Migrate here too, or every batch against a
@@ -123,6 +155,7 @@ public actor SQLiteWriter {
                     try flushRunsTable()
                 }
                 markRunsClean(stagedRunIDs)
+                runMaintenance(now: now)
                 lastRunFlushTime = now
             } catch {
                 DPKLog.store.error("SQLiteWriter failed to flush runs: \(String(describing: error), privacy: .public)")
@@ -153,8 +186,9 @@ public actor SQLiteWriter {
             // in-memory run metadata. Doing this *after* commit — not per-event inside
             // the transaction — keeps event_count and the fingerprint consistent with
             // what is actually on disk; a rolled-back batch never inflates them.
+            let now = Date().timeIntervalSince1970
             for event in batch {
-                updateRunState(for: event)
+                updateRunState(for: event, now: now)
             }
         } catch {
             // The transaction rolled back: these rows were already drained out of the
@@ -230,28 +264,121 @@ public actor SQLiteWriter {
         }
     }
     
-    private func updateRunState(for event: TraceEventRow) {
+    private func updateRunState(for event: TraceEventRow, now: TimeInterval) {
         let runID = event.runID
-        var state = activeRuns[runID] ?? RunState(
-            contextID: event.contextID,
-            startTime: event.timestamp,
-            latestTime: event.timestamp,
-            eventCount: 0,
-            fingerprintHash: Insecure.SHA1(),
-            isDirty: false
-        )
-        
+        var state: RunState
+        if let existing = activeRuns[runID] {
+            state = existing
+        } else {
+            // First time this process folds metadata for `runID` — either a brand-new run
+            // (no persisted row yet) or one whose cache entry was evicted for being idle.
+            // Seed the count from the persisted `runs` row so a resumed run continues from
+            // its true cumulative total; otherwise the next UPSERT overwrites
+            // runs.event_count (which RawTraceStore surfaces) with only the events seen
+            // since this touch. The streaming fingerprint hash cannot be resumed from the
+            // stored digest (SHA1 is one-way), so it restarts and thereafter covers only
+            // post-seed events — acceptable because runs.fingerprint is written but never
+            // read anywhere in the library.
+            state = RunState(
+                contextID: event.contextID,
+                startTime: event.timestamp,
+                latestTime: event.timestamp,
+                eventCount: persistedEventCount(runID: runID) ?? 0,
+                fingerprintHash: Insecure.SHA1(),
+                isDirty: false,
+                lastTouchTime: now
+            )
+        }
+
         state.latestTime = event.timestamp
         state.eventCount += 1
         state.isDirty = true
-        
+        state.lastTouchTime = now
+
         // Incremental fingerprinting
         let signature = "\(event.type):\(event.engine ?? "")|"
         if let data = signature.data(using: .utf8) {
             state.fingerprintHash.update(data: data)
         }
-        
+
         activeRuns[runID] = state
+    }
+
+    /// The persisted cumulative `event_count` for a run, or nil when it has no `runs` row
+    /// yet (a genuinely new run). Called from `updateRunState` after that batch's
+    /// transaction has committed and on the actor's serial executor, so it never
+    /// interleaves with the writer's own open transaction.
+    private func persistedEventCount(runID: String) -> Int? {
+        do {
+            let stmt: SQLiteStatement
+            if let cached = eventCountStmt {
+                stmt = cached
+            } else {
+                stmt = try db.prepare("SELECT event_count FROM runs WHERE run_id = ?")
+                eventCountStmt = stmt
+            }
+            defer { stmt.reset() }
+            try stmt.bind(runID, at: 1)
+            guard try stmt.step() else { return nil }
+            return stmt.columnInt(at: 0)
+        } catch {
+            // A read failure falls back to the historical seed of 0. The next restart's
+            // reconcile still corrects runs.event_count from COUNT(*), so a transient
+            // read error cannot permanently corrupt the persisted total.
+            return nil
+        }
+    }
+
+    /// Bounds `activeRuns` so a long-lived writer's metadata cache cannot grow without
+    /// limit. Both stages evict only CLEAN entries — a dirty entry holds metadata not yet
+    /// written to `runs`, so evicting it would lose that delta until the next restart's
+    /// reconcile. Any evicted run re-seeds its count from the persisted row on its next
+    /// event, so eviction is always count-preserving.
+    ///
+    /// `internal` (not `private`) so tests can drive it deterministically with a supplied
+    /// `now`; production calls it from `tick` on the 1s runs-flush cadence.
+    internal func runMaintenance(now: TimeInterval) {
+        guard !activeRuns.isEmpty else { return }
+
+        // Stage 1: idle sweep — drop clean entries untouched past the idle window (very
+        // likely completed runs). Collect keys first; mutating a Dictionary while
+        // iterating it is unsafe.
+        var idleRunIDs: [String] = []
+        for (runID, state) in activeRuns
+        where !state.isDirty && now - state.lastTouchTime > activeRunIdleEvictionSeconds {
+            idleRunIDs.append(runID)
+        }
+        for runID in idleRunIDs {
+            activeRuns.removeValue(forKey: runID)
+        }
+
+        // Stage 2: hard-cap backstop — if a burst of concurrent runs still leaves the
+        // cache over the cap, drop the least-recently-touched clean entries down to it.
+        guard activeRuns.count > maxActiveRuns else { return }
+        let evictable = activeRuns
+            .filter { !$0.value.isDirty }
+            .sorted { $0.value.lastTouchTime < $1.value.lastTouchTime }
+        let overBy = activeRuns.count - maxActiveRuns
+        for (runID, _) in evictable.prefix(overBy) {
+            activeRuns.removeValue(forKey: runID)
+        }
+        if activeRuns.count > maxActiveRuns {
+            // Everything left is dirty (unflushed metadata) and cannot be evicted without
+            // loss; it flushes within the next cycle and becomes evictable then.
+            DPKLog.store.warning("SQLiteWriter activeRuns exceeds cap \(self.maxActiveRuns, privacy: .public); \(self.activeRuns.count, privacy: .public) retained (excess entries are dirty, will flush next cycle).")
+        }
+    }
+
+    /// Number of cached run states currently held. Test/diagnostic hook for the
+    /// eviction and re-seeding behavior.
+    internal var activeRunCount: Int { activeRuns.count }
+
+    /// Test seam: drain the buffer into `trace_events` and fold run metadata WITHOUT the
+    /// throttled `runs` flush, leaving the touched entries DIRTY. Production never needs
+    /// this — `tick` always pairs a drain with the periodic flush — but tests use it to
+    /// exercise the "dirty entries are never evicted" invariant of `runMaintenance`.
+    internal func drainWithoutRunsFlushForTesting() async {
+        await processBatch(drainAll: true)
     }
     
     /// Stages dirty run metadata inside the caller's transaction and returns the run IDs whose
@@ -264,9 +391,15 @@ public actor SQLiteWriter {
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(run_id) DO UPDATE SET
         end_time = excluded.end_time,
-        event_count = excluded.event_count,
+        event_count = MAX(event_count, excluded.event_count),
         fingerprint = excluded.fingerprint;
         """
+        // event_count is monotonic — events are append-only, so a run's count never
+        // legitimately decreases. Taking MAX(existing, new) makes that a hard invariant:
+        // even if the seed-on-first-touch read in `updateRunState` transiently failed and
+        // seeded 0, this UPSERT can only hold or raise the persisted count, never clobber
+        // it downward. The normal path is unaffected (the in-memory count always exceeds
+        // the last-flushed one), so MAX == excluded there.
         
         let stmt = try db.prepare(upsertSQL)
         var stagedRunIDs: [String] = []
