@@ -14,6 +14,9 @@ sample_traces.sqlite
 /fm-regression.json
 WebVisualizer/test-results/
 WebVisualizer/playwright-report/
+# The Explorer is built fresh into site/explorer by the Pages workflow — never
+# commit the built copy (a local copy is fine for previewing).
+site/explorer/
 # SQLite WAL sidecar files — never commit these
 *.sqlite-wal
 *.sqlite-shm
