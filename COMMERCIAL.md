@@ -134,6 +134,31 @@ committed to the open-source tree, because an Apache-2.0 release is irrevocable.
 library makes the paid offering **more** valuable, not less: the more teams capture and record
 locally, the more they want it shared, gated in CI, and monitored in production.
 
+## Where the Mac app and the web Explorer fit
+
+Two visualization surfaces sit on opposite sides of the line, and the difference is worth
+stating plainly so it never reads as inconsistent:
+
+- **The web Explorer — free.** [WebVisualizer](WebVisualizer/) is an Apache-2.0,
+  zero-backend viewer that renders **one** pre-computed diff artifact (a `WebDiffExport` the
+  free CLI produces). It's a shareable, zero-install preview and a reference renderer for
+  anyone embedding the schema. It is deliberately capped at a single artifact — never a live
+  or multi-run data source — see [WebVisualizer/SCOPE.md](WebVisualizer/SCOPE.md).
+- **The D.P.K Mac app — paid.** [*D.P.K: Reasoning Traces*](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12)
+  is a native application built **on top of** the free library, sold on the Mac App Store. It
+  opens your **live** trace database and gives you the interactive workbench: diff any two runs
+  you choose, replay timelines event by event, drill into payloads and span lineage, and
+  surface anomalies across every loaded run.
+
+This does **not** contradict "the library is free." The free-vs-paid test governs what ships
+*in the Apache-2.0 library* — it asks whether a *library feature* delivers its value in your
+process. It does not say every program that happens to run locally must be free. A polished
+native application is a distinct downstream **product**, the same way an open-source engine can
+have a paid GUI: the recording, querying, diffing, and alignment engine the app runs is the
+free library; what you pay for is the packaged, interactive desktop experience on top of it. If
+you'd rather not buy the app, the same engine is yours for free — build your own front end, use
+the CLI, or preview single diffs in the Explorer.
+
 ## What a commercial agreement includes
 
 - Professional support with response-time targets by tier

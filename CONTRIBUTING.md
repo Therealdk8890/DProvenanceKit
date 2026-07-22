@@ -67,6 +67,16 @@ A tracked pre-push hook enforces the same rule locally. Activate it once per clo
 git config core.hooksPath .githooks   # .githooks/pre-push blocks a leak before it's pushed
 ```
 
+### The web Explorer stays a single-artifact viewer
+
+The [WebVisualizer](WebVisualizer/) explorer is free and open source, but it has a **hard
+scope cap** — see [WebVisualizer/SCOPE.md](WebVisualizer/SCOPE.md). It renders exactly one
+pre-computed `WebDiffExport` and must **never** become a live or multi-run data source (no
+`.sqlite` ingestion, no SQLite-WASM, no corpus loading, no arbitrary run selection, no
+cross-run detection). Those verbs are the paid native app's job; run selection and alignment
+belong upstream in the CLI/library. A PR that marches the explorer toward a live-corpus
+workbench will be closed even if it's well built — under Apache 2.0 that step can't be undone.
+
 ## Pull requests
 
 - Branch from `main`; keep changes focused.
