@@ -25,6 +25,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Keep evaluators pure — results are deterministic and identical to the serial scan,
   but a closure that mutates shared state under a lock will now see interleaved calls.
 
+### Fixed
+- **`SQLiteWriter` no longer leaks run-metadata cache entries, and a resumed run keeps
+  its true `runs.event_count`.** The background writer's per-run `RunState` cache is now
+  bounded — a new `runMaintenance(now:)` idle sweep (default 300 s) plus a hard-cap
+  backstop (default 50,000 runs) evict only *clean* entries, so eviction is always
+  count-preserving — instead of accumulating one entry per distinct `run_id` for the life
+  of the process (nothing in the append-only event stream signals "run complete"). A run
+  recorded across a process restart, or resumed after a cache eviction, now seeds its
+  count from the persisted `runs.event_count` (via a cached prepared statement) and the
+  UPSERT is hardened to `event_count = MAX(event_count, excluded)` — monotonic, since
+  events are append-only — so the cumulative total surfaced by `RawTraceStore` can no
+  longer be clobbered downward to only the events seen since the resume. Covered by
+  `SQLiteWriterRunStateTests`.
+
 ## [0.7.0] - 2026-07-18
 
 > **Source-breaking (proof packs).** `ProofPackVerificationFailure` gains a `.roleBindingRequired`
