@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add DProvenanceKit to an existing agent in under 15 minutes — DProvenanceKit</title>
+<meta name="description" content="A time-boxed tutorial: add queryable, diffable, offline-verifiable provenance to a Swift on-device agent (Apple Foundation Models, MLX, Core ML, or custom) without refactoring it.">
+<link rel="canonical" href="https://dprovenance.dev/docs/add-to-an-existing-agent/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="Add DProvenanceKit to an existing agent in under 15 minutes">
+<meta property="og:description" content="Add queryable, diffable, offline-verifiable provenance to a Swift on-device agent — Foundation Models, MLX, Core ML, or custom — without refactoring it.">
+<meta property="og:url" content="https://dprovenance.dev/docs/add-to-an-existing-agent/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Add DProvenanceKit to an existing agent in under 15 minutes",
+  "url": "https://dprovenance.dev/docs/add-to-an-existing-agent/",
+  "isPartOf": { "@type": "WebSite", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "about": "Instrumenting an existing Swift on-device AI agent with local provenance, structural diffing, and offline attestation."
+}
+</script>
+<link rel="stylesheet" href="/docs/docs.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/docs/" class="here">docs</a>
+      <a href="/explorer/">explorer</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="/">dprovenance.dev</a> / <a href="/docs/">docs</a> / add-to-an-existing-agent</p>
+    <h1>Add DProvenanceKit to an existing agent in under 15 minutes</h1>
+    <p class="sub">For Swift engineers who already have a working on-device agent and want <strong>provenance without refactoring it</strong> — a recorded, queryable, diffable, offline-verifiable trail of what the agent actually did. Whether the reasoning runs in Apple Foundation Models, MLX, Core ML, or a runtime of your own, you wrap the call you already have; you do not rewrite it. The live Foundation Models tracing surface needs <strong>Xcode 26 / Swift 6.2</strong>; the custom-vocabulary path and SDK-free post-hoc ingestion build on the <strong>Swift 6.0</strong> floor. Either way, deployment stays <strong>macOS 13 / iOS 16</strong>.</p>
+    <div class="ctas">
+      <a class="btn primary" href="#s02">Start the clock →</a>
+      <a class="btn" href="/docs/">Back to docs</a>
+    </div>
+  </div>
+
+  <section id="s01">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · prerequisites &amp; the time box</p>
+      <h2>What you need before the clock starts</h2>
+      <p class="lede">This is a working-agent tutorial, not a greenfield one. You bring an app or package target that already calls a model and produces a decision; DProvenanceKit records the path it took. The whole loop — add, wire, run, verify — fits in a coffee break because you never touch the agent's control flow.</p>
+      <ul class="facts">
+        <li><strong>An existing Swift target</strong> — an app or SwiftPM package that already runs your agent. No structural change is required to instrument it.</li>
+        <li><strong>Xcode 26 (Swift 6.2+)</strong> for the <strong>live</strong> Foundation Models path (<code>LanguageModelSession.traced</code> and <code>recordProvenance()</code>).</li>
+        <li><strong>Swift 6.0+</strong> is enough for the custom-vocabulary path and for SDK-free post-hoc ingestion of a serialized transcript. CI builds this floor on a Swift 6.1 runner.</li>
+        <li><strong>Deployment target unchanged</strong> — building with Xcode 26 still deploys to <code>.macOS(.v13)</code> / <code>.iOS(.v16)</code>.</li>
+        <li><strong>An Apple Intelligence–capable Mac</strong> only if you want step 05 to hit the <em>real</em> on-device model. Everything else works without it.</li>
+        <li><strong>Zero third-party dependencies</strong> — the core uses system SQLite and CryptoKit and nothing else.</li>
+      </ul>
+      <div class="note">
+        <span class="label">Honesty caveat · toolchain</span>
+        The live <code>LanguageModelSession.traced</code> / <code>recordProvenance()</code> surface requires <strong>Swift 6.2 / Xcode 26</strong> and <strong>compiles out cleanly below it</strong> — on an older toolchain your build still succeeds and the module's snapshot, diff, and redaction types remain available, but the live-session tracing APIs are simply absent. Do not assume they work on the 6.0 floor: if <code>session.traced(…)</code> won't resolve, your toolchain is the reason.
+      </div>
+    </div>
+  </section>
+
+  <section id="s02">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · minute 0–2 · add the package</p>
+      <h2>Add the package and pick a product</h2>
+      <p class="lede">One line of <code>dependencies</code>, then choose the product that matches your agent. The Foundation Models adapter <code>@_exported import</code>s the core, so depending on it gives you the whole library; a custom agent depends on the core alone.</p>
+      <div class="code">
+        <div class="code-bar"><span>Package.swift</span><span>swift</span></div>
+<pre><span class="cm">// 1 — declare the dependency</span>
+dependencies: [
+    .<span class="fn">package</span>(url: <span class="st">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="st">"0.7.0"</span>)
+],
+
+<span class="cm">// 2 — link ONE product on the target that runs your agent</span>
+targets: [
+    .<span class="fn">target</span>(name: <span class="st">"MyAgent"</span>, dependencies: [
+        <span class="cm">// Foundation Models agent — this pulls the core in via @_exported import:</span>
+        .<span class="fn">product</span>(name: <span class="st">"DProvenanceFoundationModels"</span>, package: <span class="st">"DProvenanceKit"</span>)
+
+        <span class="cm">// Custom / MLX / Core ML agent — the zero-dependency core only:</span>
+        <span class="cm">// .product(name: "DProvenanceKit", package: "DProvenanceKit")</span>
+    ])
+]</pre>
+      </div>
+      <div class="definition">
+        <strong>Which product?</strong> <strong>DProvenanceKit</strong> is the zero-dependency core: events, stores, the query DSL, diff, alignment, and attestation. <strong>DProvenanceFoundationModels</strong> adds the drop-in adapter for Apple's on-device LLM and re-exports the core, so you never import both. <code>FMTrace</code> is just a typealias for <code>DProvenanceKit&lt;FoundationModelTraceEvent&gt;</code>.
+      </div>
+      <div class="note">
+        <span class="label">Note · platform floor</span>
+        Your package or app target must declare an Apple platform at or above the package floor — <code>.macOS(.v13)</code> or <code>.iOS(.v16)</code>. The FM adapter re-exports the core but does <strong>not</strong> re-export <code>FoundationModels</code> itself, so code that touches <code>LanguageModelSession</code> still needs <code>import FoundationModels</code> alongside it.
+      </div>
+    </div>
+  </section>
+
+  <section id="s03">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · minute 2–6 · pick your entry path</p>
+      <h2>Pick your entry path</h2>
+      <p class="lede">There are two ways in, and which one you take is decided entirely by where your reasoning happens. Neither reorganizes your agent.</p>
+
+      <h3>Path A — a Foundation Models agent</h3>
+      <p class="lede">If the reasoning is Apple's on-device model, the adapter ships a frozen, diff-ready event vocabulary — you do not define one. Two flavors, depending on whether you are instrumenting existing code or writing new code.</p>
+      <div class="code">
+        <div class="code-bar"><span>PathA.swift</span><span>swift</span></div>
+<pre><span class="kw">import</span> <span class="ty">FoundationModels</span>
+<span class="kw">import</span> <span class="ty">DProvenanceFoundationModels</span>
+
+<span class="cm">// Greenfield — live capture. Swap your session constructor for `.traced`:</span>
+<span class="kw">let</span> session = <span class="ty">LanguageModelSession</span>.<span class="fn">traced</span>(instructions: <span class="st">"Be terse."</span>)
+_ = <span class="kw">try await</span> session.<span class="fn">respond</span>(to: <span class="st">"Plan my day."</span>)
+
+<span class="cm">// Zero-refactor — keep your existing session exactly as-is and, after the</span>
+<span class="cm">// fact, ingest its transcript as trace events:</span>
+session.<span class="fn">recordProvenance</span>()</pre>
+      </div>
+      <div class="note">
+        <span class="label">Honesty caveat · post-hoc</span>
+        Plain-session <code>recordProvenance()</code> is <strong>stateless</strong> — calling it twice records the transcript twice. For a growing transcript, feed back the summary's <code>nextEntryIndex</code> cursor (<code>session.recordProvenance(startingAt: cursor)</code>), or use a <code>TracedLanguageModelSession</code>, whose <code>recordProvenance()</code> dedupes automatically. And, per step 01, this whole live surface requires Swift 6.2 / Xcode 26.
+      </div>
+
+      <h3>Path B — a custom / MLX / Core ML agent</h3>
+      <p class="lede">If the reasoning runs anywhere else, describe the steps you care about as a <code>TraceableEvent</code> enum. <code>typeIdentifier</code> must stay stable across schema versions; <code>priority</code> governs which events survive a burst (diffs are floored at <code>.structural</code>, so shedding telemetry never changes a result). Then <code>record</code> at the points that matter — synchronous, and it never blocks on disk.</p>
+      <div class="code">
+        <div class="code-bar"><span>MyAIDecision.swift</span><span>swift</span></div>
+<pre><span class="kw">import</span> <span class="ty">Foundation</span>
+<span class="kw">import</span> <span class="ty">DProvenanceKit</span>
+
+<span class="kw">enum</span> <span class="ty">MyAIDecision</span>: <span class="ty">TraceableEvent</span> {
+    <span class="kw">case</span> promptGenerated(tokenCount: <span class="ty">Int</span>)
+    <span class="kw">case</span> finalDecisionMade(approved: <span class="ty">Bool</span>)
+
+    <span class="kw">var</span> typeIdentifier: <span class="ty">String</span> {
+        <span class="kw">switch</span> self {
+        <span class="kw">case</span> .promptGenerated:   <span class="kw">return</span> <span class="st">"promptGenerated"</span>
+        <span class="kw">case</span> .finalDecisionMade: <span class="kw">return</span> <span class="st">"finalDecisionMade"</span>
+        }
+    }
+
+    <span class="kw">var</span> priority: <span class="ty">TracePriority</span> {
+        <span class="kw">switch</span> self {
+        <span class="kw">case</span> .promptGenerated:   <span class="kw">return</span> .telemetry
+        <span class="kw">case</span> .finalDecisionMade: <span class="kw">return</span> .critical
+        }
+    }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <section id="s04">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · minute 6–10 · wire a store and wrap one run</p>
+      <h2>Wire a store and wrap one run</h2>
+      <p class="lede">Construct a <code>SQLiteTraceStore</code> (generic over your event type), then wrap the agent call you already have inside a <code>run</code>. The wrapper establishes the ambient run; every capture path is a safe no-op outside one, so nothing you add fires in the wrong place.</p>
+      <div class="code">
+        <div class="code-bar"><span>WireItUp.swift · Path A</span><span>swift</span></div>
+<pre><span class="kw">import</span> <span class="ty">FoundationModels</span>
+<span class="kw">import</span> <span class="ty">DProvenanceFoundationModels</span>
+
+<span class="kw">let</span> store = <span class="kw">try</span> <span class="ty">SQLiteTraceStore</span>&lt;<span class="ty">FoundationModelTraceEvent</span>&gt;(
+    fileURL: <span class="ty">URL</span>(fileURLWithPath: <span class="st">"traces.sqlite"</span>)
+)
+
+<span class="kw">try await</span> <span class="ty">FMTrace</span>.<span class="fn">run</span>(contextID: <span class="st">"onboarding-chat"</span>, store: store) {
+    <span class="kw">let</span> session = <span class="ty">LanguageModelSession</span>.<span class="fn">traced</span>(instructions: <span class="st">"Be terse."</span>)
+    _ = <span class="kw">try await</span> session.<span class="fn">respond</span>(to: <span class="st">"Plan my day."</span>)
+}
+
+<span class="kw">try await</span> store.<span class="fn">flush</span>()   <span class="cm">// true barrier — every event is durable past this line</span></pre>
+      </div>
+      <p class="lede">Need the run back later — to diff it, or to sign it in step 06? Use <code>runReturningID</code>, which hands you the <code>runID</code> alongside the block's result. Both <code>FMTrace</code> (Path A) and <code>DProvenanceKit&lt;YourEvent&gt;</code> (Path B) expose it.</p>
+      <div class="code">
+        <div class="code-bar"><span>WireItUp.swift · runReturningID</span><span>swift</span></div>
+<pre><span class="cm">// Path A — Foundation Models:</span>
+<span class="kw">let</span> (_, runID) = <span class="kw">try await</span> <span class="ty">FMTrace</span>.<span class="fn">runReturningID</span>(contextID: <span class="st">"onboarding-chat"</span>, store: store) { _ <span class="kw">in</span>
+    <span class="kw">let</span> session = <span class="ty">LanguageModelSession</span>.<span class="fn">traced</span>(instructions: <span class="st">"Be terse."</span>)
+    _ = <span class="kw">try await</span> session.<span class="fn">respond</span>(to: <span class="st">"Plan my day."</span>)
+}
+
+<span class="cm">// Path B — custom / MLX / Core ML. The store is SQLiteTraceStore&lt;MyAIDecision&gt;:</span>
+<span class="kw">let</span> (_, runID) = <span class="kw">try await</span> <span class="ty">DProvenanceKit</span>&lt;<span class="ty">MyAIDecision</span>&gt;.<span class="fn">runReturningID</span>(
+    contextID: <span class="st">"Case-12345"</span>,
+    store: store
+) { _ <span class="kw">in</span>
+    <span class="ty">DProvenanceKit</span>&lt;<span class="ty">MyAIDecision</span>&gt;.<span class="fn">record</span>(.promptGenerated(tokenCount: <span class="st">150</span>))
+    <span class="cm">// … your existing agent call runs here, unchanged …</span>
+    <span class="ty">DProvenanceKit</span>&lt;<span class="ty">MyAIDecision</span>&gt;.<span class="fn">record</span>(.finalDecisionMade(approved: <span class="kw">true</span>))
+}
+
+<span class="kw">try await</span> store.<span class="fn">flush</span>()</pre>
+      </div>
+      <div class="definition">
+        <strong>Why <code>flush()</code> is a real barrier.</strong> <code>record(...)</code> commits synchronously to an in-memory buffer and returns immediately — an event is queryable the instant it returns — while a background writer drains batches into WAL-mode SQLite. Because that in-memory commit is synchronous, <code>flush()</code> is a true durability barrier, not a best-effort hint: once it returns, everything recorded is on disk.
+      </div>
+    </div>
+  </section>
+
+  <section id="s05">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 05</span> · minute 10–13 · see it worked</p>
+      <h2>See it worked</h2>
+      <p class="lede">Two ways to confirm capture, depending on whether you want to touch the real model. If you are on an Apple Intelligence–capable Mac, the shipped quickstart calls the on-device model end to end and prints exactly what persisted.</p>
+      <div class="code">
+        <div class="code-bar"><span>terminal</span><span>sh</span></div>
+<pre><span class="t-dollar">$</span> swift run FoundationModelsLiveQuickstart
+<span class="t-dollar">$</span> swift run FoundationModelsLiveQuickstart -- <span class="st">"Summarize why provenance matters."</span>
+<span class="out">→ prints the model answer, then the persisted timeline:</span>
+<span class="out">  fm_model_availability → fm_instructions → fm_prompt → fm_response</span>
+<span class="out">  followed by drop/integrity status and the SQLite file path</span></pre>
+      </div>
+      <p class="lede">When the model is unavailable it still records an <code>fm_model_availability</code> event and prints Apple's mapped reason, so a setup failure is visible rather than silent. Prefer to confirm from code? Query the run straight back and assert the <code>fm_prompt&nbsp;→&nbsp;fm_response</code> timeline persisted:</p>
+      <div class="code">
+        <div class="code-bar"><span>Confirm.swift</span><span>swift</span></div>
+<pre><span class="cm">// Path A — the prompt was followed by a response in the same run:</span>
+<span class="kw">let</span> runs = <span class="kw">try await</span> store.<span class="fn">queryRuns</span>(
+    <span class="ty">TraceQueryDSL</span>&lt;<span class="ty">FoundationModelTraceEvent</span>&gt;()
+        .<span class="fn">requiring</span>(step: <span class="ty">FMEventType</span>.prompt, followedBy: <span class="ty">FMEventType</span>.response)
+)
+
+<span class="cm">// Path B — fetch the exact run you recorded, by its id:</span>
+<span class="kw">let</span> run = <span class="kw">try await</span> store.<span class="fn">getRun</span>(id: runID)</pre>
+      </div>
+      <div class="note">
+        <span class="label">Note · what "reasoning" means here</span>
+        A trace is the observable, instrumented execution path — prompts, tool calls, outputs, decisions, and your application events — not the model's hidden internal deliberation. Capture is only as complete as the events you record; check <code>store.dropStats.preservedIntegrity</code> if a run emitted a burst.
+      </div>
+    </div>
+  </section>
+
+  <section id="s06">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 06</span> · minute 13–15 · prove integrity offline</p>
+      <h2>Prove integrity offline</h2>
+      <p class="lede">Turn the completed run into a signed, self-contained artifact. Signing uses CryptoKit's P-256 and canonical serialization; nothing touches the network, on either side. Fetch the run by its <code>runID</code>, sign it, and write the JSON.</p>
+      <div class="code">
+        <div class="code-bar"><span>Sign.swift</span><span>swift</span></div>
+<pre><span class="kw">guard let</span> completedRun = <span class="kw">try await</span> store.<span class="fn">getRun</span>(id: runID) <span class="kw">else</span> {
+    <span class="fn">fatalError</span>(<span class="st">"Recorded run was not found"</span>)
+}
+
+<span class="kw">let</span> signingKey = <span class="ty">SoftwareTraceAttestationKey</span>()
+<span class="cm">// Persist signingKey.rawRepresentation in Keychain — never in the artifact.</span>
+
+<span class="kw">let</span> document = <span class="kw">try</span> <span class="ty">TraceAttestationDocument</span>.<span class="fn">signed</span>(run: completedRun, using: signingKey)
+<span class="kw">try</span> document.<span class="fn">jsonData</span>().<span class="fn">write</span>(
+    to: <span class="ty">URL</span>(fileURLWithPath: <span class="st">"decision.attestation.json"</span>),
+    options: .atomic
+)</pre>
+      </div>
+      <p class="lede">Verify it anywhere, offline. A valid signature proves the covered trace hasn't changed since it was signed; pin the expected key ID when you need to prove <em>who</em> signed it, not just that it's intact.</p>
+      <div class="code">
+        <div class="code-bar"><span>terminal</span><span>sh</span></div>
+<pre><span class="t-dollar">$</span> swift run dpk verify --in=decision.attestation.json
+
+<span class="cm"># Pin the signer's key ID when identity matters, not just integrity:</span>
+<span class="t-dollar">$</span> swift run dpk verify --in=decision.attestation.json --trusted-key=<span class="st">&lt;trusted-key-id&gt;</span></pre>
+      </div>
+      <div class="note">
+        <span class="label">Honesty caveat · what a signature does and doesn't prove</span>
+        Attestation proves the <strong>integrity of what was recorded</strong> — deletion, insertion, reordering, and field modification of covered events are all detected. It does <strong>not</strong> by itself establish truthfulness, capture completeness, trusted time, or the identity of the executing binary, and without a pinned <code>--trusted-key</code> it proves integrity only, not signer identity. Read the <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/ATTESTATION.md#threat-model">threat model</a> before you lean on it in an audit.
+      </div>
+    </div>
+  </section>
+
+  <section id="s07">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 07</span> · where to go next</p>
+      <h2>Where to go next</h2>
+      <p class="lede">You now have a recorded, queryable, offline-verifiable run wired into an agent you didn't rewrite. Three directions from here, in the order most teams need them:</p>
+      <ul class="facts">
+        <li><strong>Redact before you export.</strong> On-device capture defaults to <code>.full</code>; switch to <code>.hashed</code> before a trace ever leaves the process — see the caveat below.</li>
+        <li><strong>Diff &amp; align two runs.</strong> Compare a golden run against a fresh one to catch a dropped tool call or a reordered step — structurally, or within a formal equivalence model. See <a href="/docs/regression-patterns/">common regression patterns</a>.</li>
+        <li><strong>Gate it in CI.</strong> Fail the pull request when the reasoning path drifts, not just when a string changes — with an honest account of what <code>dpk</code> does and doesn't gate. See the <a href="/docs/ci-gate/">CI-gate tutorial</a>.</li>
+      </ul>
+      <div class="note">
+        <span class="label">Honesty caveat · redaction before export</span>
+        The default redaction policy is <code>.full</code> — on-device capture is the whole point, and a signed document carries covered payload JSON <strong>in plaintext</strong>. Before any trace leaves the device (a SQLite export, a cloud store, OTel), switch to <code>.hashed</code> so text never leaves the process: <code>FMTracingConfiguration(redaction: .hashed)</code>. A <code>.full</code> and a <code>.hashed</code> trace of the same content still diff exactly equal.
+      </div>
+      <div class="ctas">
+        <a class="btn primary" href="/docs/">Back to the docs hub</a>
+        <a class="btn" href="/docs/regression-patterns/">Regression patterns</a>
+        <a class="btn" href="/docs/ci-gate/">CI gate (Swift)</a>
+        <a class="btn" href="/explorer/">Open the Explorer</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">dprovenance.dev</a>
+    <a href="/explorer/">Explorer</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub (Swift)</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python port</a>
+    <a href="https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12">Mac app</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md">Commercial</a>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Common regression patterns, and how DProvenanceKit detects each — DProvenanceKit</title>
+<meta name="description" content="A concrete catalog of the reasoning-failure shapes DProvenanceKit catches — dropped tool call, reordered steps, path divergence, silent answer-only drift — and the exact engine mechanism that fires for each.">
+<link rel="canonical" href="https://dprovenance.dev/docs/regression-patterns/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="Common regression patterns, and how DProvenanceKit detects each">
+<meta property="og:description" content="A concrete catalog of the reasoning-failure shapes DProvenanceKit catches — dropped tool call, reordered steps, path divergence, silent answer-only drift — and the exact engine mechanism that fires for each.">
+<meta property="og:url" content="https://dprovenance.dev/docs/regression-patterns/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Common regression patterns, and how DProvenanceKit detects each",
+  "url": "https://dprovenance.dev/docs/regression-patterns/",
+  "isPartOf": { "@type": "WebSite", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "about": "The reasoning-failure shapes DProvenanceKit's diff and alignment engines detect, and the exact mechanism that fires for each."
+}
+</script>
+<link rel="stylesheet" href="/docs/docs.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/docs/" class="here">docs</a>
+      <a href="/explorer/">explorer</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="/">dprovenance.dev</a> / docs / regression-patterns</p>
+    <h1>Common regression patterns, and how DProvenanceKit detects each</h1>
+    <p class="sub">For engineers who want a concrete catalog of the reasoning-failure shapes DProvenanceKit detects, and the exact mechanism — <strong>structural diff</strong>, <strong>semantic alignment risk verdict</strong>, or a <strong>query / anomaly rule</strong> — that fires for each, so you can trust the gate and read its output.</p>
+    <div class="ctas">
+      <a class="btn primary" href="/explorer/">See a diff in the Explorer →</a>
+      <a class="btn" href="/docs/">Back to docs</a>
+    </div>
+  </div>
+
+  <section id="layers">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · the two detection layers</p>
+      <h2>Two layers: what changed, and whether it's a regression</h2>
+      <p class="lede">Every pattern below is caught by one or both of two engines that run over the same pair of recorded runs. <strong><code>TraceDiffEngine</code></strong> answers <em>what changed</em> — which step signatures were added or removed. <strong><code>TraceAlignmentEngine</code></strong> answers <em>is it a regression</em> — it maps each critical step in the baseline to an equivalent counterpart in the candidate, in causal order, and only fails when that mapping breaks. The diff is the cheap, human-readable co-signal; the alignment is the verdict a gate acts on.</p>
+
+      <div class="definition">
+        A step's <strong>priority</strong> decides whether it counts. <code>TracePriority</code> is ordered <code>telemetry &lt; diagnostic &lt; structural &lt; critical</code>. Both engines are <strong>floored at <code>.structural</code></strong> by default, so telemetry and diagnostic noise never moves a diff. The risk verdict keys specifically on <strong><code>.critical</code></strong> steps — the ones whose presence, order, and content define the run's observable behavior.
+      </div>
+
+      <div class="code"><div class="code-bar"><span>DetectionLayers.swift</span><span>swift</span></div><pre><span class="cm">// Layer 1 — structural diff: WHAT changed (added / removed step signatures).</span>
+<span class="kw">let</span> diff = <span class="ty">TraceDiffEngine</span>&lt;<span class="ty">FoundationModelTraceEvent</span>&gt;()
+    .<span class="fn">diff</span>(base: base, comparison: candidate)   <span class="cm">// floored at .structural</span>
+<span class="kw">for</span> change <span class="kw">in</span> diff.changes {
+    <span class="fn">print</span>(change.kind, change.typeIdentifier)      <span class="cm">// e.g. removed  fm_tool_call</span>
+}
+
+<span class="cm">// Layer 2 — semantic alignment: IS it a regression.</span>
+<span class="kw">let</span> engine = <span class="ty">TraceAlignmentEngine</span>(configuration: <span class="ty">FoundationModelAlignment</span>.<span class="fn">configuration</span>())
+<span class="kw">let</span> alignment = engine.<span class="fn">align</span>(base: base, comparison: candidate)
+<span class="fn">print</span>(alignment.regressionRisk.level, alignment.regressionRisk.reasoning)</pre></div>
+
+      <ul class="facts">
+        <li>The diff runs a <strong>collection difference over <code>typeIdentifier::engineName</code> signatures</strong> — linear in the number of events, and <code>diff.isIdentical</code> is a one-line pre-check before you pay for alignment.</li>
+        <li>Alignment scores every base × comparison pair, assigns matches highest-score-first, then derives the risk verdict from the <strong>equivalence outcome and critical-only order</strong> — not from display labels.</li>
+        <li><code>FoundationModelAlignment.configuration()</code> defaults to the span-aware <code>developerDebugV1</code> profile (semantic threshold <code>0.75</code>); the strict-audit profile <code>strictAuditV1</code> is linear with threshold <code>0.99</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="dropped-tool-call">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · pattern 1</p>
+      <h2>Dropped tool call</h2>
+      <p class="lede">A critical step in the baseline has <strong>no counterpart at all</strong> in the candidate. The alignment interpreter files it as <code>.removed</code>; the risk pass collects its type into <code>removedCriticalTypes</code> and the verdict is <strong><code>HIGH</code></strong>. This is the canonical silent failure: nothing crashes, no error is thrown, the reply is fluent — the agent just stopped calling a tool and answered from the model's prior.</p>
+
+      <p>The bundled <code>FoundationModelsRegressionDemo</code> is exactly this. A weather agent calls <code>getWeather</code> before an OS/model update and skips it after:</p>
+
+      <div class="code"><div class="code-bar"><span>swift run FoundationModelsRegressionDemo</span><span>sh</span></div><pre><span class="out">Structural diff (baseline → candidate):</span>
+<span class="out">  removed: tool call · getWeather</span>
+<span class="out">  removed: tool output · getWeather</span>
+<span class="out"></span>
+<span class="out">Semantic alignment:</span>
+<span class="out">  regression risk: HIGH — Critical reasoning steps removed: fm_tool_call</span>
+<span class="out"></span>
+<span class="out">CI gate: FAILED — reasoning regression detected</span></pre></div>
+
+      <ol class="steps">
+        <li>The <strong>diff</strong> is the co-signal: <code>getWeather</code>'s call and output are both <code>removed</code> — struck through in red in the Explorer and the WebVisualizer export.</li>
+        <li>The <strong>alignment</strong> is the verdict: the tool call is a <code>.critical</code> step (<code>fm_tool_call</code>), so its removal drives <code>RegressionRisk.high</code>.</li>
+        <li>The reasoning string names only the <em>critical</em> removals: <code>fm_tool_call</code>, not <code>fm_tool_output</code> — the tool output is <code>.structural</code>, so it shows in the diff but does not itself trigger the gate.</li>
+      </ol>
+
+      <div class="note"><span class="label">Precision</span> The verdict lists the critical step type, not a friendly name. In the Foundation Models vocabulary a tool call is <code>fm_tool_call</code>; a prompt, response, tool call, and generation error are <code>.critical</code>, while instructions and tool output are <code>.structural</code>. Your own event type's <code>priority</code> is what decides whether its removal fails the build.</div>
+    </div>
+  </section>
+
+  <section id="reordered-steps">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · pattern 2</p>
+      <h2>Reordered steps</h2>
+      <p class="lede">Two critical steps whose <strong>causal order inverts</strong> — <code>x</code> precedes <code>y</code> in the baseline but follows it in the candidate — are collected into <code>reorderedCriticalTypes</code>, and the verdict is <strong><code>HIGH</code></strong> with the reasoning <em>"Critical reasoning steps reordered: …"</em>. An invoice generated before its customer is created is not equivalent to the same events in the right order, even though the exact same steps ran.</p>
+
+      <div class="note"><span class="label">Honesty — verified against SEMANTICS.md Invariant E and the interpreter</span> A pure reorder of two <strong>critical</strong> steps drives <code>RegressionRisk.high</code> in <strong>every</strong> alignment mode — <em>including</em> the linear strict-audit profile <code>strictAuditV1</code>. What the profile changes is <strong>non-critical</strong> reorder: <code>.linear</code> suppresses reorder findings for structural / diagnostic / telemetry events (where an order shift is the common, benign case), while a span-aware profile surfaces those too as display findings. Only critical-step reorders ever drive the verdict. This is critical-<em>order</em> sensitivity, not dependency inference — the engine has no dependency graph, so it conservatively flags any critical-pair inversion, which is the safe direction for a gate.</div>
+
+      <div class="note"><span class="label">Critical pairs only</span> The risk verdict computes reorder over <strong>critical pairs only</strong>, on the same array-index basis the interpreter uses to emit its <code>.reordered</code> findings. A benign diagnostic or structural step moving past a stationary critical step is therefore <strong>deliberately not</strong> a regression — that earlier produced a false <code>HIGH</code>. Relative order is measured over each run's <code>sequence</code>-sorted event array, so the verdict never depends on the order a caller happened to assemble the events in.</div>
+    </div>
+  </section>
+
+  <section id="path-divergence">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · pattern 3</p>
+      <h2>Path divergence — same input, different route</h2>
+      <p class="lede">The same request is answered by a <strong>different reasoning path</strong>: some steps appear, others disappear. The run's structural fingerprint differs, so the diff shows <strong>both added and removed</strong> steps. This is cheap to spot before any deep alignment, and precise to assert with the query DSL.</p>
+
+      <ul class="facts">
+        <li><strong>Cheap:</strong> <code>TraceDiffEngine.diff()</code> is linear over the <code>typeIdentifier::engineName</code> signature set; <code>diff.isIdentical</code> tells you two runs took the same shape without materializing an alignment. Each persisted run also carries a stored structural fingerprint on its <code>runs</code> row.</li>
+        <li><strong>Precise:</strong> assert the route you expect with <code>requiring(step:)</code>, <code>missing(step:)</code>, <code>matching(step:where:)</code>, and the ordering operators <code>requiring(step:followedBy:)</code> / <code>requiring(step:precededBy:)</code>.</li>
+      </ul>
+
+      <div class="code"><div class="code-bar"><span>PathDivergence.swift</span><span>swift</span></div><pre><span class="cm">// Find runs that concluded a conflict without ever evaluating the document.</span>
+<span class="kw">let</span> runs = <span class="kw">try</span> <span class="kw">await</span> store.<span class="fn">queryRuns</span>(
+    <span class="ty">TraceQueryDSL</span>&lt;<span class="ty">MyAIDecision</span>&gt;()
+        .<span class="fn">requiring</span>(step: <span class="st">"conflictDetected"</span>)
+        .<span class="fn">missing</span>(step: <span class="st">"documentEvaluated"</span>)
+)</pre></div>
+
+      <div class="note"><span class="label">Local stores only</span> <code>matching(step:where:)</code> takes a Swift closure over the decoded payload, so it is evaluated in-process and works with the in-memory and SQLite stores only — it cannot cross the wire to the cloud query (encoding a payload predicate throws). The step-name and ordering operators serialize fine.</div>
+    </div>
+  </section>
+
+  <section id="silent-drift">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 05</span> · pattern 4</p>
+      <h2>Silent answer-only drift</h2>
+      <p class="lede">The output text changes but nothing else does — no crash, no error, the same steps in the same order. This is the hardest case, because a string-equality test either flakes or is simply absent. DProvenanceKit catches it two ways.</p>
+
+      <ol class="steps">
+        <li><strong>A critical step changed beyond equivalence.</strong> The step still binds to a same-type counterpart, but the equivalence model scores that pair <em>below</em> the profile's <code>semanticThreshold</code> and the payloads differ. Its type lands in <code>changedCriticalTypes</code> and the verdict is <code>HIGH</code>: <em>"Critical reasoning steps changed beyond equivalence: …"</em>.</li>
+        <li><strong>Caused by a skipped tool.</strong> When the drift is a downstream symptom of a dropped step, Pattern 1 fires alongside it — the removed critical step is the dominant, higher-strength signal.</li>
+      </ol>
+
+      <div class="code"><div class="code-bar"><span>SilentDrift.swift</span><span>swift</span></div><pre><span class="kw">let</span> alignment = engine.<span class="fn">align</span>(base: base, comparison: candidate)
+<span class="kw">let</span> risk = alignment.regressionRisk
+<span class="fn">print</span>(risk.level, risk.reasoning)
+<span class="cm">// high  Critical reasoning steps changed beyond equivalence: decisionReached</span></pre></div>
+
+      <div class="note"><span class="label">Deterministic, not omniscient</span> "Below equivalence" means the pair's <strong>score</strong> fell under the active profile's threshold (<code>0.75</code> for <code>developerDebugV1</code>, <code>0.99</code> for <code>strictAuditV1</code>) and the payloads are not identical. The evaluator is a reproducible scoring procedure over your recorded payloads — it detects that the observable content changed materially, not that the new answer is <em>wrong</em>.</div>
+    </div>
+  </section>
+
+  <section id="invariant-violations">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 06</span> · pattern 5 · bonus</p>
+      <h2>Structural invariant violations</h2>
+      <p class="lede">Some regressions need no baseline at all: a single run is wrong on its face. A conflict reported with <strong>no supporting document evaluation</strong>, an authorization concluded without the check that should justify it — "a conclusion without its supporting step". <code>MissingSupportRule</code> plus <code>AnomalyDetector</code> flag these rule-first, over any run in the store.</p>
+
+      <div class="code"><div class="code-bar"><span>InvariantRule.swift</span><span>swift</span></div><pre><span class="kw">let</span> rule = <span class="ty">MissingSupportRule</span>&lt;<span class="ty">MyAIDecision</span>&gt;(
+    name: <span class="st">"UnsupportedConflict"</span>,
+    whenPresent: <span class="st">"conflictDetected"</span>,
+    isMissing: <span class="st">"documentEvaluated"</span>
+)
+<span class="kw">let</span> anomalies = <span class="kw">try</span> <span class="kw">await</span> <span class="ty">AnomalyDetector</span>(store: store)
+    .<span class="fn">detectAnomalies</span>(rules: [rule])</pre></div>
+
+      <ul class="facts">
+        <li><code>MissingSupportRule</code> compiles to the query <code>requiring(step:).missing(step:)</code> — it is the batteries-included form of Pattern 3's precise assertion, packaged as a reusable rule.</li>
+        <li>The step names are your event <code>typeIdentifier</code>s, so a rule survives payload refactors; conform your own type to <code>AnomalyRule</code> for any other shape.</li>
+        <li>The same rule can be registered live against a <code>LiveTraceQueryEngine</code> to fire the moment a run starts matching, instead of in a batch sweep.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="reading-the-verdict">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 07</span> · reading the verdict</p>
+      <h2>Reading a verdict, and how it maps to an exit code</h2>
+      <p class="lede">Every alignment produces one <code>RegressionRisk</code>: a <code>level</code>, a <code>strength</code> (a normalized 0–1 heuristic, not a probability), and a human-readable <code>reasoning</code> string that names the offending step types. The three failure shapes each carry their own reasoning prefix — <em>removed</em>, <em>reordered</em>, or <em>changed beyond equivalence</em> — so the string alone tells you which pattern fired.</p>
+
+      <div class="note"><span class="label">Honesty — the level set the engine actually emits</span> <code>RegressionRisk.Level</code> declares <code>none</code>, <code>low</code>, <code>medium</code>, <code>high</code>, but the shipped alignment engine emits only <strong><code>.high</code></strong> (a critical step removed, reordered, or changed beyond equivalence) or <strong><code>.none</code></strong>. It does not currently produce a graded <code>.low</code>/<code>.medium</code> middle — treat the verdict as binary: regression, or not. The <code>.medium</code> arm below is future-proofing, not a state you will observe today.</div>
+
+      <div class="code"><div class="code-bar"><span>Gate.swift</span><span>swift</span></div><pre><span class="kw">let</span> risk = alignment.regressionRisk
+<span class="fn">print</span>(risk.level, risk.reasoning)
+<span class="cm">// high  Critical reasoning steps removed: fm_tool_call</span>
+
+<span class="cm">// The bundled demo's --gate flag fails the build on medium-or-worse;</span>
+<span class="cm">// in practice that means .high, since .none is the only other emitted level.</span>
+<span class="kw">if</span> risk.level == .high || risk.level == .medium {
+    <span class="ty">FileHandle</span>.standardError.<span class="fn">write</span>(<span class="ty">Data</span>(<span class="st">"reasoning regression: \(risk.reasoning)\n"</span>.utf8))
+    <span class="fn">exit</span>(<span class="st">1</span>)   <span class="cm">// non-zero exit breaks CI the same way a failing test would</span>
+}</pre></div>
+
+      <p>That non-zero exit is the whole point: a dropped, reordered, or drifted reasoning step fails the pull request instead of shipping green. The Swift-native <a href="/docs/ci-gate/">CI gate guide</a> covers the recipes and the honest boundary of what <code>dpk</code> does and doesn't gate.</p>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 08</span> · coverage &amp; honesty</p>
+      <h2>Coverage, and what falls outside</h2>
+      <p class="lede">These five are the curated failure modes the engine is <em>built</em> to catch — the shapes in the conformance corpus, where perfect scores are evidence the engine behaves correctly on the regressions it is designed for. That is a controlled diagnostic corpus, <strong>not</strong> statistical generalization to arbitrary traces. Being precise about the boundary is the point.</p>
+
+      <ul class="facts">
+        <li><strong>Trace-observable behavior only.</strong> Equivalence is decided over the recorded causal graph. Real-world effects and uninstrumented internal state that never entered an event are out of scope by construction.</li>
+        <li><strong>No model-internal deliberation.</strong> "Reasoning" here means the instrumented path — prompts, tool calls, outputs, decisions, your own events. The model's hidden internal thinking is not visible and is not claimed.</li>
+        <li><strong>Not truthfulness.</strong> The verdict tells you the reasoning <em>structure</em> and observable content changed, or a step vanished — not that an answer is factually correct.</li>
+        <li><strong>Not completeness.</strong> The engine sees the steps you instrumented. A regression in a step you never recorded is a blind spot, not a pass.</li>
+        <li><strong>Relative to a chosen observation model.</strong> Each <code>AlignmentProfile</code> defines its own equivalence relation via a deterministic scoring procedure — reproducible, not a claim of metaphysical semantic correctness.</li>
+      </ul>
+
+      <div class="ctas">
+        <a class="btn primary" href="/explorer/">Open the Explorer</a>
+        <a class="btn" href="/docs/ci-gate/">CI gate for reasoning regressions</a>
+        <a class="btn" href="/docs/add-to-an-existing-agent/">Add to an existing agent in 15 min</a>
+        <a class="btn" href="/docs/">Back to docs</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">dprovenance.dev</a>
+    <a href="/explorer/">Explorer</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub (Swift)</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python port</a>
+    <a href="https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12">Mac app</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md">Commercial</a>
+  </div>
+</footer>
+
+</body>
+</html>

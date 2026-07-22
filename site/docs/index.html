@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentation — DProvenanceKit</title>
+<meta name="description" content="The DProvenanceKit documentation hub: record, query, diff, attest, and gate your AI's reasoning on device. Quickstarts, tutorials, adapters, attestation, and reference — for the Swift library and its Python port.">
+<link rel="canonical" href="https://dprovenance.dev/docs/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="DProvenanceKit Documentation">
+<meta property="og:description" content="Everything to record, diff, attest, and gate your AI's reasoning — on device.">
+<meta property="og:url" content="https://dprovenance.dev/docs/">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "DProvenanceKit Documentation",
+  "url": "https://dprovenance.dev/docs/",
+  "isPartOf": { "@type": "WebSite", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "about": "Recording, diffing, attesting, and CI-gating the reasoning of on-device AI agents."
+}
+</script>
+<link rel="stylesheet" href="/docs/docs.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/docs/" class="here">docs</a>
+      <a href="/explorer/">explorer</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="/">dprovenance.dev</a> / docs</p>
+    <h1>Documentation</h1>
+    <p class="sub">Everything to record, diff, attest, and CI-gate your AI's <strong>reasoning</strong> — on device. This hub links to the on-site guides and the interactive Explorer, and to the canonical reference docs in the repository. One source of truth per topic — nothing here is a stale copy.</p>
+    <div class="ctas">
+      <a class="btn primary" href="/docs/add-to-an-existing-agent/">Add to an existing agent in 15 min →</a>
+      <a class="btn" href="/explorer/">Open the Explorer</a>
+      <a class="btn" href="https://github.com/Therealdk8890/DProvenanceKit#readme">README on GitHub</a>
+    </div>
+  </div>
+
+  <section id="start-here">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no">▸</span> start here</p>
+      <div class="starts">
+        <div class="start">
+          <div class="s-k">New here</div>
+          <div class="s-t"><a href="#getting-started">Getting started</a></div>
+          <div class="s-d">Install, the five-minute quickstart, and the 15-minute onboarding tutorial.</div>
+        </div>
+        <div class="start">
+          <div class="s-k">Why it matters</div>
+          <div class="s-t"><a href="#concepts">Core concepts</a></div>
+          <div class="s-d">Reasoning, not requests — the semantic model behind structural diffing.</div>
+        </div>
+        <div class="start">
+          <div class="s-k">Ship it</div>
+          <div class="s-t"><a href="#ops">Operations &amp; CI</a></div>
+          <div class="s-d">Fail the pull request when the reasoning path drifts.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="getting-started">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 01</span> · getting started</p>
+      <h2>Getting started</h2>
+      <p class="g-blurb">From zero to a recorded, diffable, offline-verifiable run.</p>
+      <div class="cards">
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit#readme">
+          <div class="card-t">Install &amp; requirements <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Add via SwiftPM, platform support, and the Swift 6.0 floor / 6.2 live-FM note.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit#readme">
+          <div class="card-t">Five-minute quickstart <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Record → query → diff → align → gate, end to end.</div></a>
+        <a class="card" href="/docs/add-to-an-existing-agent/">
+          <div class="card-t">Add to an existing agent in 15 min <span class="tag tag-onsite">tutorial</span></div>
+          <div class="card-d">Instrument an agent you already have — no refactor — and prove a run offline.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/foundation-models.md">
+          <div class="card-t">Trace a Foundation Models session <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">One-liner capture for Apple's on-device model — live, post-hoc, or standalone.</div></a>
+        <a class="card" href="/explorer/">
+          <div class="card-t">Try it in the browser <span class="tag tag-live">live</span></div>
+          <div class="card-d">The interactive Explorer renders a reasoning-trace diff with zero setup.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="concepts">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 02</span> · core concepts</p>
+      <h2>Core concepts</h2>
+      <p class="g-blurb">What a reasoning trace is, and why structure is more stable than output.</p>
+      <div class="cards">
+        <a class="card" href="/guides/regression-testing-for-ai-agents/">
+          <div class="card-t">Regression testing for AI agents <span class="tag tag-onsite">guide</span></div>
+          <div class="card-d">Record a golden run, diff execution structure, fail CI when reasoning drifts.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/SEMANTICS.md">
+          <div class="card-t">The semantic model <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Alignment, behavioral equivalence, and the invariants queries and diffs rely on.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/PROOF_OF_WORK.md">
+          <div class="card-t">Proof of work: an invisible regression <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">A real case where output tests stayed green and a structural diff caught the drift.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/DESIGN.md">
+          <div class="card-t">Design &amp; engine internals <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Concurrency, backpressure, durability, and the design tradeoffs behind the core.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="adapters">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 03</span> · adapters &amp; integrations</p>
+      <h2>Adapters &amp; integrations</h2>
+      <p class="g-blurb">Wire DProvenanceKit into the framework you already run. The core stays zero-dependency.</p>
+      <div class="cards">
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/foundation-models.md">
+          <div class="card-t">Foundation Models <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Live + post-hoc capture, the event vocabulary, span-path grammar, and redaction.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/foundation-models-regression-demo.md">
+          <div class="card-t">Foundation Models regression demo <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">A runnable end-to-end scenario: an OS update drops a tool call, CI catches it.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/otel-bridge.md">
+          <div class="card-t">OpenTelemetry / OTLP bridge <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Export traces to Langfuse or any OTLP collector — zero-dependency bridge.</div></a>
+        <a class="card" href="/langchain/">
+          <div class="card-t">LangChain / LangGraph <span class="tag tag-onsite">on-site</span></div>
+          <div class="card-d">Python-port adapter for LangChain and LangGraph.</div></a>
+        <a class="card" href="/crewai/">
+          <div class="card-t">CrewAI <span class="tag tag-onsite">on-site</span></div>
+          <div class="card-d">Event-bus listener for the CrewAI 1.x line.</div></a>
+        <a class="card" href="/llama-index/">
+          <div class="card-t">LlamaIndex <span class="tag tag-onsite">on-site</span></div>
+          <div class="card-d">Callback-based capture for LlamaIndex workflows.</div></a>
+        <a class="card" href="/openai-agents/">
+          <div class="card-t">OpenAI Agents SDK <span class="tag tag-onsite">on-site</span></div>
+          <div class="card-d">Listed in the official OpenAI Agents SDK tracing docs.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/CLOUD.md">
+          <div class="card-t">Cloud ingestion <span class="tag tag-exp">experimental</span></div>
+          <div class="card-d">CloudTraceStore ships events to an HTTP endpoint you operate.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="attestation">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 04</span> · attestation &amp; verification</p>
+      <h2>Attestation &amp; verification</h2>
+      <p class="g-blurb">Turn a completed run into a signed, offline-verifiable artifact.</p>
+      <div class="cards">
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/ATTESTATION.md">
+          <div class="card-t">Trace attestation <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">P-256 signing, Secure Enclave keys, canonicalization, and the offline verify path.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/PROOF_PACK.md">
+          <div class="card-t">Proof packs <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">One JSON bundle binding a signed attestation to the artifact bytes it vouches for.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="tooling">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 05</span> · trace tooling</p>
+      <h2>Replay, diff &amp; inspect</h2>
+      <p class="g-blurb">Reconstruct, compare, and explore a run after it happened.</p>
+      <div class="cards">
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/REPLAY.md">
+          <div class="card-t">Trace replay <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Reconstruct a run's span tree as of any point in time, with an integrity manifest.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/SNAPSHOTS.md">
+          <div class="card-t">Snapshot diffing <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Span- and event-level changes between two replay states, with exact divergence points.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/LIVE_QUERIES.md">
+          <div class="card-t">Live queries <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Register a query once; get a callback the moment a run starts matching it.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/UI.md">
+          <div class="card-t">Trace inspector UI <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">DProvenanceUI — a SwiftUI run list, replay timeline scrubber, and live diff mode.</div></a>
+        <a class="card" href="/explorer/">
+          <div class="card-t">Web Explorer <span class="tag tag-live">live</span></div>
+          <div class="card-d">Drop in your own <code>web-export</code> JSON and read the structural diff in-browser.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="ops">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 06</span> · operations &amp; CI</p>
+      <h2>Operations &amp; CI</h2>
+      <p class="g-blurb">Fail the pull request when the reasoning path drifts — not just when a string changes.</p>
+      <div class="cards">
+        <a class="card" href="/docs/ci-gate/">
+          <div class="card-t">A CI gate for reasoning regressions (Swift) <span class="tag tag-onsite">tutorial</span></div>
+          <div class="card-d">The Swift-native gate the site guide doesn't cover — recipes and an honest look at what <code>dpk</code> does and doesn't gate.</div></a>
+        <a class="card" href="/guides/ci-gate-for-llm-agents/">
+          <div class="card-t">A CI gate for LLM agents (Python) <span class="tag tag-onsite">guide</span></div>
+          <div class="card-d">The <code>dprovenancekit gate</code> CLI, the GitHub Action, and a GitLab template.</div></a>
+        <a class="card" href="/docs/regression-patterns/">
+          <div class="card-t">Common regression patterns <span class="tag tag-onsite">tutorial</span></div>
+          <div class="card-d">Dropped tool call, reordered steps, path divergence, silent drift — and the exact mechanism that fires for each.</div></a>
+        <a class="card" href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">
+          <div class="card-t">GitHub Action <span class="tag tag-ext">Marketplace</span></div>
+          <div class="card-d">Drop-in regression gate that comments the diff on the pull request.</div></a>
+        <a class="card" href="/compare/dprovenancekit-vs-langsmith/">
+          <div class="card-t">DProvenanceKit vs LangSmith <span class="tag tag-onsite">on-site</span></div>
+          <div class="card-d">A local-first library and a deterministic gate, versus a hosted platform.</div></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="reference">
+    <div class="wrap group">
+      <p class="sec-kicker"><span class="no"># 07</span> · reference</p>
+      <h2>Reference</h2>
+      <p class="g-blurb">Architecture, measured performance, and project docs — the canonical markdown in the repo.</p>
+      <div class="cards">
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit#readme">
+          <div class="card-t">Architecture overview <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">The components and how a trace flows from record to query to diff.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/BENCHMARKS.md">
+          <div class="card-t">Benchmarks &amp; operating envelope <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">The measured (informative) envelope for <code>align()</code> and <code>diff()</code> at scale.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/CHANGELOG.md">
+          <div class="card-t">Changelog <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Keep-a-Changelog history, currently at 0.7.0.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/SECURITY.md">
+          <div class="card-t">Security policy <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">How to report a vulnerability.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/CONTRIBUTING.md">
+          <div class="card-t">Contributing <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Build, test, the free/paid boundary, and the PR checklist.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKitPython">
+          <div class="card-t">Python port <span class="tag tag-ext">GitHub</span></div>
+          <div class="card-d">The Python implementation, kept behaviorally equivalent via Trace Spec v1.</div></a>
+        <a class="card" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md">
+          <div class="card-t">License &amp; commercial <span class="tag tag-gh">GitHub</span></div>
+          <div class="card-d">Apache-2.0 core; where the commercial boundary sits.</div></a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">dprovenance.dev</a>
+    <a href="/explorer/">Explorer</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub (Swift)</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python port</a>
+    <a href="https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12">Mac app</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md">Commercial</a>
+  </div>
+</footer>
+
+</body>
+</html>

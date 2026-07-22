@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A CI gate for reasoning regressions — DProvenanceKit</title>
+<meta name="description" content="Fail a Swift pull request when the agent's reasoning path drifts — a dropped tool call, a reordered or materially changed critical step — even while unit tests stay green.">
+<link rel="canonical" href="https://dprovenance.dev/docs/ci-gate/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="DProvenanceKit">
+<meta property="og:title" content="A CI gate for reasoning regressions (Swift)">
+<meta property="og:description" content="Fail a Swift pull request when the agent's reasoning path drifts — a dropped tool call, a reordered or materially changed critical step — even while unit tests stay green.">
+<meta property="og:url" content="https://dprovenance.dev/docs/ci-gate/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="A CI gate for reasoning regressions (Swift)">
+<meta name="twitter:description" content="The Swift-native reasoning-regression gate the Python site guide doesn't cover — recipes and an honest look at what the dpk CLI does and doesn't gate.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "A CI gate for reasoning regressions (Swift)",
+  "description": "How to fail a Swift pull request when an on-device agent's reasoning path drifts: run the shipped demo gate, write a small gate executable that diffs a golden run against a candidate, gate engine conformance with dpk evaluate, and verify a shipped trace offline with dpk verify.",
+  "url": "https://dprovenance.dev/docs/ci-gate/",
+  "mainEntityOfPage": "https://dprovenance.dev/docs/ci-gate/",
+  "isPartOf": { "@type": "WebSite", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "publisher": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
+  "about": "CI-gating the reasoning of on-device Swift AI agents."
+}
+</script>
+<link rel="stylesheet" href="/docs/docs.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="/"><span class="p">$</span> dprovenancekit<span class="c" aria-hidden="true"></span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="/docs/" class="here">docs</a>
+      <a href="/explorer/">explorer</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub</a>
+      <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <p class="crumb"><a href="/">dprovenance.dev</a> / docs / ci-gate</p>
+    <h1>A CI gate for <span class="fail">reasoning regressions</span></h1>
+    <p class="sub">For teams shipping <strong>Swift on-device agents</strong> who want a pull-request check that fails when the reasoning path drifts — a dropped tool call, a reordered or materially changed critical step — while the unit tests stay green. A Python / GitHub-Action version already exists as a <a href="/guides/ci-gate-for-llm-agents/">site guide</a>; this is the Swift-native counterpart, and it is honest about the one thing the <code>dpk</code> CLI does <em>not</em> do for you.</p>
+  </div>
+
+  <section id="why-a-gate">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 01</span> · the missing pipeline stage</p>
+      <h2>Why a gate, not a dashboard</h2>
+      <p class="lede">A tracing dashboard tells you what the agent did <em>after</em> it ran — which, for a regression, means after the pull request merged and shipped. By then you are bisecting commits while users see the broken behavior. A dashboard is a rear-view mirror; nothing in it stops the next bad merge.</p>
+      <p class="lede">Deterministic code solved this with a pipeline stage decades ago: tests run on every pull request, and a failure blocks the merge. Reasoning deserves the same stage. The only new artifact is the trace — instead of asserting on a return value, you assert on the <strong>execution path</strong>: which steps ran, in what order, through which tools. Record a known-good run once, diff every candidate against it, and exit non-zero when a critical step vanished, moved, or materially changed.</p>
+      <div class="definition"><strong>A reasoning-regression gate</strong> is a CI step that compares the current run's reasoning trace against a committed golden baseline and returns a non-zero exit code when the paths diverge in a way the engine rates <code>medium</code> or <code>high</code>. Any CI system that understands exit codes can gate on it.</div>
+      <p class="lede">The full loop is five stages, and most stacks are missing the last two:</p>
+      <ul class="facts">
+        <li><strong>record</strong> — capture the run as a diffable trace.</li>
+        <li><strong>diff</strong> — <code>TraceDiffEngine</code> reports which steps appeared or disappeared.</li>
+        <li><strong>detect</strong> — <code>TraceAlignmentEngine</code> rates the change <code>none</code>&nbsp;/&nbsp;<code>low</code>&nbsp;/&nbsp;<code>medium</code>&nbsp;/&nbsp;<code>high</code>.</li>
+        <li><strong>gate</strong> — a non-zero exit on <code>medium</code>/<code>high</code> blocks the merge.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="relationship-to-guide">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 02</span> · the python guide, and where it stops</p>
+      <h2>Relationship to the existing site guide</h2>
+      <p class="lede">The published <a href="/guides/ci-gate-for-llm-agents/">CI gate for LLM agents</a> guide is the Python story, and it is complete for a Python stack. If your agent runs in Python, use that guide — nothing below replaces it. It covers:</p>
+      <ul class="facts">
+        <li>The server-less <code>dprovenancekit gate</code> CLI — point it at a SQLite database, name a golden and a candidate context id, and it exits non-zero on regression.</li>
+        <li>The <a href="https://github.com/marketplace/actions/dprovenancekit-regression-gate">GitHub Action</a> that wraps the CLI and posts a sticky PR comment with the per-step diff.</li>
+        <li>A GitLab CI template with parity to the Action.</li>
+        <li>Golden-run hygiene through the pytest plugin (<code>--dprov-update-golden</code>).</li>
+      </ul>
+      <p class="lede">That whole path is <strong>database-based golden/candidate gating</strong>: record both runs into SQLite, then let one CLI command diff them. This page adds the Swift-native path the guide does not cover — because, as the next section is blunt about, the Swift CLI is a different tool with a narrower job.</p>
+    </div>
+  </section>
+
+  <section id="the-gap">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 03</span> · what dpk does and does not gate</p>
+      <h2>The honest Swift-side gap</h2>
+      <p class="lede">If you come from the Python guide expecting a <code>gate --db</code> command on the Swift side, stop here first. There isn't one, and pretending otherwise would send you gating the wrong thing.</p>
+      <div class="note"><span class="label">Read this before writing any dpk command</span>The Swift <code>dpk</code> CLI has <strong>no <code>gate --db</code> command</strong>. Its <code>evaluate --gate</code> mode gates the library's <strong>own built-in conformance corpus</strong> — it runs DProvenanceKit's standard and adversarial alignment datasets and fails if the engine itself regresses. It does <strong>not</strong> read, diff, or gate <em>your</em> agent's traces. Gating your agent in Swift means a small gate executable that you own and run in CI — Recipe 1 and Recipe 2 below.</div>
+      <p class="lede">So the Swift toolkit gives you three distinct gate-shaped jobs, and it helps to keep them straight:</p>
+      <ul class="facts">
+        <li><strong>Gate your agent</strong> — the shipped <code>FoundationModelsRegressionDemo --gate</code> (Recipe 1), or a ~20-line gate target you own (Recipe 2). This is the one that catches <em>your</em> reasoning drift.</li>
+        <li><strong>Gate the engine</strong> — <code>dpk evaluate --gate</code> (Recipe 3). Proves DProvenanceKit's own detector still scores as expected on its corpus; think of it as a dependency-pin check, not an agent check.</li>
+        <li><strong>Verify a shipped trace</strong> — <code>dpk verify</code> (Recipe 4). Proves an attested trace is intact and signer-pinned, offline. A different guarantee from drift detection.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="recipe-1">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 04</span> · recipe 1 — the shipped demo gate</p>
+      <h2>Fastest: run the demo gate DProvenanceKit already ships</h2>
+      <p class="lede">The package ships a runnable end-to-end scenario: a weather agent that silently stops calling its <code>getWeather</code> tool after an OS/model update and answers from the model's prior instead of live data. The reply is fluent and plausible; a unit test stays green; the reasoning is wrong. In gate mode the demo exits non-zero when it catches it, so it drops straight into a CI step.</p>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><span>sh</span></div>
+        <pre><span class="t-dollar">$</span> swift run FoundationModelsRegressionDemo          <span class="cm"># prints the analysis, exits 0</span>
+<span class="t-dollar">$</span> swift run FoundationModelsRegressionDemo <span class="ok">--gate</span>   <span class="cm"># CI mode: exits non-zero on a medium/high regression</span></pre>
+      </div>
+      <p class="lede">The tail of what it prints — the alignment verdict and the gate decision the exit code follows:</p>
+      <div class="code">
+        <div class="code-bar"><span>demo output (tail)</span><span>out</span></div>
+        <pre><span class="out">Semantic alignment:</span>
+<span class="out">  regression risk: </span><span class="er">HIGH</span><span class="out"> — Critical reasoning steps removed: fm_tool_call</span>
+
+<span class="out">CI gate: </span><span class="er">❌ FAILED — reasoning regression detected</span></pre>
+      </div>
+      <p class="caption">A dropped tool call is a <code>.critical</code> step, so removing it raises the regression risk to <code>high</code> — and <code>--gate</code> turns that into <code>exit(1)</code>. The demo also writes <code>fm-regression.json</code>, a web-export document you can drop into the <a href="/explorer/">Explorer</a> to read the diff visually.</p>
+      <p class="lede">Use this recipe as-is to prove the wiring in a fresh CI job before you point the same mechanism at your own agent (Recipe 2).</p>
+    </div>
+  </section>
+
+  <section id="recipe-2">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 05</span> · recipe 2 — a gate target for your agent</p>
+      <h2>Your agent: a ~20-line gate executable</h2>
+      <p class="lede">The demo constructs its two runs by hand. For your own agent you record a golden run and a candidate run — into two SQLite files, or two context ids in one — then diff and align them with the exact same engine calls. Add an executable target that loads both runs and exits on a <code>high</code>/<code>medium</code> verdict:</p>
+      <div class="code">
+        <div class="code-bar"><span>Sources/ReasoningGate/main.swift</span><span>swift</span></div>
+        <pre><span class="kw">import</span> <span class="ty">Foundation</span>
+<span class="kw">import</span> <span class="ty">DProvenanceKit</span>
+
+<span class="cm">// Two runs you recorded earlier: the committed golden baseline, and the</span>
+<span class="cm">// candidate this PR's code produced. `AgentStep` is your own TraceableEvent.</span>
+<span class="kw">let</span> golden = <span class="kw">try</span> <span class="ty">SQLiteTraceStore</span>&lt;<span class="ty">AgentStep</span>&gt;(fileURL: goldenURL)
+<span class="kw">let</span> candidate = <span class="kw">try</span> <span class="ty">SQLiteTraceStore</span>&lt;<span class="ty">AgentStep</span>&gt;(fileURL: candidateURL)
+
+<span class="kw">guard let</span> base = <span class="kw">try await</span> golden.<span class="fn">queryRuns</span>(<span class="ty">TraceQueryDSL</span>()).<span class="fn">first</span>,
+      <span class="kw">let</span> cand = <span class="kw">try await</span> candidate.<span class="fn">queryRuns</span>(<span class="ty">TraceQueryDSL</span>()).<span class="fn">first</span>
+<span class="kw">else</span> { <span class="fn">fatalError</span>(<span class="st">"no runs recorded"</span>) }
+
+<span class="cm">// A reordered CRITICAL step is caught in every alignment mode — the linear</span>
+<span class="cm">// strictAuditV1 profile included; .developerDebugV1 is a fine default here.</span>
+<span class="kw">let</span> config = <span class="ty">AlignmentConfiguration</span>(
+    profile: .developerDebugV1,
+    equivalenceEvaluator: <span class="ty">AnyEquivalenceEvaluator</span>&lt;<span class="ty">AgentStep</span>&gt;(
+        identifier: <span class="st">"agent-eq-v1"</span>,
+        evaluator: { $0 == $1 ? <span class="st">1.0</span> : ($0.typeIdentifier == $1.typeIdentifier ? <span class="st">0.8</span> : <span class="st">0.0</span>) }
+    )
+)
+
+<span class="kw">let</span> diff = <span class="ty">TraceDiffEngine</span>&lt;<span class="ty">AgentStep</span>&gt;().<span class="fn">diff</span>(base: base, comparison: cand)
+<span class="kw">let</span> alignment = <span class="ty">TraceAlignmentEngine</span>(configuration: config).<span class="fn">align</span>(base: base, comparison: cand)
+
+<span class="kw">if</span> alignment.regressionRisk.level == .high || alignment.regressionRisk.level == .medium {
+    <span class="ty">FileHandle</span>.standardError.<span class="fn">write</span>(<span class="ty">Data</span>(<span class="st">"reasoning regression: \(alignment.regressionRisk.reasoning)\n"</span>.utf8))
+    <span class="fn">exit</span>(<span class="st">1</span>)
+}</pre>
+      </div>
+      <p class="caption"><code>regressionRisk.level</code> is a <code>RegressionRisk.Level</code> with cases <code>none</code> / <code>low</code> / <code>medium</code> / <code>high</code>; <code>reasoning</code> is the human-readable cause the engine attached. The <code>diff</code> result is there for a per-step log line; the gate decision itself rides on the alignment verdict. In practice the shipped engine emits only <code>.none</code> or <code>.high</code> today — the <code>.medium</code> arm above is future-proofing, not a state you will observe yet (see <a href="/docs/regression-patterns/">common regression patterns</a>).</p>
+      <div class="note"><span class="label">Reordered critical steps always count</span>Per <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/SEMANTICS.md">SEMANTICS.md</a> Invariant E, a relative-order inversion of any <em>critical</em> step drives <code>.high</code> in <em>every</em> alignment mode — the linear <code>strictAuditV1</code> profile included. <code>.linear</code> only suppresses reorder detection for non-critical (structural / telemetry) events, where order shifts are usually benign. So you don't need a special profile to catch a reordered critical step; choose the profile by how you want <em>non-critical</em> events treated.</div>
+    </div>
+  </section>
+
+  <section id="recipe-3">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 06</span> · recipe 3 — gate engine conformance</p>
+      <h2>Pin the detector: <code>dpk evaluate --gate</code></h2>
+      <p class="lede">This recipe gates a different artifact: the detector, not your agent. <code>dpk evaluate --gate</code> runs DProvenanceKit's standard and adversarial alignment corpus and fails the build if any case regresses; with <code>--min-f1</code> it also fails when F1 drops below a baseline you pin, on <em>both</em> datasets. Run it when you bump the DProvenanceKit dependency, so an engine change can't silently weaken the detector every other gate relies on.</p>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><span>sh</span></div>
+        <pre><span class="t-dollar">$</span> swift run dpk evaluate <span class="ok">--gate</span> <span class="ok">--min-f1=1.0</span>   <span class="cm"># fail if the built-in corpus regresses or F1 &lt; 1.0</span></pre>
+      </div>
+      <p class="lede">Argument parsing is fail-closed: anything unknown, malformed, duplicated, or out of range exits <code>2</code> before any work runs — and <code>--min-f1</code> without <code>--gate</code> is itself an error. A typo therefore cannot quietly turn the check off while still reporting success.</p>
+      <div class="note"><span class="label">What this gates — and what it does not</span>This is <strong>engine conformance</strong>. <code>dpk evaluate --gate</code> proves DProvenanceKit's own alignment corpus still scores as expected; it never touches your agent's traces. It is a complement to Recipe 1/2, not a substitute — passing it says the detector works, not that your agent's reasoning is unchanged.</div>
+    </div>
+  </section>
+
+  <section id="recipe-4">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 07</span> · recipe 4 — verify a shipped trace</p>
+      <h2>Attestation in CI: <code>dpk verify</code></h2>
+      <p class="lede">If your pipeline ships a trace as an artifact — a signed record of how a decision was reached — you can prove it is intact and came from a signer you pinned, offline, as a job step. This is integrity, not drift detection: it answers "is this the trace that was signed, by the key I trust?", not "did the reasoning change?".</p>
+      <div class="code">
+        <div class="code-bar"><span>shell</span><span>sh</span></div>
+        <pre><span class="t-dollar">$</span> swift run dpk verify <span class="ok">--in=</span>decision.attestation.json <span class="ok">--trusted-key=</span>&lt;trusted-key-id&gt;</pre>
+      </div>
+      <ul class="facts">
+        <li><strong><code>--in</code> is required</strong> — the attestation document (or, with <code>--proof-pack</code>, a proof pack) to verify.</li>
+        <li><strong><code>--trusted-key</code></strong> pins the signer: a 64-hex-character key id, repeatable. Omit it and verification proves integrity only — the signature is valid but the signer identity is not pinned.</li>
+        <li><strong>The document</strong> comes from your app via <code>TraceAttestationDocument.signed(run:using:)</code>; <code>swift run dpk attest-demo</code> writes a sample you can practice against, and prints the signer key id to pin.</li>
+      </ul>
+      <div class="note"><span class="label">Different guarantee</span><code>verify</code> gates <em>tamper</em>, not <em>drift</em>. It confirms a trace's bytes and signature; it does not diff two runs or compute a regression risk. Use it alongside Recipe 1/2 when you also need to prove, after the fact, that a shipped trace is the genuine article.</div>
+    </div>
+  </section>
+
+  <section id="workflow">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 08</span> · the github actions workflow</p>
+      <h2>Wrap the gate on <code>pull_request</code></h2>
+      <p class="lede">The whole thing is one job on macOS runners — <code>swift run</code> the gate, and upload the web-export so a reviewer can open the diff in the Explorer without digging through logs. This wraps Recipe 1; swap the <code>run:</code> line for your own gate target from Recipe 2.</p>
+      <div class="code">
+        <div class="code-bar"><span>.github/workflows/agent-regression.yml</span><span>yaml</span></div>
+        <pre><span class="yk">name:</span> <span class="st">agent-regression</span>
+<span class="yk">on:</span> <span class="st">pull_request</span>
+
+<span class="yk">jobs:</span>
+  <span class="yk">gate:</span>
+    <span class="yk">runs-on:</span> <span class="st">macos-latest</span>
+    <span class="yk">steps:</span>
+      - <span class="yk">uses:</span> <span class="st">actions/checkout@v4</span>
+
+      <span class="cm"># Recipe 1: the shipped demo gate. Swap in your own gate target (Recipe 2).</span>
+      - <span class="yk">name:</span> <span class="st">Reasoning-regression gate</span>
+        <span class="yk">run:</span> <span class="st">swift run FoundationModelsRegressionDemo --gate</span>
+
+      <span class="cm"># Attach the web-export so reviewers can open the diff in the Explorer.</span>
+      - <span class="yk">name:</span> <span class="st">Upload trace diff</span>
+        <span class="yk">if:</span> <span class="st">always()</span>            <span class="cm"># upload even when the gate fails — that's when you want it</span>
+        <span class="yk">uses:</span> <span class="st">actions/upload-artifact@v4</span>
+        <span class="yk">with:</span>
+          <span class="yk">name:</span> <span class="st">reasoning-diff</span>
+          <span class="yk">path:</span> <span class="st">fm-regression.json</span></pre>
+      </div>
+      <p class="caption">macOS runners because the package builds against Apple platforms. <code>if: always()</code> keeps the artifact even on a failing gate, which is exactly the run you want to inspect. For a Recipe 2 target, point <code>path:</code> at whatever web-export your gate writes.</p>
+    </div>
+  </section>
+
+  <section id="hygiene">
+    <div class="wrap">
+      <p class="sec-kicker"><span class="no"># 09</span> · golden-run hygiene</p>
+      <h2>Treat the golden like a snapshot, because it is</h2>
+      <p class="lede">A golden trace is a snapshot of your agent's reasoning, and the workflow is the one you already know from snapshot testing. The failure mode to avoid is re-recording the baseline to silence a failure you can't explain — that is the regression, waved through.</p>
+      <ul class="facts">
+        <li><strong>Commit the golden, or archive it.</strong> A recorded run is a small, deterministic SQLite file — check <code>tests/goldens/agent.sqlite</code> into the repo, or (if it is large or environment-specific) publish it as a CI artifact the gate downloads. Either way the gate has a fixed baseline to diff against.</li>
+        <li><strong>Re-baseline only on intentional change.</strong> When the agent is <em>supposed</em> to reason differently, re-record the golden with the same recording step your candidate uses, and review the change in the PR — because the gate itself can diff the two goldens, a baseline update is reviewable, not opaque.</li>
+        <li><strong>Keep the candidate ephemeral.</strong> Record it fresh in the job from the PR's code; only the golden is version-controlled.</li>
+        <li><strong>Trust the detector first.</strong> Before you gate on it, run Recipe 3 — <code>dpk evaluate --gate --min-f1=1.0</code> — so you know the engine still scores 1.000 on its own corpus on your machine, not just in a README.</li>
+        <li><strong>Mixed Swift/Python codebase?</strong> Trace Specification v1 keeps the two implementations behaviorally equivalent, so a golden recorded against one stays meaningful across both.</li>
+      </ul>
+      <p class="ctas">
+        <a class="btn primary" href="/docs/">← Back to the docs hub</a>
+        <a class="btn" href="/docs/regression-patterns/">Common regression patterns</a>
+        <a class="btn" href="/docs/add-to-an-existing-agent/">Add to an existing agent</a>
+        <a class="btn" href="/guides/ci-gate-for-llm-agents/">The Python guide</a>
+        <a class="btn" href="/explorer/">Open the Explorer</a>
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">dprovenance.dev</a>
+    <a href="/explorer/">Explorer</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit">GitHub (Swift)</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKitPython">Python port</a>
+    <a href="https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12">Mac app</a>
+    <a href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/COMMERCIAL.md">Commercial</a>
+  </div>
+</footer>
+
+</body>
+</html>
