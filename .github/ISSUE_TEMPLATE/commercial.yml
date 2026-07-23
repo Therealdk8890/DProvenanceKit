@@ -1,12 +1,16 @@
-name: Commercial support or team plan
-description: Request support, a pilot, or a paid team/enterprise plan.
+name: Commercial support or scoped engagement
+description: Request the paid assurance pilot, integration help, training, or another defined service.
 title: "Commercial inquiry: "
 labels: ["commercial"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your interest in DProvenanceKit. The open-source library is free under Apache 2.0; what's offered commercially is an OEM/embed license to ship it inside your own product, plus paid support and scoped engagements — there is no hosted service.
+        DProvenanceKit's public library is free under Apache 2.0, including commercial use and embedding subject to the license.
+
+        The live self-serve offer is a **$1,500 one-time, 30-day assurance pilot for one workflow**. Other integration, assurance, support, or training work is scoped and quoted separately. There is no hosted/SaaS service, recurring support tier, SLA, indemnity, or compliance certification.
+
+        This issue is public. Do not post confidential data, private trace payloads, or secrets.
   - type: input
     id: organization
     attributes:
@@ -16,14 +20,16 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: plan
+    id: engagement
     attributes:
-      label: Interested plan
+      label: What are you interested in?
       options:
-        - OEM / embed license (ship it inside my product)
-        - Paid support or integration engagement
-        - Pilot / evaluation
-        - Sponsorship / open-source support
+        - $1,500 reasoning assurance pilot
+        - Integration review or implementation workshop
+        - CI regression-gate design
+        - Trace-vocabulary or OpenTelemetry export review
+        - Team training
+        - Sponsorship or open-source support
         - Not sure yet
     validations:
       required: true
@@ -36,7 +42,7 @@ body:
         - On-device Foundation Models app
         - Agent regression testing
         - CI reasoning gate
-        - OTel / Langfuse trace export
+        - OpenTelemetry trace export
         - Other
     validations:
       required: true
@@ -45,21 +51,23 @@ body:
     attributes:
       label: Use case
       description: What are you trying to prove, monitor, or de-risk?
-      placeholder: We need to prove which source facts supported each generated draft before filing.
+      placeholder: We need to show which approved sources supported a draft before review.
     validations:
       required: true
-  - type: input
-    id: scale
+  - type: textarea
+    id: success
     attributes:
-      label: Expected scale
-      description: Seats, apps, CI runs, traces per month, or rough workload.
-      placeholder: 5 developers, 2 apps, 20k traces/month
+      label: Desired outcome
+      description: Name the concrete deliverable or decision that would make an engagement useful.
+      placeholder: A repeatable CI gate that catches a missing source-retrieval step.
+    validations:
+      required: true
   - type: textarea
     id: requirements
     attributes:
-      label: Requirements
-      description: Security, privacy, local-only, compliance, support, procurement, or deployment needs.
-      placeholder: Local-only data, private support channel, annual invoice, on-prem / embedded build.
+      label: Constraints
+      description: Privacy, local-only operation, procurement, or timing needs. Keep confidential details out of this public issue.
+      placeholder: Production data must remain local; invoice required.
   - type: input
     id: contact
     attributes:

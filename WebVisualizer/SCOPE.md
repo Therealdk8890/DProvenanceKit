@@ -48,13 +48,11 @@ export) or in the **native app** (the live-corpus workbench) — not here.
 ## Why this line exists
 
 The [D.P.K Mac app](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12)
-is a paid product: an interactive workbench over your **live** trace database — diff *any two
-runs you choose*, replay timelines event by event, drill into payloads and span lineage, and
-surface anomalies across *every* loaded run. The explorer deliberately does **none** of those
-verbs; that gap *is* the product boundary. Keeping the explorer a single-artifact viewer keeps
-the demo complementary to — never a substitute for — the app and the paid, cross-machine
-services. See [COMMERCIAL.md](../COMMERCIAL.md) for how free-vs-paid is decided across the
-whole project.
+is an interactive workbench over a **live** local trace database — it can diff runs you
+choose, replay timelines, drill into payloads and span lineage, and surface anomalies across
+loaded runs. The Explorer deliberately does none of those jobs. Keeping it a
+single-artifact viewer makes it a small, dependable sharing surface instead of a second
+live-corpus application.
 
-> **The library computes the diff (free). The explorer shows one (free). The app is the
-> workbench over your live corpus (paid).**
+> **The library computes the diff. The Explorer shows one. The native app is the workbench
+> over a live local corpus.**

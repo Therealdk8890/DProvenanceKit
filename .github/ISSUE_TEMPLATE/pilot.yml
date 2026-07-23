@@ -1,62 +1,94 @@
-name: "🚀 Pilot / design-partner interest"
-description: Apply to the DProvenanceKit team pilot (hosted traces, CI regression gate, cross-machine lineage). Free/discounted for design partners.
-title: "[Pilot] <your company>"
+name: "Paid reasoning assurance pilot"
+description: Intake for the $1,500 one-time, 30-day pilot covering one AI workflow.
+title: "[Pilot] <your company or project>"
 labels: ["pilot", "commercial"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for your interest! The open-source library is and stays free (Apache 2.0).
-        This is for the **hosted / team layer** — shared traces across machines and CI, a managed
-        regression gate that comments on PRs, and cross-machine lineage & analytics.
-        Design-partner pilots are free or discounted in exchange for feedback and roadmap input.
-        We typically reply within 1–2 business days.
+        The DProvenanceKit pilot is **$1,500 one time**, lasts 30 days, and covers one AI workflow.
+        It includes an integration review and one reasoning assurance report. Gate implementation, if needed, is separately scoped follow-on work.
+
+        Submit this intake before paying. After the workflow, scope, and kickoff timing are accepted, you will use [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00) or request an invoice.
+
+        This issue is public. Do not post confidential client data, secrets, or private trace payloads. A synthetic or redacted description is enough.
   - type: input
     id: company
     attributes:
-      label: Company / project
-      placeholder: Acme AI, or "personal / indie"
+      label: Company or project
+      placeholder: Acme AI, or personal / indie
     validations:
       required: true
   - type: dropdown
     id: stack
     attributes:
-      label: What are you building AI in?
+      label: AI stack
       multiple: true
       options:
-        - Apple Foundation Models (on-device)
-        - Swift (MLX / Core ML / custom)
+        - Apple Foundation Models
+        - Swift with MLX, Core ML, or a custom runtime
         - Python
-        - Other / mixed
+        - Hosted model API
+        - Other or mixed
     validations:
       required: true
   - type: textarea
-    id: usecase
+    id: workflow
     attributes:
-      label: What are you building, and where does reasoning drift hurt today?
-      placeholder: "e.g. an on-device agent that silently changed behavior after a model update; we found out from a user."
+      label: One workflow to de-risk
+      description: Describe the output and what could go wrong if its reasoning silently changes.
+      placeholder: A local drafting workflow must always connect each conclusion to an approved source.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Representative good and bad examples
+      description: Describe one successful run and one known-bad, changed, or missing-support run. Keep this synthetic or redacted.
+      placeholder: |
+        Good: the agent retrieves the governing source before drafting.
+        Bad: the agent drafts without the retrieval step after a model update.
     validations:
       required: true
   - type: dropdown
-    id: team
+    id: evidence
     attributes:
-      label: Approximate team size
-      options: ["Just me", "2–5", "6–20", "21–100", "100+"]
+      label: Where should assurance evidence eventually land?
+      options:
+        - CI or pull-request check
+        - Local review report
+        - OTLP backend
+        - Application UI
+        - Not sure yet
     validations:
       required: true
-  - type: checkboxes
-    id: interest
+  - type: textarea
+    id: privacy
     attributes:
-      label: What would you want from a team / hosted version? (check all that apply)
-      options:
-        - label: Traces & lineage shared across machines and CI
-        - label: A managed regression gate that fails / comments on PRs
-        - label: Cross-run / cross-machine analytics dashboard
-        - label: Production monitoring
-        - label: On-prem / air-gapped deployment
-        - label: Support, SLAs, indemnity, compliance (SOC 2 / HIPAA)
+      label: Local-data or privacy constraints
+      description: State whether all traces must stay local and what synthetic or redacted material can be used.
+      placeholder: All production traces stay local; we can provide a synthetic fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: What would make the 30-day pilot successful?
+      placeholder: The report shows whether our traces cover the agreed risk, identifies the evidence gaps, and gives us a concrete next step.
+    validations:
+      required: true
   - type: input
     id: contact
     attributes:
-      label: Best contact (email or handle) — optional
-      placeholder: you@company.com
+      label: Preferred contact
+      description: Email or GitHub handle. Use the commercial email instead if you do not want this public.
+      placeholder: name@example.com or @handle
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope acknowledgment
+      options:
+        - label: I understand this is a $1,500 one-time service engagement for one workflow, not a hosted product, SLA, compliance certification, or legal advice.
+          required: true

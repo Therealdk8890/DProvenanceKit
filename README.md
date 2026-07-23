@@ -479,7 +479,7 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 
 **Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof-pack v2](docs/PROOF_PACK.md) documents that bind each artifact's bytes and role to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
-**Planned:** richer graph/lineage visualization, key-policy and rotation helpers, distributed trace federation, and hosted/team workflows.
+**Planned:** richer graph/lineage visualization, key-policy and rotation helpers, and distributed trace federation.
 
 **Scope:** Apple platforms (macOS / iOS). The package uses system SQLite and CryptoKit but no third-party packages. It targets Apple OSes by design because its primary job is local provenance and attestation for Swift and on-device AI.
 
@@ -489,16 +489,19 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 
 There's a full **Python port** — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and validation corpus, plus a CI regression gate and a [GitHub Action](https://github.com/Therealdk8890/dprovenancekit-action) that fails a pull request when an agent's reasoning regresses.
 
-Docs, hosted trace visualizer, and more at **[dprovenance.dev](https://dprovenance.dev)**.
+Docs, the web Explorer, and more at **[dprovenance.dev](https://dprovenance.dev)**.
 
 ---
 
 # License and commercial support
 
-DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use, with no production-use restriction. See [LICENSE](LICENSE).
+DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use subject to the license terms. See [LICENSE](LICENSE).
 
-Commercial agreements cover support, SLAs, managed/team workflows, and separately licensed private add-ons — not permission to use the Apache-2.0 library. For details, see [COMMERCIAL.md](COMMERCIAL.md) or contact **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
+The live paid offer is a **$1,500 one-time, 30-day reasoning assurance pilot for one workflow**. It includes an integration review and one reasoning assurance report. Additional integration, gate implementation, support, or training work is scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
 
-If you want to buy or evaluate support, start with the packaged offer in
-[docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md), the Stripe-ready catalog in
-[docs/BILLING_SETUP.md](docs/BILLING_SETUP.md), or the GitHub commercial inquiry template.
+**[Request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
+After scope and kickoff timing are accepted, pay through
+[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). Review
+[COMMERCIAL.md](COMMERCIAL.md), or use the
+[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+for invoice-based procurement and other scoped work.
