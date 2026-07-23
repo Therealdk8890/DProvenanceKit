@@ -27,13 +27,14 @@ The default pilot covers **one AI workflow** with one clear failure risk. It is 
 small team shipping legal, regulated, on-device, or tool-using AI where a fluent-but-wrong
 result is more dangerous than a crash.
 
-The pilot includes:
+The pilot has exactly two deliverables:
 
-- an integration review and instrumentation findings
-- a recommended trace vocabulary for the selected workflow
-- review of one representative run and one agreed failure scenario
-- one concise reasoning assurance report covering evidence gaps and a recommended next gate
-- a closeout recommendation to continue, expand, or stop
+1. **One integration review.** Within the accepted scope, the review may examine trace
+   vocabulary, current instrumentation, one representative run, and one agreed failure
+   scenario.
+2. **One written reasoning assurance report.** The report documents findings, evidence gaps,
+   limitations, a recommended next gate or implementation step, and the suggested closeout
+   decision.
 
 The pilot does **not** include hosted infrastructure, a broad application rewrite, legal
 advice, a compliance certification, an SLA, or indemnity. Sensitive customer data should stay

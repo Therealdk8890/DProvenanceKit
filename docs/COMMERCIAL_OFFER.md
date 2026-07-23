@@ -46,11 +46,13 @@ instead.
 
 ## Pilot deliverables
 
-- integration review and instrumentation findings
-- recommended trace vocabulary for the selected workflow
-- review of one representative run and one agreed failure scenario
-- one short reasoning assurance report with evidence gaps and a recommended next gate
-- closeout recommendation: continue internally, scope follow-on work, or stop
+The pilot owes exactly two deliverables:
+
+1. **One integration review.** Within the accepted scope, the review may examine the selected
+   workflow's instrumentation, trace vocabulary, one representative run, and one agreed
+   failure scenario.
+2. **One written reasoning assurance report.** The report contains findings, evidence gaps,
+   limitations, a recommended next gate or implementation step, and a closeout recommendation.
 
 A good pilot ends with a report that explains what was reviewed, whether the current
 instrumentation exposes the agreed risk, what evidence is still missing, and what gate or

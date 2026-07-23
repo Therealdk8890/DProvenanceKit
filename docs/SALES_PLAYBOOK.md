@@ -41,13 +41,12 @@ Use 30 minutes:
 
 The default pilot is **$1,500 one time**, lasts 30 days, and covers one workflow.
 
-Deliverables:
+Promise exactly two deliverables:
 
-- integration review and instrumentation findings
-- trace vocabulary recommendation
-- review of one representative run and one agreed failure scenario
-- one short reasoning assurance report with evidence gaps and a recommended next gate
-- closeout recommendation: continue internally, scope follow-on work, or stop
+1. **One integration review.** Within the accepted scope, it may examine instrumentation,
+   trace vocabulary, one representative run, and one agreed failure scenario.
+2. **One written reasoning assurance report.** It contains the findings, evidence gaps,
+   limitations, recommended next gate or implementation step, and closeout recommendation.
 
 Out of scope:
 

@@ -71,7 +71,7 @@ After payment:
 4. Schedule the integration review.
 5. Confirm the single workflow, success test, and 30-day boundary in writing.
 6. Ask for a synthetic or redacted good/bad example, not confidential client data.
-7. Deliver the integration findings and reasoning assurance report.
+7. Complete the integration review and deliver one written reasoning assurance report.
 8. Record the closeout decision: continue internally, quote a new scope, or stop.
 
 ## Public link

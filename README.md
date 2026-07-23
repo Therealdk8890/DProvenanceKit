@@ -499,7 +499,8 @@ DProvenanceKit is distributed under the **Apache License 2.0** — free for prod
 
 The live paid offer is a **$1,500 one-time, 30-day reasoning assurance pilot for one workflow**. It includes an integration review and one reasoning assurance report. Additional integration, gate implementation, support, or training work is scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
 
-**[Request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
+Review the [complete pilot scope](docs/PILOT.md), then
+**[request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
 After scope and kickoff timing are accepted, pay through
 [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). Review
 [COMMERCIAL.md](COMMERCIAL.md), or use the

@@ -1,104 +1,109 @@
-# DProvenanceKit Reasoning Regression Pilot
+# DProvenanceKit Reasoning Assurance Pilot
 
-A fixed-scope, 30-day engagement for teams that need to catch silent AI workflow regressions before they reach production.
+A fixed-scope, **$1,500 one-time, 30-day engagement** for a team that needs a clear view of
+one AI workflow's current reasoning evidence and its most important blind spots.
 
 ## The offer
 
-- **Price:** $1,500 USD
+- **Price:** $1,500 USD, one time
 - **Duration:** 30 days
-- **Scope:** one AI agent or AI-assisted workflow, one repository, and one CI environment
-- **Best fit:** Python agents, Apple Foundation Models apps, tool-using assistants, evidence/retrieval workflows, and systems where skipping a verification or approval step creates real risk
+- **Scope:** one AI or AI-assisted workflow
+- **Delivered:** one integration review and one written reasoning assurance report
+- **Data boundary:** local-first; synthetic or redacted examples are enough for the review
 
-## Buyer outcome
+The public DProvenanceKit library remains free under Apache 2.0. The pilot price pays for the
+review and report, not permission to use, modify, embed, or distribute the public code.
 
-At the end of the pilot, the selected workflow has:
+## Best fit
 
-1. An explicit vocabulary for the execution steps that matter.
-2. A recorded known-good baseline.
-3. A repeatable candidate-run workflow.
-4. A structural regression gate that fails when critical steps disappear or change beyond the agreed tolerance.
-5. Initial anomaly rules for the highest-risk failure modes, such as a dropped verification step or looping tool.
-6. A written reasoning-assurance report describing what is covered, what was observed, and what remains outside the detection boundary.
+The pilot is designed for a small team that can name:
 
-The pilot is successful when a material workflow change creates a visible, reproducible regression result instead of silently shipping.
+- one workflow where a silent reasoning change creates real risk
+- one representative run
+- one synthetic or redacted failure scenario
+- one decision the assurance report should support
+
+Good starting points include legal AI drafting or review, Apple Foundation Models apps,
+tool-using assistants, retrieval/evidence workflows, and CI processes that need better
+reasoning evidence.
+
+It is not a fit for a team seeking a hosted observability platform, a broad application
+rewrite, an undefined transformation project, or guaranteed detection of every AI failure.
 
 ## What is included
 
-### Discovery and instrumentation
+### Integration review
 
-- One kickoff session to select the workflow and define success.
-- Review of the agent architecture, tool sequence, model/prompt boundaries, and current test or evaluation process.
-- Recommended event vocabulary and priority model.
-- Instrumentation guidance or implementation support for the agreed workflow.
+The review examines the selected workflow's current observable execution path and
+instrumentation. Depending on the accepted scope, it may cover:
 
-### Baseline and regression gate
+- event vocabulary and priority choices
+- trace coverage around the agreed failure risk
+- one representative run and one synthetic or redacted failure scenario
+- where evidence is missing, ambiguous, or too weak to support a reliable gate
 
-- Capture and pin one known-good run or representative baseline set.
-- Configure a local DProvenanceKit comparison and CI gate.
-- Add up to three initial anomaly rules tied to the workflow's critical steps.
-- Review one model, prompt, tool, configuration, or code change against the baseline.
+The review is an assessment. Implementing a CI gate, anomaly rules, or application changes is
+not included unless it is quoted as separate follow-on work.
 
-### Evidence and handoff
+### Reasoning assurance report
 
-- One reasoning-assurance report.
-- One final review covering findings, blind spots, operational ownership, and recommended next steps.
-- A practical handoff checklist so the team can continue recording and gating runs after the pilot.
+The single written report documents:
+
+- what workflow and risk were reviewed
+- what observable evidence is currently captured
+- material gaps and limitations
+- a recommended next gate or implementation step
+- whether to continue internally, request a new scoped engagement, or stop
+
+The report does not certify correctness or compliance. It makes the current evidence boundary
+explicit so the buyer can make a better next decision.
 
 ## What is not included
 
-- Access to a model's hidden chain-of-thought or private internal deliberation.
-- A guarantee that every AI failure, hallucination, or factual error will be detected.
-- Certification of legal, medical, financial, security, privacy, or regulatory compliance.
-- Unlimited custom development, additional workflows, or multiple CI environments.
-- A production uptime SLA for hosted services.
-- A promise that the current hosted/team layer is a fully self-service SaaS product.
+- implementation of a CI regression gate or anomaly rules
+- hosted infrastructure, a managed dashboard, or a team SaaS product
+- multiple workflows or open-ended custom development
+- legal advice or review of legal conclusions
+- an SLA, indemnity, security guarantee, or compliance certification
+- access to hidden chain-of-thought or private model deliberation
+- initial handling of confidential client data, secrets, or production trace payloads
 
-DProvenanceKit records and compares the observable, instrumented execution path: prompts, tool calls, retrieval and verification steps, decisions, outputs, and application-defined events.
+DProvenanceKit evaluates the observable execution path that an application records. It cannot
+prove facts or reasoning that were never captured.
 
-## Delivery process
+## Purchase and delivery flow
 
-### Week 1 — Define and instrument
+1. Submit the
+   [pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
+   or email the commercial contact with a synthetic or redacted description.
+2. Confirm the single workflow, review emphasis, written scope, and kickoff timing.
+3. Mutually accept that scope and timing.
+4. Pay through the
+   [secure $1,500 checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00), or request an
+   invoice if procurement requires one.
+5. The 30-day engagement begins on the agreed kickoff date after payment.
+6. Complete the review and deliver the reasoning assurance report.
 
-- Select one high-value workflow.
-- Identify critical, structural, diagnostic, and telemetry events.
-- Establish the integration and success criteria.
-
-### Week 2 — Record and baseline
-
-- Capture representative known-good behavior.
-- Pin the golden baseline.
-- Validate trace completeness and drop accounting.
-
-### Week 3 — Gate and challenge
-
-- Add the regression gate to CI.
-- Configure anomaly rules.
-- Exercise at least one deliberate or naturally occurring workflow change.
-
-### Week 4 — Review and hand off
-
-- Produce the reasoning-assurance report.
-- Review blind spots and operational ownership.
-- Recommend whether the next step is local-only use, commercial support, a hosted design partnership, or a private deployment engagement.
+Submitting the intake does not create a contract or payment obligation. Do not pay before the
+workflow, scope, and kickoff timing are accepted in writing.
 
 ## After the pilot
 
-There is no obligation to continue. Successful pilots may convert into one of the following:
+There is no obligation to continue. A buyer can:
 
-- **Starter Support:** $250/month or $2,400/year.
-- **Pro Assurance:** $1,500/month or $15,000/year.
-- **Hosted/team design partnership:** manually provisioned early access while the self-service control plane is completed.
-- **Enterprise, OEM, on-prem, or air-gapped engagement:** custom scope and pricing.
+- use the Apache-2.0 library independently
+- implement the report's recommendation internally
+- request a separately quoted integration, gate-implementation, support, or training
+  engagement
+- stop
 
-The Apache-2.0 Swift and Python libraries remain free for commercial and production use. Paid agreements cover implementation, support, managed workflows, private components, and operational assurances—not permission to use the open-source code.
+There are no published recurring support tiers, hosted/team service, SLA, indemnity, or
+automatic subscription conversion.
 
-## Apply
+## Request the pilot
 
-Open the [paid-pilot intake form](https://github.com/Therealdk8890/DProvenanceKit/issues/new?template=paid-pilot.yml) or email [therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry) with:
-
-- company or project name
-- workflow to de-risk
-- current AI stack
-- repository and CI environment
-- critical step that must not silently disappear
-- preferred start window
+Use the
+[public pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
+only for synthetic or redacted information. For anything sensitive, email
+[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry)
+and keep confidential details out of GitHub.
