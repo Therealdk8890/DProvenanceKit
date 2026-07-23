@@ -1,118 +1,126 @@
 # Commercial Offer
 
-DProvenanceKit is free infrastructure for recording, querying, diffing, and exporting
-reasoning traces. The commercial product is the assurance layer around that engine: support,
-review, managed workflows, and proof that an AI system's reasoning has not silently drifted.
+DProvenanceKit is free Apache-2.0 infrastructure for recording, querying, diffing, and
+exporting reasoning traces. The commercial offer is hands-on assurance work around that
+engine: review one risky AI workflow, define what must not silently change, and leave the
+buyer with a concise evidence report and a recommended next gate.
 
 ## Positioning
 
-**AI reasoning assurance for teams that cannot afford silent AI regressions.**
+**AI reasoning assurance for a workflow that cannot afford silent regressions.**
 
 DProvenanceKit is strongest where a fluent wrong answer is worse than a crash:
 
 - legal AI drafting and review workflows
 - on-device Foundation Models applications
-- agentic tools that call functions, search, or retrieve evidence
-- CI pipelines that must fail when a reasoning path changes
-- regulated teams that need traceable, explainable AI behavior
+- agents that call tools, search, or retrieve evidence
+- CI pipelines that must fail when a critical reasoning step disappears
+- regulated workflows that need traceable, reviewable behavior
 
-## Buyer
+## First buyer
 
-The first practical buyer is not a random individual user. It is a small team with a painful
-accuracy or audit problem:
+The best first buyer is a small team with one concrete accuracy or audit problem:
 
 - a legal AI startup shipping drafts, summaries, or strategy suggestions
-- a solo/small firm using AI internally but worried about review and privilege
-- a legal aid or document-prep organization that needs cheap, repeatable quality control
-- an Apple-platform AI app team using Foundation Models or Core ML
-- an engineering team that wants OTel/Langfuse-compatible AI trace evidence
+- a firm or legal-aid organization using AI internally but worried about review quality
+- an Apple-platform AI team using Foundation Models, MLX, or Core ML
+- an engineering team that needs Swift-native trace evidence in CI or an OTLP backend
 
-## Paid Packages
+Do not sell to a team that only wants general observability, a hosted dashboard, or an
+undefined transformation project. The offer works when the buyer can name one workflow, one
+known failure mode, and one decision the resulting evidence will support.
 
-| Package | Price | Best For | Promise |
-| ------- | ----- | -------- | ------- |
-| Starter Support | $250/month or $2,400/year | Indie teams, small apps, early legal workflows | Get DProvenanceKit integrated correctly and avoid obvious tracing mistakes. |
-| Pro Assurance | $1,500/month or $15,000/year | AI products with CI, review, or client-facing risk | Turn reasoning traces into repeatable gates, review artifacts, and operational confidence. |
-| Enterprise Assurance | From $50,000/year | Regulated, on-prem, or procurement-heavy teams | Private support, custom integration, deployment review, help answering security questionnaires, and optional contractual coverage. |
+## Live paid offer
 
-These prices sell service and assurance, not permission to use the Apache-2.0 code.
+| Offer | Price | Scope | Promise |
+|-------|-------|-------|---------|
+| **30-day reasoning assurance pilot** | **$1,500 one time** | One AI workflow | Review the integration and deliver one reasoning assurance report. |
 
-**Embed / OEM licensing (for teams shipping DPK inside a regulated product):** if you need to
-embed the attestation and role-bound proof-pack in your own app — or ship it on-prem or
-air-gapped — that is available as a separately-licensed component, priced per engagement
-(license + integration), not as a monthly tier. Email the address in `COMMERCIAL.md`.
+**[Request pilot fit →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
 
-## Starter Support
+After the workflow, scope, and kickoff timing are accepted in writing, use
+[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). For invoice-based
+procurement, open a
+[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+instead.
 
-Includes:
+## Pilot deliverables
 
-- one commercial support contact
-- private email support
-- first integration review
-- prioritized public bug triage
-- 60-minute onboarding call
-- recommended trace vocabulary and priority model
+The pilot owes exactly two deliverables:
 
-Good success metric: the buyer can record representative runs, query for missing support steps,
-and run `swift run DProvenanceKitCLI evaluate --gate` in CI.
+1. **One integration review.** Within the accepted scope, the review may examine the selected
+   workflow's instrumentation, trace vocabulary, one representative run, and one agreed
+   failure scenario.
+2. **One written reasoning assurance report.** The report contains findings, evidence gaps,
+   limitations, a recommended next gate or implementation step, and a closeout recommendation.
 
-## Pro Assurance
+A good pilot ends with a report that explains what was reviewed, whether the current
+instrumentation exposes the agreed risk, what evidence is still missing, and what gate or
+implementation step the buyer should consider next.
 
-Includes Starter plus:
+## Out of scope
 
-- CI regression-gate design
-- trace vocabulary review for the buyer's production workflow
-- monthly assurance review of failed gates and blind spots
-- OTel/Langfuse export mapping review
-- legal/regulated workflow evidence-report templates
-- up to 5 named contacts
-- 2-business-day support target
+The pilot does not include:
 
-Good success metric: the buyer has a repeatable evidence trail showing why each output was
-produced and a CI gate that fails when critical reasoning steps disappear.
+- hosted infrastructure or a managed team dashboard
+- a broad app rewrite or open-ended custom development
+- legal advice or review of the buyer's legal conclusions
+- a compliance certification, SLA, indemnity, or security guarantee
+- handling confidential client data during initial integration
 
-## Enterprise Assurance
+Start with synthetic or redacted examples. Any expanded data-handling or customer-specific
+work requires a separately agreed scope.
 
-Includes Pro plus:
+## Follow-on work
 
-- custom contract, SOW, and procurement support
-- security and architecture review
-- on-prem or air-gapped deployment guidance
-- custom private add-ons delivered outside this Apache repo
-- support response-time targets and escalation path
-- optional indemnity and compliance documentation
+After a successful pilot, a buyer may request a separately quoted integration, assurance, or
+training engagement. There are no published recurring support tiers and no automatic
+subscription conversion. Quote only a deliverable the maintainer can define and fulfill.
 
-Good success metric: the buyer can pass internal AI governance review with clear traceability,
-audit, and operational ownership.
+Possible scopes include:
 
-## Legal AI Wedge
+- implementation workshop
+- CI regression-gate design or implementation
+- trace-vocabulary and OpenTelemetry export review
+- team training using synthetic or redacted examples
 
-For legal workflows, the sharp offer is:
+The Apache-2.0 library already permits commercial use, embedding, modification, and
+distribution subject to the license. Services are not a paid license to public code.
+A genuinely separate proprietary component, if one is ever created, would require its own
+scope and terms outside this repository.
 
-> Before a draft leaves review, prove which facts, documents, and reasoning steps supported it.
+## Legal AI wedge
 
-Sell this as an audit artifact:
+For legal workflows, use this concrete question:
+
+> Before a draft leaves review, can the trace show which facts, documents, and reasoning
+> steps supported it — and what rule should catch a missing critical support step?
+
+The pilot can surface:
 
 - missing evidence steps
-- unsupported conclusions
+- unsupported conclusions identified by an agreed rule
 - changed reasoning paths after a model or OS update
 - source-to-draft lineage
 - reviewer notes tied to trace evidence
 
-This pairs naturally with CaseClarity-style local-first legal drafting: keep sensitive data
-local, then export only the assurance artifact the user chooses to share.
+This is assurance tooling, not legal advice. The buyer remains responsible for the draft and
+the review standard.
 
-## First 10-Customer Plan
+## 30-day sales sprint
 
-1. Publish the offer from this file in the README, GitHub issue template, and outbound emails.
-2. Offer 10 paid pilots at $1,500 for 30 days.
-3. For each pilot, review one real workflow and produce one "reasoning assurance report".
-4. Convert successful pilots to Pro Assurance at $1,500/month or annual $15,000.
-5. Keep every reusable hosted, managed, or custom component outside this public Apache repo.
+1. Identify 25 qualified teams with one visible legal, regulated, or on-device AI workflow.
+2. Ask for a 20-minute fit call, using the message in [SALES_PLAYBOOK.md](SALES_PLAYBOOK.md).
+3. Target 10 calls and two paid pilots.
+4. Keep the scope to one workflow and collect a redacted good/bad example before kickoff.
+5. Turn each completed pilot into a buyer-approved case study or private reference when
+   possible.
+6. Use completed-pilot evidence to decide whether any repeatable follow-on offer deserves to
+   exist. Do not invent recurring tiers before demand is proven.
 
-## Proof To Show Buyers
+## Proof to show buyers
 
-Use concrete commands, not claims:
+Use concrete commands and artifacts, not broad claims:
 
 ```bash
 swift build
@@ -124,18 +132,17 @@ swift run --package-path ConformanceHarness
 
 Use the output to show:
 
-- tests pass
-- corpus gate catches known regressions
-- Foundation Models demo catches a silent tool/drop regression
+- the package and tests pass
+- the corpus gate catches a known regression
+- the Foundation Models demo catches a missing-tool or dropped-step regression
 - conformance vectors reproduce deterministically
 
-## Call To Action
+## Call to action
 
-Open a GitHub issue using the commercial inquiry template or email the address in
-`COMMERCIAL.md` with:
-
-- organization name
-- workflow to de-risk
-- current AI stack
-- expected event volume
-- support or compliance requirements
+- **Ready to start:** complete the
+  [pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml).
+- **Accepted scope and kickoff timing:** pay for the $1,500 pilot through
+  [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00).
+- **Need an invoice or different scoped engagement:** open a
+  [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+  or use the email address in [COMMERCIAL.md](../COMMERCIAL.md).

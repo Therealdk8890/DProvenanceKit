@@ -1,6 +1,6 @@
 # CloudTraceStore (Experimental)
 
-> **Status: experimental.** The ingestion and typed read paths are implemented and tested; a server must implement the versioned HTTP contract below. No server ships in this repository, and DProvenanceKit's core promise remains local-first (see [DESIGN.md](../DESIGN.md)). The hosted team service — shared traces, CI regression gates, monitoring — is a separate commercial offering ([COMMERCIAL.md](../COMMERCIAL.md)).
+> **Status: experimental.** The ingestion and typed read paths are implemented and tested; a server must implement the versioned HTTP contract below. No server ships in this repository, and no DProvenanceKit-hosted service is currently offered. DProvenanceKit's core promise remains local-first (see [DESIGN.md](../DESIGN.md)); you provide and operate any remote endpoint.
 
 Sometimes traces need to leave the device — a fleet of agents, a CI box, a beta cohort. `CloudTraceStore` is a `TraceStore` that ships events to an HTTP endpoint you operate, engineered around one rule: **recording never blocks and never lies**. Events buffer in memory offline-first, ship in background batches, back off through failures, and when something is finally lost or undeliverable, it's counted (`dropStats`) or quarantined (`retentionStats().quarantined`) — and `retentionStats().preservedIntegrity` is the one bit that covers both. Quarantine is in-memory only: a quarantined batch is retrievable while the process lives and gone when it exits, which is exactly why it shows up in the report rather than being presented as delivered.
 

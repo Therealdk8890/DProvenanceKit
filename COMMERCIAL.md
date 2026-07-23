@@ -1,220 +1,136 @@
 # Commercial Support & Services
 
-DProvenanceKit is free and open source under the **Apache License 2.0** — free for any
-use, including production and commercial products, with no license fee and no usage
-restrictions. See [LICENSE](LICENSE).
+DProvenanceKit is free and open source under the **Apache License 2.0**. Subject to its
+terms, you may use, modify, embed, and distribute the public code in production and commercial
+products without paying a license fee. See [LICENSE](LICENSE).
 
-What's offered commercially is **not** a license to use the code — the code is already
-free. It's the support, operational features, and assurances that teams running reasoning
-observability in production tend to need.
-
----
+The paid offer is deliberately separate from that license grant: you pay for a defined
+assurance engagement, maintainer time, and customer-specific deliverables — never for
+permission to use the public library.
 
 ## Start here
 
 | I want to… | Do this |
 |------------|---------|
-| **Join the pilot** (free/discounted design partner) | [Open the pilot form →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) |
-| **Embed DPK in your own regulated app** (OEM / on-prem / private build) | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20OEM%2Fembed%20licensing%20inquiry)** — the attestation and role-bound proof-pack, separately licensed to ship inside your product |
-| **Ask about a paid support tier / enterprise** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)** or [open a `commercial` issue →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
-| **Just use the library** | It's free — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to sign. |
+| **De-risk one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted, pay **$1,500 one time** through [secure checkout →](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00) |
+| **Scope integration help or a workshop** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to buy; follow the license terms. |
+| **Use the native Mac workbench** | [Download D.P.K: Reasoning Traces →](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12). Basic is currently free; see the app section below for Pro availability. |
 
-We typically respond within 1–2 business days.
+Kickoff timing is confirmed in writing after the workflow and scope are accepted.
 
----
+## The live paid offer
 
-## 🚀 Design Partner / Pilot Program (open now)
+### 30-day reasoning assurance pilot — $1,500 one time
 
-Before the hosted/team layer is generally available, a small number of **design partners**
-get it early — **free or heavily discounted** — in exchange for feedback that shapes what
-ships. If you're building on-device or Swift AI and reasoning drift is a real risk for you,
-this is the fastest way to get the team features and steer the roadmap.
+The default pilot covers **one AI workflow** with one clear failure risk. It is built for a
+small team shipping legal, regulated, on-device, or tool-using AI where a fluent-but-wrong
+result is more dangerous than a crash.
 
-**What a design partner gets**
+The pilot has exactly two deliverables:
 
-- Early access to the **hosted team layer**: traces & lineage shared across machines and CI,
-  a managed regression gate that comments on your pull requests, and a cross-machine
-  analytics dashboard — at **no or reduced cost** for the pilot term.
-- A **direct line** to the maintainer (private channel) and priority on bug fixes.
-- **Roadmap input** — pilots vote on what gets built next, and integration help getting
-  DProvenanceKit wired into your app and CI.
-- Optional: a logo / short case study once you're getting value (never required).
+1. **One integration review.** Within the accepted scope, the review may examine trace
+   vocabulary, current instrumentation, one representative run, and one agreed failure
+   scenario.
+2. **One written reasoning assurance report.** The report documents findings, evidence gaps,
+   limitations, a recommended next gate or implementation step, and the suggested closeout
+   decision.
 
-**What we ask in return**
+The pilot does **not** include hosted infrastructure, a broad application rewrite, legal
+advice, a compliance certification, an SLA, or indemnity. Sensitive customer data should stay
+local; a synthetic or redacted example is enough for the first pass.
 
-- ~30 minutes of feedback every couple of weeks during the pilot.
-- Permission to use anonymized learnings to improve the product.
-- Honesty — including telling us what's missing or broken.
+**[Request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
 
-**Who it's for:** teams or solo developers shipping AI in **Apple Foundation Models, Swift
-(MLX / Core ML / custom), or Python**, where an agent silently changing behavior after a
-model/OS update would actually hurt.
+After fit, scope, and kickoff timing are accepted in writing, use the
+[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). If procurement requires
+an invoice, use the
+[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+or email the address above instead.
 
-**Slots are limited** so each partner gets real attention.
-👉 **[Apply to the pilot](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)** (2-minute form) — or email
-**[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20pilot%20interest&body=Company%3A%0AWhat%20you're%20building%3A%0ATeam%20size%3A%0AWhat%20you'd%20want%20from%20a%20team%2Fhosted%20version%3A%0A)** with what you're building.
+## Other paid work
 
-> **Design partner vs. paid pilot:** a *design partnership* trades your feedback for free or
-> discounted early access to the hosted layer. If you'd rather evaluate on a defined paid
-> engagement, there's also a **paid 30-day Pilot ($1,500, one workflow)** under
-> [Paid tiers](#paid-tiers) below. Pick whichever fits — both are low-commitment ways in.
+Scoped support is available by quote when a pilot is not the right shape:
 
----
+- integration reviews and implementation workshops
+- CI regression-gate design or implementation
+- trace-vocabulary and OpenTelemetry export reviews
+- team training using synthetic or redacted examples
 
-## Paid tiers
+There are currently **no recurring support tiers, hosted/team service, managed SaaS,
+fixed-response SLA, indemnity, or compliance-certification package**. Customer-specific or
+confidential work is kept outside this public repository.
 
-| Tier              | Best for                              | Pricing (USD)            | Includes |
-|-------------------|---------------------------------------|--------------------------|----------|
-| **Starter**       | Small teams, indie developers         | $250/mo or $2,400/yr     | Email support, 1 named contact, prioritized bug fixes |
-| **Pro**           | Growing AI startups and products      | $1,500/mo or $15,000/yr  | Priority support (2-business-day target), CI regression-gate design, trace-vocabulary & OTel/Langfuse export review, monthly reasoning-regression review, evidence-report templates, up to 5 named contacts. *Hosted cross-machine trace sharing & analytics dashboard are in development — available early to design partners, not yet generally available.* |
-| **Enterprise**    | Large organizations, regulated industries | Custom (from $50,000)    | Dedicated support, custom integration & architecture review, on-prem/air-gapped deployment guidance, separately-licensed private add-ons, unlimited seats. *Optional, scoped per engagement: indemnity, and support answering security/compliance questionnaires — scoped to what a maintainer-led engagement can actually deliver, not a certification we hold.* |
+## What remains free
 
-A 30-day paid **Pilot** ($1,500, one workflow) is also available as a low-commitment entry point.
-For a buyer-facing version of the offer, pricing anchors, and pilot scope, see
-[docs/COMMERCIAL_OFFER.md](docs/COMMERCIAL_OFFER.md). For the Stripe catalog and fulfillment
-checklist, see [docs/BILLING_SETUP.md](docs/BILLING_SETUP.md).
+The public Apache-2.0 library includes:
 
-**Notes**
+- recording, querying, structural diffing, and regression detection
+- provenance and source lineage
+- local P-256 trace attestation and role-bound proof packs
+- offline verification and the local CI regression gate
+- the Foundation Models adapter (`DProvenanceFoundationModels`)
+- the OpenTelemetry / OTLP exporter (`DProvenanceOTel`)
+- export to a backend you choose and operate
 
-- Design-partner pilots are **free or discounted** during the pilot term; the prices above
-  are the standard post-pilot rates.
-- Pricing is flexible and based on factors such as number of developers, event volume,
-  deployment type (self-hosted vs. hosted), and contract length.
-- Multi-year discounts and usage-based options are available.
-- Paid tiers include access to private repositories for premium features and early access
-  to new capabilities. Premium components delivered this way are **separately licensed
-  (commercial, not Apache 2.0)**; the open-source library in this repository stays Apache 2.0.
-- The in-process OTel exporter (`DProvenanceOTel`, [docs/otel-bridge.md](docs/otel-bridge.md))
-  is free and open source under Apache 2.0, like the rest of the library. The
-  **managed OTel export pipeline** — the in-development hosted layer (shared team traces, CI
-  gates, monitoring), available early to design partners — sits on top of it, not the
-  exporter itself.
+These capabilities are not paid features and are not unlocked by purchasing a pilot.
 
-**What's in the free library (not a paid feature):** the core recording, querying, and
-diff/regression engine, **provenance/lineage** (record what each reasoning step was derived
-from, then trace, diff, and export it), **local P-256 trace attestation and role-bound proof
-packs** (including offline verification), the **FoundationModels adapter**
-(`DProvenanceFoundationModels`), and the **OpenTelemetry / OTLP exporter**
-(`DProvenanceOTel`) that sends traces — lineage attributes included — to Langfuse, an OTel
-collector, or any OTLP backend. On-device capture, signing, verification, and getting your
-traces *out* to the tools you already run are free by design — the paid tiers are the hosted,
-cross-machine, and support layers on top.
-
-## How we decide free vs. paid
-
-One line, applied consistently so the boundary never surprises a user or a contributor:
+## The licensing boundary
 
 > **The library is free. The service is paid.**
 
-Concretely, three categories:
+Everything committed to this repository is distributed under Apache 2.0. That license already
+allows commercial use, embedding, modification, and distribution subject to its terms.
+DProvenanceKit does not sell an “OEM right” to public code the customer already has.
 
-- **Free, always — the open-source library.** Anything in the Apache-2.0 library that runs
-  *in your process, on your machine*: capture, query, diff, regression detection, lineage
-  recording, local trace attestation, proof-pack generation and offline verification, and
-  exporting your traces to a backend *you* run. Paywalling these would only slow adoption,
-  and adoption is the whole strategy in an empty niche.
-- **Paid — hosted services.** Anything DProvenanceKit runs *for you, across machines*: hosted
-  trace and lineage sharing, a managed CI regression gate, cross-run/cross-machine analytics
-  dashboards, production monitoring, plus support, SLAs, indemnity, and compliance. This code
-  runs on our infrastructure and is never distributed, so it is not part of the open-source
-  library.
-- **Paid — separately-licensed premium components.** A small set of enterprise capabilities
-  (air-gapped / on-prem builds, and bespoke custom features) *do* run in your environment, but
-  they are **not** part of the Apache-2.0 library. They are delivered through private
-  repositories under a **separate commercial license — not Apache 2.0** — and are never merged
-  into the public tree. Running in your process is what makes the *library* free; a commercial
-  license is what makes these premium components paid.
+If a genuinely separate proprietary component is created in the future, it must be scoped,
+licensed, and delivered outside this repository. It cannot be a relabeling of code already
+released here. No such component is part of the current public offer.
 
-The test for any new feature: *does it deliver its value standalone, in the user's own process,
-as part of the core library?* If yes, it ships free in the Apache-2.0 library and widens the top
-of the funnel. If its value only exists as a hosted, multi-machine, or managed service, it
-belongs in a paid tier. And anything meant to be sold as software you run — on-prem or custom —
-is built in the private premium repository under a commercial license from the start, never
-committed to the open-source tree, because an Apache-2.0 release is irrevocable. A strong free
-library makes the paid offering **more** valuable, not less: the more teams capture and record
-locally, the more they want it shared, gated in CI, and monitored in production.
+## Where the Mac app and web Explorer fit
 
-## Where the Mac app and the web Explorer fit
+- **The web Explorer is free.** [WebVisualizer](WebVisualizer/) is an Apache-2.0,
+  zero-backend viewer for one pre-computed `WebDiffExport`. It is a shareable preview and
+  reference renderer, not a live data service.
+- **The D.P.K Mac app currently has a free Basic experience.**
+  [D.P.K: Reasoning Traces](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12)
+  is the native workbench over a live local trace database. As of July 2026, an optional
+  **$99/year Pro Annual** subscription is planned but not publicly purchasable. Its metadata,
+  submission with D.P.K 1.3.0, and Apple review still remain. Check the App Store listing for
+  current availability.
 
-Two visualization surfaces sit on opposite sides of the line, and the difference is worth
-stating plainly so it never reads as inconsistent:
+The app and Explorer both use the free engine. Neither changes the Apache-2.0 rights granted
+for this repository.
 
-- **The web Explorer — free.** [WebVisualizer](WebVisualizer/) is an Apache-2.0,
-  zero-backend viewer that renders **one** pre-computed diff artifact (a `WebDiffExport` the
-  free CLI produces). It's a shareable, zero-install preview and a reference renderer for
-  anyone embedding the schema. It is deliberately capped at a single artifact — never a live
-  or multi-run data source — see [WebVisualizer/SCOPE.md](WebVisualizer/SCOPE.md).
-- **The D.P.K Mac app — paid.** [*D.P.K: Reasoning Traces*](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12)
-  is a native application built **on top of** the free library, sold on the Mac App Store. It
-  opens your **live** trace database and gives you the interactive workbench: diff any two runs
-  you choose, replay timelines event by event, drill into payloads and span lineage, and
-  surface anomalies across every loaded run.
+## Frequently asked questions
 
-This does **not** contradict "the library is free." The free-vs-paid test governs what ships
-*in the Apache-2.0 library* — it asks whether a *library feature* delivers its value in your
-process. It does not say every program that happens to run locally must be free. A polished
-native application is a distinct downstream **product**, the same way an open-source engine can
-have a paid GUI: the recording, querying, diffing, and alignment engine the app runs is the
-free library; what you pay for is the packaged, interactive desktop experience on top of it. If
-you'd rather not buy the app, the same engine is yours for free — build your own front end, use
-the CLI, or preview single diffs in the Explorer.
+### Can I use DProvenanceKit for free in a commercial product?
 
-## What a commercial agreement includes
+Yes. Follow the Apache 2.0 terms; no separate commercial agreement or payment is required.
 
-- Professional support with response-time targets by tier
-- Optional indemnification against IP claims, scoped per engagement
-- Hosted, cross-machine features **in development** (available early to design partners):
-  traces shared across machines and CI, and production monitoring. The local CI regression
-  gate that fails a pull request when reasoning drifts already ships **free** in the library.
-- Priority bug fixes and feature requests
-- Private Slack/Discord channel or email support
-- Optional training and integration workshops
+### What does the pilot cost?
 
-The library itself stays Apache 2.0 — these are services and add-ons layered on top, not a
-gate on the open-source code.
+The live pilot is **$1,500 one time** for 30 days and one workflow. The checkout description,
+this page, and the [commercial offer](docs/COMMERCIAL_OFFER.md) define the same scope.
 
-## How to get in touch
+### Is there a free design-partner pilot?
 
-**Fastest — use a form/link:**
+Not as a public offer. You can evaluate the library for free, and you can buy the defined paid
+pilot when you want hands-on integration and an assurance report.
 
-- **Pilot:** [github.com/Therealdk8890/DProvenanceKit → new pilot issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
-- **Commercial / SLA / enterprise:** [new `commercial` issue](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-  or email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20commercial%20inquiry)**
+### Do you operate a hosted service?
 
-**When you reach out, it helps to include:**
+No. The current library and engagement are local-first. You decide whether to export traces
+to infrastructure you operate or already use.
 
-- Company / Organization name
-- Approximate number of developers or users
-- Intended use case (internal tool, product, SaaS, etc.)
-- Expected scale (events per month, number of deployments)
-- Any specific requirements (compliance, on-prem, custom features)
+### Can I contribute code and still buy support?
 
-We typically respond within 1–2 business days and can provide a custom quote quickly.
-
-## Frequently Asked Questions
-
-**Can I use DProvenanceKit for free in production?**
-Yes. Under Apache 2.0 you may use it in production and in commercial products at no cost and
-with no restrictions. Commercial agreements cover support, SLAs, indemnity, and
-enterprise/hosted features — not permission to use the code.
-
-**What does a pilot cost?**
-Design-partner pilots are free or discounted for the pilot term. In exchange we ask for
-feedback and permission to learn from anonymized usage. Standard rates apply after the pilot
-if you convert to a paid tier — with no obligation to.
-
-**Do you offer sponsorship or open-source support?**
-Yes — we welcome GitHub Sponsors and can discuss reduced rates for qualifying open-source
-projects or academic use.
-
-**Can I contribute code and still buy support?**
-Absolutely. Contributors are encouraged, and we offer favorable terms to active community
-members.
+Yes. Contributions and paid services are independent.
 
 ---
 
-**Questions?**
-Feel free to reach out via GitHub or email. We're happy to discuss how DProvenanceKit can
-support your AI observability needs.
+Questions? Open a
+[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
+or email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
 
 *Last updated: July 2026*

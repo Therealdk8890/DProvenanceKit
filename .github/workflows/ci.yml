@@ -218,11 +218,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # This repo is the public, Apache-2.0 core: in-process, single-machine code only.
-      # Paid, hosted, or cross-machine ("service") code, and separately-licensed premium
-      # components, live in the private premium repo — never here. An Apache-2.0 release is
-      # irrevocable, so we reject reserved premium namespaces BEFORE they can be merged and
-      # shipped for free. See CONTRIBUTING.md "Free vs. paid boundary" and COMMERCIAL.md.
+      # This is a public Apache-2.0 repository. Reject reserved namespaces to catch
+      # customer-confidential code or a deliberately separate component before it is
+      # accidentally published. The guard does not imply that a private product exists.
+      # See CONTRIBUTING.md "Public/private boundary" and COMMERCIAL.md.
       - name: Reject premium-namespaced paths in the public Apache-2.0 tree
         run: |
           matches=$(git ls-files \
@@ -231,8 +230,8 @@ jobs:
           if [ -n "$matches" ]; then
             echo "::error::Premium-namespaced path(s) found in the public Apache-2.0 repo:"
             echo "$matches"
-            echo "Move this code to the private premium repo under its commercial license."
-            echo "Apache-2.0 releases cannot be clawed back — see CONTRIBUTING.md."
+            echo "Keep this code outside the public repository until its scope and license are defined."
+            echo "See CONTRIBUTING.md for the public/private boundary."
             exit 1
           fi
           echo "OK: no premium-namespaced paths in the public tree."

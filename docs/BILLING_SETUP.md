@@ -1,116 +1,106 @@
 # Billing Setup
 
-This document sets up the paid catalog without putting billing code or secrets in the public
+This document defines the paid catalog without adding billing code or secrets to the public
 Apache-2.0 repository.
 
-Use Stripe Payment Links or hosted Checkout first. Do not add secret keys, webhook secrets, or
-hosted-service code to this repo.
+Use the existing Stripe Payment Link only after the workflow, scope, and kickoff timing are
+accepted in writing. Do not add secret keys, webhook secrets, customer data, or hosted-service
+code to this repo.
 
-## Stripe Products
+## Stripe product
 
-Create these products in Stripe:
+The only public self-serve product is the one-time assurance **Pilot**. There are no recurring
+support subscriptions and no hosted, team, or enterprise SaaS tiers.
 
 | Product | Price | Billing | Lookup key |
-| ------- | ----- | ------- | ---------- |
-| DProvenanceKit Starter Support | $250/month | Recurring monthly | `dpk_starter_monthly` |
-| DProvenanceKit Starter Support Annual | $2,400/year | Recurring annual | `dpk_starter_annual` |
-| DProvenanceKit Pro Assurance | $1,500/month | Recurring monthly | `dpk_pro_monthly` |
-| DProvenanceKit Pro Assurance Annual | $15,000/year | Recurring annual | `dpk_pro_annual` |
-| DProvenanceKit Pilot | $1,500 | One-time | `dpk_pilot_once` |
+|---------|-------|---------|------------|
+| DProvenanceKit Pilot | $1,500 | One time | `dpk_pilot_once` |
 
-Enterprise is quote/invoice only. Do not expose a public self-serve enterprise checkout.
+Additional integration, assurance, support, or training engagements are scoped and invoiced
+individually. Do not publish a self-serve checkout for work without a defined fulfillment
+scope.
 
-## Product Descriptions
+## Product description
 
-Starter Support:
+Use this description for the pilot:
 
-> Commercial support for DProvenanceKit integration: onboarding, private email support, first
-> integration review, and prioritized public bug triage. The Apache-2.0 library remains free.
+> 30-day paid pilot for one AI workflow. Includes an integration review and one reasoning
+> assurance report. The Apache-2.0 library remains free.
 
-Pro Assurance:
+Billing covers services and customer-specific deliverables. The public Apache-2.0 code may
+already be used, modified, embedded, and distributed subject to the license; payment does not
+grant or expand those rights.
 
-> Commercial assurance for AI reasoning workflows: Starter support plus CI gate design, trace
-> vocabulary review, OTel/export review, and monthly reasoning-regression review.
+If a genuinely separate proprietary component is ever offered, define its scope and terms
+outside this repository before selling it. No such component is part of the current catalog.
 
-Pilot:
+## Required metadata
 
-> 30-day paid pilot for one AI workflow. Includes integration review and one reasoning assurance
-> report.
+`lookup_key` is a first-class field on the Stripe **Price**, not metadata. Set
+`dpk_pilot_once` on the Price so a later checkout integration can retrieve the price without
+hard-coding an object ID. Do not duplicate it into metadata.
 
-## Required Metadata
-
-`lookup_key` is a first-class field on the Stripe **Price**, not metadata — set it there (e.g.
-`dpk_starter_monthly` from the product table) so you can fetch and swap prices by lookup key
-without editing links or code. Do not also duplicate it into metadata; the two copies will drift.
-
-Set the remaining keys as **product** (or Checkout Session) metadata:
+Set the remaining keys as product or Checkout Session metadata:
 
 ```text
 product_family=DProvenanceKit
-license_scope=support_and_services
+engagement=assurance_pilot
 repo=Therealdk8890/DProvenanceKit
 fulfillment=manual
 apache_core_included=false
 ```
 
-For customer-specific tracking, note that a **static Payment Link cannot carry arbitrary
-per-buyer metadata**. Capture buyer context one of these ways instead:
+A static Payment Link cannot carry arbitrary per-buyer metadata. Capture buyer context in one
+of these ways:
 
-- Append `?client_reference_id=<buyer-name>` to the Payment Link URL — it surfaces on the
-  resulting Checkout Session and payment.
-- Add **custom fields** to the Payment Link (Dashboard) to collect organization and workflow at
-  checkout.
-- For structured keys (`organization`, `github_issue`, `primary_workflow`), create a Checkout
-  Session via the API with a restricted key (`rk_`) and set them in `metadata`. Keep that script
-  and key **outside this public repo**.
+- append `?client_reference_id=<buyer-reference>` to the Payment Link URL
+- add Payment Link custom fields for organization and workflow
+- if structured metadata becomes necessary, create Checkout Sessions through a private
+  fulfillment system kept outside this public repository
 
-## Fulfillment Checklist
+Do not place restricted keys or customer identifiers in this repo.
+
+## Fulfillment checklist
 
 After payment:
 
-1. Confirm the customer and organization.
-2. Create or update the commercial GitHub issue.
-3. Send the onboarding email from `docs/SALES_PLAYBOOK.md`.
-4. Schedule the first integration review.
-5. Ask for a minimal representative trace workflow, not confidential client data.
-6. Keep any private, hosted, on-prem, or custom add-ons outside this public repo.
+1. Confirm the customer, organization, and preferred contact.
+2. Create or update the private fulfillment record; do not put confidential details in a
+   public GitHub issue.
+3. Send the onboarding email from [SALES_PLAYBOOK.md](SALES_PLAYBOOK.md).
+4. Schedule the integration review.
+5. Confirm the single workflow, success test, and 30-day boundary in writing.
+6. Ask for a synthetic or redacted good/bad example, not confidential client data.
+7. Complete the integration review and deliver one written reasoning assurance report.
+8. Record the closeout decision: continue internally, quote a new scope, or stop.
 
-## Public Links To Publish
+## Public link
 
-Use Payment Links for self-serve Starter, Pro, and Pilot purchases:
+Publish this link only for an accepted, defined pilot:
 
 ```text
-Starter monthly: https://buy.stripe.com/4gMeV7dUgcnNgVT6SGfYY04
-Starter annual:  https://buy.stripe.com/bJeeV79E0gE3dJHdh4fYY03
-Pro monthly:     https://buy.stripe.com/7sY7sF2byfzZgVT5OCfYY02
-Pro annual:      https://buy.stripe.com/8x24gt4jG4Vl3534KyfYY01
-Pilot:           https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
+Pilot: https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
 ```
 
-Do not commit live secret keys, webhook signing secrets, or customer-specific links.
+Invoice separately scoped work only after both parties agree on its deliverables and price.
+Do not commit live API keys, webhook signing secrets, or customer-specific payment links.
 
-## Preventing Secret Leaks
+## Preventing secret leaks
 
-This rule is enforced, not just stated, because key exposure via a public repo is the top cause
-of Stripe key compromise:
+- **CI:** the `secret-scan` job in `.github/workflows/ci.yml` runs gitleaks on every push and
+  pull request.
+- **Local:** `.pre-commit-config.yaml` runs the same check before a commit when contributors
+  enable it with `pre-commit install`.
+- **GitHub:** keep Secret scanning and push protection enabled in repository settings.
 
-- **CI:** the `secret-scan` job in `.github/workflows/ci.yml` runs gitleaks on every push and PR
-  and fails the build if a key pattern (`sk_`, `rk_`, `whsec_`, and others) lands in the tree.
-- **Local:** `.pre-commit-config.yaml` runs the same gitleaks check before a commit is created.
-  Contributors enable it once with `pre-commit install`.
-- **GitHub:** turn on **Secret scanning + push protection** (Settings → Code security). On a
-  public repo it is free and blocks a push that contains a recognized secret before it lands.
+If a real key is ever committed, treat it as compromised, rotate it immediately in Stripe,
+and review request logs for unrecognized activity.
 
-If a real key is ever committed, treat it as compromised: roll it immediately in the Stripe
-Dashboard (API keys page), then check Workbench request logs for unrecognized activity.
+## Boundary rules
 
-## Invoicing
-
-For Pro annual and Enterprise buyers, prefer invoice-first sales when procurement is involved.
-Use Payment Links only for low-friction self-serve purchases.
-
-## Boundary Rules
-
-The open-source library remains free for production and commercial use. Billing covers support,
-service, review, SLAs, and separately licensed private add-ons. It does not grant permission to
-use the public code; users already have that permission under Apache 2.0.
+- Everything in this public repository remains under Apache 2.0.
+- The pilot price pays for the defined 30-day engagement and deliverables.
+- Additional paid work is quoted per scope; no recurring tier is implied.
+- DProvenanceKit currently offers no hosted service, SLA, indemnity, or compliance
+  certification.
+- A purchase is not required to use or ship the public library.

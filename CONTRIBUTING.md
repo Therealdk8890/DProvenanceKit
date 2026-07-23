@@ -36,26 +36,25 @@ swift run DProvenanceKitCLI evaluate --gate --min-f1=0.95   # also require an F1
   OTel bridge is zero-dependency. Cross-module glue (e.g. FoundationModels ↔ OTel) lives
   in its own bridge target so neither base module takes on the other's dependency.
 
-## Free vs. paid boundary
+## Public/private boundary
 
-This repository is the **public, Apache-2.0 core** — in-process, single-machine features
-only. Its license grant is *perpetual and irrevocable*: anything merged and released here is
-free forever and cannot be relicensed or clawed back. The boundary is therefore enforced
-*before* code lands, not after.
+This repository is the **public, Apache-2.0 library**. Anything merged and released here may
+be used, modified, embedded, and distributed subject to that license. Do not merge
+customer-confidential code or material intended to remain a genuinely separate proprietary
+component.
 
-Apply the same test [COMMERCIAL.md](COMMERCIAL.md) uses:
+Apply this test before opening a pull request:
 
-> **Does it deliver its value standalone, in the user's own process, as part of the core
-> library?**
+> **Is this a capability we intend to release as part of the public Apache-2.0 library?**
 
-- **Yes → it belongs here**, free under Apache 2.0.
-- **No — its value only exists hosted, cross-machine, or managed**, *or* it's something
-  we intend to sell as software you run (on-prem/custom) → it belongs in the private premium
-  repository under a separate commercial license. **Never commit it here.**
+- **Yes:** it may belong here after normal review.
+- **No:** keep it outside this repository and define its scope, ownership, and license before
+  implementation. A future proprietary component must be genuinely separate; it cannot sell
+  rights to public code that Apache 2.0 already grants.
 
-Reserved namespaces — do **not** add matching paths to this repo; CI (the *Free/paid boundary
-guard* job) rejects them so an accidental `git add` fails the build instead of shipping paid
-code for free:
+Reserved namespaces — do **not** add matching paths to this repo. The historically named
+*Free/paid boundary guard* catches accidental inclusion of code marked private, hosted, or
+premium:
 
 - `Sources/**/Premium*` and `Sources/**/Hosted*` (directories or files)
 - any `*Premium*.swift` / `*Hosted*.swift`
@@ -73,9 +72,9 @@ The [WebVisualizer](WebVisualizer/) explorer is free and open source, but it has
 scope cap** — see [WebVisualizer/SCOPE.md](WebVisualizer/SCOPE.md). It renders exactly one
 pre-computed `WebDiffExport` and must **never** become a live or multi-run data source (no
 `.sqlite` ingestion, no SQLite-WASM, no corpus loading, no arbitrary run selection, no
-cross-run detection). Those verbs are the paid native app's job; run selection and alignment
-belong upstream in the CLI/library. A PR that marches the explorer toward a live-corpus
-workbench will be closed even if it's well built — under Apache 2.0 that step can't be undone.
+cross-run detection). Those verbs belong in the native app or upstream CLI/library; they are
+not part of this focused static viewer. A PR that turns the Explorer into a live-corpus
+workbench is out of scope even if it is well built.
 
 ## Pull requests
 

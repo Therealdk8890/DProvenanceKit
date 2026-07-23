@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DProvenanceKit Reasoning Regression Pilot</title>
-  <meta name="description" content="A fixed-scope $1,500, 30-day engagement to instrument one AI workflow, establish a known-good baseline, add a CI regression gate, and deliver a reasoning-assurance report." />
+  <title>DProvenanceKit Reasoning Assurance Pilot</title>
+  <meta name="description" content="A $1,500 one-time, 30-day engagement for one AI workflow: one integration review and one written reasoning assurance report." />
   <style>
     :root {
       color-scheme: dark light;
-      --bg:#0a0c10; --surface:#12151d; --surface2:#171b24; --border:#2a3140;
+      --bg:#0a0c10; --surface:#12151d; --border:#2a3140;
       --text:#e7ebf3; --muted:#9aa4b4; --accent:#7b6cff; --green:#55c271;
       --max:980px;
     }
-    @media (prefers-color-scheme:light){:root{--bg:#fff;--surface:#f7f8fa;--surface2:#eef1f5;--border:#dfe4ec;--text:#11161e;--muted:#566174;--accent:#5a4be0;--green:#19733a}}
+    @media (prefers-color-scheme:light){:root{--bg:#fff;--surface:#f7f8fa;--border:#dfe4ec;--text:#11161e;--muted:#566174;--accent:#5a4be0;--green:#19733a}}
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
     a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}.wrap{max-width:var(--max);margin:auto;padding:0 24px}
     header{border-bottom:1px solid var(--border)} nav{height:62px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:750;color:var(--text)}
@@ -22,7 +22,7 @@
     .btn{display:inline-block;padding:12px 19px;border-radius:10px;font-weight:750;border:1px solid var(--border)}.primary{background:var(--accent);color:white;border-color:transparent}.secondary{color:var(--text);background:var(--surface)}
     section{padding:58px 0;border-top:1px solid var(--border)}h2{font-size:2rem;letter-spacing:-.025em;margin:0 0 18px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
     .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px}.card h3{margin-top:0}.muted{color:var(--muted)}
-    ul{padding-left:1.2rem}li{margin:.5rem 0}.check li::marker{color:var(--green)}.timeline{counter-reset:week}.week{counter-increment:week}.week h3:before{content:"Week " counter(week) " — ";color:var(--accent)}
+    ul{padding-left:1.2rem}li{margin:.5rem 0}.check li::marker{color:var(--green)}.timeline{counter-reset:step}.step{counter-increment:step}.step h3:before{content:"Step " counter(step) " — ";color:var(--accent)}
     .notice{border-left:4px solid var(--accent);padding:14px 18px;background:var(--surface);border-radius:0 10px 10px 0}.final{text-align:center;padding:76px 0}.small{font-size:.9rem;color:var(--muted)}
   </style>
 </head>
@@ -30,59 +30,61 @@
 <header><nav class="wrap"><a class="brand" href="/">DProvenanceKit</a><a href="https://github.com/Therealdk8890/DProvenanceKit">Open-source SDK →</a></nav></header>
 <main>
   <div class="hero wrap">
-    <span class="eyebrow">Fixed-scope paid pilot</span>
-    <h1>Catch the AI regression the final answer hides.</h1>
-    <p class="lead">Instrument one real AI workflow, establish a known-good execution baseline, and add a CI gate that makes dropped verification, looping tools, and structural drift visible before release.</p>
-    <div class="price">$1,500</div>
-    <div class="sub">30 days · one workflow · one repository · one CI environment</div>
+    <span class="eyebrow">Fixed-scope paid service</span>
+    <h1>Review one AI workflow before its blind spots become incidents.</h1>
+    <p class="lead">A focused integration review and written reasoning assurance report for a workflow where a silent change creates real risk.</p>
+    <div class="price">$1,500 one time</div>
+    <div class="sub">30 days · one AI workflow · local-first</div>
     <div class="actions">
-      <a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKit/issues/new?template=paid-pilot.yml">Apply for the paid pilot</a>
+      <a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&amp;template=pilot.yml">Request pilot fit</a>
       <a class="btn secondary" href="https://github.com/Therealdk8890/DProvenanceKit/blob/main/docs/PILOT.md">Read the complete scope</a>
     </div>
   </div>
 
   <section><div class="wrap">
-    <h2>The outcome</h2>
-    <div class="notice"><strong>A critical workflow step can no longer silently disappear without producing a visible, reproducible regression result.</strong></div>
-    <div class="grid" style="margin-top:22px">
-      <div class="card"><h3>Known-good baseline</h3><p class="muted">Record the observable execution path that represents acceptable behavior for the selected workflow.</p></div>
-      <div class="card"><h3>CI regression gate</h3><p class="muted">Compare candidate behavior against the baseline and fail when agreed critical steps disappear or drift beyond tolerance.</p></div>
-      <div class="card"><h3>Workflow-specific rules</h3><p class="muted">Configure up to three initial rules for failures such as dropped verification, repeated tool calls, or missing approval steps.</p></div>
-      <div class="card"><h3>Assurance report</h3><p class="muted">Receive a written report covering findings, evidence, blind spots, operating boundaries, and recommended next steps.</p></div>
+    <h2>Two defined deliverables</h2>
+    <div class="grid">
+      <div class="card"><h3>Integration review</h3><p class="muted">Review the selected workflow's observable execution path, trace coverage, and instrumentation around one agreed failure risk.</p></div>
+      <div class="card"><h3>Assurance report</h3><p class="muted">Receive one written report describing captured evidence, material gaps, limitations, and a recommended next gate or implementation step.</p></div>
     </div>
   </div></section>
 
   <section><div class="wrap">
-    <h2>What is included</h2>
+    <h2>What the review can examine</h2>
     <div class="grid">
-      <div class="card"><h3>Discovery and instrumentation</h3><ul class="check"><li>One kickoff session</li><li>Architecture and workflow review</li><li>Critical event vocabulary</li><li>Instrumentation guidance or implementation support</li></ul></div>
-      <div class="card"><h3>Baseline and challenge</h3><ul class="check"><li>Known-good run or representative baseline</li><li>Local comparison and CI gate</li><li>Up to three anomaly rules</li><li>Review of one real or deliberate change</li></ul></div>
-      <div class="card"><h3>Handoff</h3><ul class="check"><li>Reasoning-assurance report</li><li>Final findings review</li><li>Blind-spot and ownership checklist</li><li>Recommended post-pilot path</li></ul></div>
-      <div class="card"><h3>Supported starting points</h3><ul class="check"><li>Plain Python or agent frameworks</li><li>OpenAI Agents SDK</li><li>LangChain, LangGraph, LlamaIndex, CrewAI</li><li>Apple Foundation Models and Swift AI</li></ul></div>
+      <div class="card"><h3>Workflow evidence</h3><p class="muted">One representative run and one synthetic or redacted failure scenario for the selected workflow.</p></div>
+      <div class="card"><h3>Trace vocabulary</h3><p class="muted">Whether the current events and priorities make the important execution steps visible.</p></div>
+      <div class="card"><h3>Evidence gaps</h3><p class="muted">Where the trace is missing, ambiguous, or too weak to support a dependable automated gate.</p></div>
+      <div class="card"><h3>Next decision</h3><p class="muted">Whether to implement internally, request separately scoped help, gather better evidence, or stop.</p></div>
     </div>
   </div></section>
 
   <section><div class="wrap">
-    <h2>Thirty-day delivery</h2>
-    <div class="grid">
-      <div class="card week"><h3>Define</h3><p class="muted">Select the workflow, critical steps, current tests, and success criteria.</p></div>
-      <div class="card week"><h3>Baseline</h3><p class="muted">Capture representative good behavior and validate the trace boundary.</p></div>
-      <div class="card week"><h3>Gate</h3><p class="muted">Add CI enforcement, anomaly rules, and exercise a meaningful change.</p></div>
-      <div class="card week"><h3>Review</h3><p class="muted">Deliver the report, findings, blind spots, and operational handoff.</p></div>
+    <h2>Intake before payment</h2>
+    <div class="grid timeline">
+      <div class="card step"><h3>Request</h3><p class="muted">Submit a synthetic or redacted description of one workflow and its failure risk.</p></div>
+      <div class="card step"><h3>Accept</h3><p class="muted">Confirm the written scope, review emphasis, and kickoff timing.</p></div>
+      <div class="card step"><h3>Pay</h3><p class="muted">Use secure checkout or an invoice only after both sides accept the scope and timing.</p></div>
+      <div class="card step"><h3>Review</h3><p class="muted">The 30-day engagement begins on the agreed kickoff date after payment.</p></div>
+      <div class="card step"><h3>Report</h3><p class="muted">Receive the integration findings and one written reasoning assurance report.</p></div>
     </div>
   </div></section>
 
   <section><div class="wrap">
     <h2>Clear boundaries</h2>
-    <p class="lead">DProvenanceKit compares the observable, instrumented execution path. It does not expose hidden chain-of-thought, guarantee factual correctness, detect every possible AI failure, or provide a blanket compliance certification.</p>
-    <p class="muted">The hosted/team layer is currently available through manually provisioned pilots and design partnerships. This pilot does not promise a fully self-service SaaS product or production uptime SLA.</p>
+    <div class="notice"><strong>The pilot reviews evidence; it does not promise to implement a CI gate.</strong></div>
+    <p class="lead" style="margin-top:22px">It does not include hosted infrastructure, a managed dashboard, multiple workflows, open-ended custom development, legal advice, an SLA, indemnity, or compliance certification.</p>
+    <p class="muted">DProvenanceKit evaluates observable, instrumented execution. It does not expose hidden chain-of-thought, guarantee factual correctness, or detect every possible AI failure. Keep secrets and confidential client data out of the public intake.</p>
   </div></section>
 
   <div class="final wrap">
-    <h2>Bring one workflow that cannot afford to fail silently.</h2>
-    <p class="lead" style="margin-left:auto;margin-right:auto">The intake form asks for the workflow, stack, current evaluation process, CI environment, and the critical step that must not disappear.</p>
-    <div class="actions" style="justify-content:center"><a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKit/issues/new?template=paid-pilot.yml">Start the scope review</a><a class="btn secondary" href="mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry">Email instead</a></div>
-    <p class="small" style="margin-top:22px">Submitting the intake form does not create a contract or payment obligation.</p>
+    <h2>Bring one workflow and one failure risk.</h2>
+    <p class="lead" style="margin-left:auto;margin-right:auto">Submitting the intake starts a fit and scope review. It does not create a contract or payment obligation.</p>
+    <div class="actions" style="justify-content:center">
+      <a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&amp;template=pilot.yml">Request the $1,500 pilot</a>
+      <a class="btn secondary" href="mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry">Email instead</a>
+    </div>
+    <p class="small" style="margin-top:22px">Use synthetic or redacted information in GitHub. Send sensitive requirements through a private channel.</p>
   </div>
 </main>
 </body>

@@ -4,7 +4,7 @@ DProvenanceKit is the on-device capture layer. `DProvenanceOTel` is how those tr
 
 One `TraceRun` becomes one OTel trace: a root span, child spans for every DPK span, span events for every trace event. IDs are derived deterministically from DPK identifiers, so the same run always maps to the same trace and re-exports are byte-identical (scope of that claim below).
 
-This is the open-source, in-process exporter, licensed Apache 2.0 like the rest of the library. The hosted/managed pipeline — shared team traces, CI gates, monitoring — is the separate commercial layer described in [COMMERCIAL.md](../COMMERCIAL.md).
+This is the open-source, in-process exporter, licensed Apache 2.0 like the rest of the library. DProvenanceKit does not currently operate a hosted or managed trace pipeline; export to a backend you choose and operate.
 
 ## Backend support matrix
 
