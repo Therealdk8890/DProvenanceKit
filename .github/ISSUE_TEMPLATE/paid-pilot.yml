@@ -1,0 +1,114 @@
+name: "Paid Reasoning Regression Pilot"
+description: Apply for the fixed-scope $1,500, 30-day DProvenanceKit pilot.
+title: "[Paid Pilot] <company or project>"
+labels: ["pilot", "commercial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## DProvenanceKit Reasoning Regression Pilot
+
+        **Price:** $1,500 USD  
+        **Duration:** 30 days  
+        **Scope:** one AI workflow, one repository, and one CI environment
+
+        The goal is to instrument one real workflow, establish a known-good baseline, add a regression gate, test one meaningful change, and deliver a reasoning-assurance report.
+
+        This form starts a scope review. Submitting it does not create a contract or payment obligation.
+
+  - type: input
+    id: company
+    attributes:
+      label: Company or project
+      placeholder: Acme AI, internal platform, or personal project
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stack
+    attributes:
+      label: Primary AI stack
+      options:
+        - Python / plain Python agent
+        - OpenAI Agents SDK
+        - LangChain or LangGraph
+        - LlamaIndex
+        - CrewAI
+        - Apple Foundation Models
+        - Swift / MLX / Core ML / custom
+        - Other or mixed
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Which workflow should the pilot de-risk?
+      description: Describe one concrete agent or AI-assisted workflow, including the important steps and tools.
+      placeholder: Our research agent plans, searches, ranks sources, verifies claims, and writes a report.
+    validations:
+      required: true
+
+  - type: textarea
+    id: critical_failure
+    attributes:
+      label: Which step must not silently disappear or change?
+      description: Name the most damaging regression the pilot should make visible.
+      placeholder: The agent must never skip claim verification before generating the final report.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_checks
+    attributes:
+      label: How do you test or evaluate this workflow today?
+      placeholder: Unit tests, output snapshots, eval datasets, manual review, LangSmith, no formal checks, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: repository
+    attributes:
+      label: Repository and CI environment
+      placeholder: Private GitHub repo with GitHub Actions; GitLab CI; local Xcode project; etc.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_sensitivity
+    attributes:
+      label: Data sensitivity
+      options:
+        - Synthetic or public data only
+        - Internal business data
+        - Customer or client data
+        - Regulated or highly sensitive data
+        - Not sure yet
+    validations:
+      required: true
+
+  - type: input
+    id: start_window
+    attributes:
+      label: Preferred start window
+      placeholder: As soon as possible, August 2026, after our next release, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: contact
+    attributes:
+      label: Best contact email or handle
+      placeholder: name@company.com or @handle
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgement
+    attributes:
+      label: Scope acknowledgement
+      options:
+        - label: I understand this is a $1,500 fixed-scope pilot covering one workflow, one repository, and one CI environment.
+          required: true
+        - label: I understand DProvenanceKit compares observable instrumented execution, not hidden chain-of-thought, and does not guarantee detection of every AI failure.
+          required: true
