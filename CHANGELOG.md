@@ -6,6 +6,27 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-25
+
+### Added
+- **`dpk verify --proof-pack` can now render a human-readable verification certificate**
+  via `--certificate=text|html` (with optional `--out`). Verification previously ended at
+  an exit code, which serves an engineer but not the lawyer, adjuster, or underwriter who
+  has to act on the result. The renderer lives in `DProvenanceKit` rather than the CLI, so
+  downstream consumers can emit certificates in-process instead of shelling out. HTML
+  output is self-contained — no external CSS, fonts, or scripts — so it prints to PDF
+  anywhere and stays readable when archived in a case file years later; a test pins that
+  property. The certificate states its own limits in the body rather than a footnote: it
+  attests signature and hash integrity, not the truthfulness of the content, completeness
+  of capture, trusted time, binary identity, or regulatory compliance. It distinguishes
+  role-bound coverage from value-presence-only, and discloses unpinned signers plainly
+  rather than implying the signature means more than it does. Covered by
+  `ProofPackCertificateTests`.
+- **`DProvenanceKitVersion.current`**, stamped into every certificate so a reader can
+  reproduce a result against the version that produced it. It is held to the newest
+  released changelog heading by `.github/scripts/check-release-surfaces.sh`, so cutting a
+  release without updating it fails CI.
+
 ### Changed
 - **`align()` on large traces is ~2 orders of magnitude faster, with unchanged semantics.**
   The 10,000-event rows of the published operating envelope drop from 59.8 s / 78.6 s
@@ -448,7 +469,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.5.0...0.6.0
