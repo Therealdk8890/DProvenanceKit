@@ -34,29 +34,45 @@ known failure mode, and one decision the resulting evidence will support.
 
 | Offer | Price | Scope | Promise |
 |-------|-------|-------|---------|
-| **30-day reasoning assurance pilot** | **$1,500 one time** | One AI workflow | Review the integration and deliver one reasoning assurance report. |
+| **30-day Governed AI Deployment Pilot** | **$4,500 one time** | One AI workflow | Establish a golden baseline, author governance policies, put a regression gate in CI, and deliver an auditable deployment decision record. |
 
 **[Request pilot fit →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
 
-After the workflow, scope, and kickoff timing are accepted in writing, use
-[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). For invoice-based
-procurement, open a
+After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued —
+50% on signature, 50% on delivery of the audit report, net 15. For procurement questions,
+open a
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
 instead.
 
 ## Pilot deliverables
 
-The pilot owes exactly two deliverables:
+The pilot owes six deliverables:
 
-1. **One integration review.** Within the accepted scope, the review may examine the selected
-   workflow's instrumentation, trace vocabulary, one representative run, and one agreed
-   failure scenario.
-2. **One written reasoning assurance report.** The report contains findings, evidence gaps,
-   limitations, a recommended next gate or implementation step, and a closeout recommendation.
+1. **Instrumentation review.** Within the accepted scope, a written assessment of the
+   workflow's instrumentation, trace vocabulary, representative runs, and the agreed failure
+   scenario — flagging where reasoning steps are not captured and which steps' disappearance
+   should page someone.
+2. **Golden baseline.** A validated reference run, committed to the buyer's repository, that
+   future runs are compared against.
+3. **Three to five governance policies** authored for the workflow — structural divergence,
+   required steps, claim support, allowed models, or others agreed at kickoff — delivered as
+   a ruleset with written rationale per rule.
+4. **CI deployment gate.** A GitHub Actions or GitLab CI configuration that fails a pull
+   request when reasoning regresses against the baseline, commenting the diff.
+5. **Audit and provenance report.** What the baseline established, which policies apply, what
+   they would have caught, remaining evidence gaps and limitations, and how to present this to
+   an auditor or customer.
+6. **Two calls** — kickoff and handover — plus written async support answered within two
+   business days.
 
-A good pilot ends with a report that explains what was reviewed, whether the current
-instrumentation exposes the agreed risk, what evidence is still missing, and what gate or
-implementation step the buyer should consider next.
+**The buyer runs the software.** Their engineer installs the SDK and instruments the workflow
+from the documented quickstart, typically two to six hours. The pilot supplies governance
+expertise, the policies, and the audit record — never code written inside the buyer's
+repository.
+
+A good pilot ends with a gate running in the buyer's CI and a report explaining what the
+baseline established, whether current instrumentation exposes the agreed risk, what evidence
+is still missing, and what step to consider next.
 
 ## Out of scope
 
@@ -141,8 +157,8 @@ Use the output to show:
 
 - **Ready to start:** complete the
   [pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml).
-- **Accepted scope and kickoff timing:** pay for the $1,500 pilot through
-  [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00).
+- **Accepted scope and kickoff timing:** pay for the $4,500 pilot through
+  an invoice issued after the scope is agreed in writing.
 - **Need an invoice or different scoped engagement:** open a
   [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
   or use the email address in [COMMERCIAL.md](../COMMERCIAL.md).

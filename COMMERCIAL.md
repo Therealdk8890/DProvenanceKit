@@ -12,41 +12,59 @@ permission to use the public library.
 
 | I want to… | Do this |
 |------------|---------|
-| **De-risk one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted, pay **$1,500 one time** through [secure checkout →](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00) |
+| **Govern one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued for **$4,500 one time** (50% on signature, 50% on delivery) |
 | **Scope integration help or a workshop** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
-| **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")`. Nothing to buy; follow the license terms. |
+| **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.0")`. Nothing to buy; follow the license terms. |
 | **Use the native Mac workbench** | [Download D.P.K: Reasoning Traces →](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12). Basic is currently free; see the app section below for Pro availability. |
 
 Kickoff timing is confirmed in writing after the workflow and scope are accepted.
 
 ## The live paid offer
 
-### 30-day reasoning assurance pilot — $1,500 one time
+### Governed AI Deployment Pilot — $4,500 one time
 
-The default pilot covers **one AI workflow** with one clear failure risk. It is built for a
-small team shipping legal, regulated, on-device, or tool-using AI where a fluent-but-wrong
-result is more dangerous than a crash.
+The pilot covers **one AI workflow** with one clear failure risk. It is built for a small
+team shipping legal, regulated, on-device, or tool-using AI where a fluent-but-wrong result
+is more dangerous than a crash.
 
-The pilot has exactly two deliverables:
+It runs for 30 days and produces six deliverables:
 
-1. **One integration review.** Within the accepted scope, the review may examine trace
-   vocabulary, current instrumentation, one representative run, and one agreed failure
-   scenario.
-2. **One written reasoning assurance report.** The report documents findings, evidence gaps,
-   limitations, a recommended next gate or implementation step, and the suggested closeout
-   decision.
+1. **Instrumentation review.** A written assessment of your recorded traces, flagging gaps
+   where reasoning steps are not captured, and identifying the steps whose disappearance
+   should page someone.
+2. **Golden baseline.** A validated reference run that future runs are compared against,
+   committed to your repository.
+3. **Three to five governance policies** authored for your workflow — structural divergence,
+   required steps, claim support, allowed models, or others agreed at kickoff — delivered as
+   a ruleset with written rationale for each rule.
+4. **CI deployment gate.** A GitHub Actions or GitLab CI configuration that fails a pull
+   request when reasoning regresses against the baseline, and comments the diff explaining
+   what changed.
+5. **Audit and provenance report.** What the baseline established, which policies apply, what
+   they would have caught, and how to present that to an auditor or a customer.
+6. **Two calls** — kickoff and handover — plus written async support throughout, answered
+   within two business days.
 
-The pilot does **not** include hosted infrastructure, a broad application rewrite, legal
-advice, a compliance certification, an SLA, or indemnity. Sensitive customer data should stay
-local; a synthetic or redacted example is enough for the first pass.
+**You run the software.** Your engineer installs the SDK and instruments the workflow
+following the documented quickstart, typically two to six hours. The pilot supplies
+governance expertise, the policies, and the audit record — not code written inside your
+repository.
 
-**[Request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
+The pilot does **not** include code written or debugged in your repository, hosted
+infrastructure, a broad application rewrite, on-call or incident support, legal advice, a
+compliance certification, an SLA, or indemnity. Sensitive customer data should stay local; a
+synthetic or redacted example is enough for the first pass.
 
-After fit, scope, and kickoff timing are accepted in writing, use the
-[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). If procurement requires
-an invoice, use the
+**[Request the pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
+
+After fit, scope, and kickoff timing are accepted in writing, an invoice is issued — 50% on
+signature, 50% on delivery of the audit report, net 15. For procurement questions use the
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-or email the address above instead.
+or email the address above.
+
+*Design partner rate: **$4,500 reduced from the standard $7,500**, for the first three
+customers, in exchange for a written testimonial and a case study published with your
+approval and any anonymisation you require.*
 
 ## Other paid work
 
@@ -110,13 +128,23 @@ Yes. Follow the Apache 2.0 terms; no separate commercial agreement or payment is
 
 ### What does the pilot cost?
 
-The live pilot is **$1,500 one time** for 30 days and one workflow. The checkout description,
-this page, and the [commercial offer](docs/COMMERCIAL_OFFER.md) define the same scope.
+**$4,500 one time** for 30 days and one workflow, invoiced 50% on signature and 50% on
+delivery. The standard rate is $7,500; $4,500 is the design-partner rate for the first three
+customers. This page and the [commercial offer](docs/COMMERCIAL_OFFER.md) define the same
+scope.
+
+Regulated workflows requiring a compliance export are quoted separately.
+
+### Why is it not self-serve checkout?
+
+At this scope the workflow, policies, and success criteria have to be agreed in writing
+before work starts, or neither of us knows what "done" means. Intake first, then an invoice.
 
 ### Is there a free design-partner pilot?
 
-Not as a public offer. You can evaluate the library for free, and you can buy the defined paid
-pilot when you want hands-on integration and an assurance report.
+No. Design partners pay the reduced rate rather than nothing — a paying customer tells you
+the truth about whether the work was worth it, and a free one does not. You can evaluate the
+library itself for free, indefinitely.
 
 ### Do you operate a hosted service?
 

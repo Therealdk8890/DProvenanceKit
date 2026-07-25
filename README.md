@@ -278,7 +278,7 @@ Add DProvenanceKit to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.7.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.0")
 ]
 ```
 
@@ -475,9 +475,9 @@ Trace Event Stream → Local Store → Query / Diff → Signed Attestation → O
 
 # Status
 
-**Public beta — [0.7.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.7.0) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.8.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.8.0) is released; APIs may continue to evolve before 1.0.**
 
-**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof-pack v2](docs/PROOF_PACK.md) documents that bind each artifact's bytes and role to a signed trace (`dpk verify --proof-pack`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
+**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof-pack v2](docs/PROOF_PACK.md) documents that bind each artifact's bytes and role to a signed trace (`dpk verify --proof-pack`), human-readable verification certificates that state their own scope limits (`--certificate=text|html`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
 
 **Planned:** richer graph/lineage visualization, key-policy and rotation helpers, and distributed trace federation.
 
@@ -497,12 +497,12 @@ Docs, the web Explorer, and more at **[dprovenance.dev](https://dprovenance.dev)
 
 DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use subject to the license terms. See [LICENSE](LICENSE).
 
-The live paid offer is a **$1,500 one-time, 30-day reasoning assurance pilot for one workflow**. It includes an integration review and one reasoning assurance report. Additional integration, gate implementation, support, or training work is scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
+The live paid offer is a **$4,500 one-time, 30-day Governed AI Deployment Pilot for one workflow**. It delivers an instrumentation review, a golden baseline, three to five governance policies, a CI regression gate, and an audit and provenance report. Your engineer installs and instruments; the pilot supplies the governance expertise and the audit record, not code in your repository. Additional workflows, support, or training are scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
 
 Review the [complete pilot scope](docs/PILOT.md), then
-**[request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
-After scope and kickoff timing are accepted, pay through
-[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). Review
+**[request the $4,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
+After scope and kickoff timing are accepted in writing, an invoice is issued —
+50% on signature, 50% on delivery. Review
 [COMMERCIAL.md](COMMERCIAL.md), or use the
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
 for invoice-based procurement and other scoped work.

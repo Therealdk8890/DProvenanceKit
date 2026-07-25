@@ -8,7 +8,7 @@ body:
       value: |
         DProvenanceKit's public library is free under Apache 2.0, including commercial use and embedding subject to the license.
 
-        The live self-serve offer is a **$1,500 one-time, 30-day assurance pilot for one workflow**. Other integration, assurance, support, or training work is scoped and quoted separately. There is no hosted/SaaS service, recurring support tier, SLA, indemnity, or compliance certification.
+        The live self-serve offer is a **$4,500 one-time, 30-day Governed AI Deployment Pilot for one workflow**. Other integration, assurance, support, or training work is scoped and quoted separately. There is no hosted/SaaS service, recurring support tier, SLA, indemnity, or compliance certification.
 
         This issue is public. Do not post confidential data, private trace payloads, or secrets.
   - type: input
@@ -24,7 +24,7 @@ body:
     attributes:
       label: What are you interested in?
       options:
-        - $1,500 reasoning assurance pilot
+        - $4,500 Governed AI Deployment Pilot
         - Integration review or implementation workshop
         - CI regression-gate design
         - Trace-vocabulary or OpenTelemetry export review

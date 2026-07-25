@@ -99,6 +99,13 @@ check_surfaces() {
   }
 
   package_url='https://github.com/Therealdk8890/DProvenanceKit'
+  # The library's own version string. It is stamped into every verification certificate, so a
+  # stale value would misattribute which tool produced a piece of evidence.
+  check_surface \
+    Sources/DProvenanceKit/Version.swift \
+    "library version constant" \
+    'public static let current = "' \
+    "= \"$release_version\""
   check_surface \
     README.md \
     "README install version" \
@@ -131,7 +138,7 @@ check_surfaces() {
 self_test() {
   fixture=$(mktemp -d "${TMPDIR:-/tmp}/dpk-release-surfaces.XXXXXX")
   trap 'rm -rf "$fixture"' EXIT HUP INT TERM
-  mkdir -p "$fixture/site"
+  mkdir -p "$fixture/site" "$fixture/Sources/DProvenanceKit"
 
   printf '%s\n' \
     '# Changelog' \
@@ -146,6 +153,10 @@ self_test() {
     '.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "9.8.7")' > "$fixture/COMMERCIAL.md"
   printf '%s\n' \
     '.package(url: <span class="str">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="str">"9.8.7"</span>)' > "$fixture/site/index.html"
+  printf '%s\n' \
+    'public enum DProvenanceKitVersion {' \
+    '    public static let current = "9.8.7"' \
+    '}' > "$fixture/Sources/DProvenanceKit/Version.swift"
 
   check_surfaces "$fixture" >/dev/null
 
@@ -153,6 +164,20 @@ self_test() {
     '.package(url: <span class="str">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="str">"9.8.6"</span>)' > "$fixture/site/index.html"
   if check_surfaces "$fixture" >/dev/null 2>&1; then
     echo "Self-test failed: a stale site version was accepted." >&2
+    return 1
+  fi
+  printf '%s\n' \
+    '.package(url: <span class="str">"https://github.com/Therealdk8890/DProvenanceKit"</span>, from: <span class="str">"9.8.7"</span>)' > "$fixture/site/index.html"
+
+  # The version constant is what every certificate is stamped from, so a stale value
+  # misattributes which tool produced a piece of evidence. Prove the guard catches it
+  # rather than trusting that it does.
+  printf '%s\n' \
+    'public enum DProvenanceKitVersion {' \
+    '    public static let current = "9.8.6"' \
+    '}' > "$fixture/Sources/DProvenanceKit/Version.swift"
+  if check_surfaces "$fixture" >/dev/null 2>&1; then
+    echo "Self-test failed: a stale library version constant was accepted." >&2
     return 1
   fi
 

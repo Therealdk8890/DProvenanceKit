@@ -1,15 +1,15 @@
-name: "Paid reasoning assurance pilot"
-description: Intake for the $1,500 one-time, 30-day pilot covering one AI workflow.
+name: "Paid Governed AI Deployment Pilot"
+description: Intake for the $4,500 one-time, 30-day pilot covering one AI workflow.
 title: "[Pilot] <your company or project>"
 labels: ["pilot", "commercial"]
 body:
   - type: markdown
     attributes:
       value: |
-        The DProvenanceKit pilot is **$1,500 one time**, lasts 30 days, and covers one AI workflow.
+        The DProvenanceKit pilot is **$4,500 one time**, lasts 30 days, and covers one AI workflow.
         It includes an integration review and one reasoning assurance report. Gate implementation, if needed, is separately scoped follow-on work.
 
-        Submit this intake before paying. After the workflow, scope, and kickoff timing are accepted, you will use [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00) or request an invoice.
+        Submit this intake before paying. After the workflow, scope, and kickoff timing are accepted, you will use an invoice issued after the scope is agreed in writing or request an invoice.
 
         This issue is public. Do not post confidential client data, secrets, or private trace payloads. A synthetic or redacted description is enough.
   - type: input
@@ -90,5 +90,5 @@ body:
     attributes:
       label: Scope acknowledgment
       options:
-        - label: I understand this is a $1,500 one-time service engagement for one workflow, not a hosted product, SLA, compliance certification, or legal advice.
+        - label: I understand this is a $4,500 one-time service engagement for one workflow, not a hosted product, SLA, compliance certification, or legal advice.
           required: true
