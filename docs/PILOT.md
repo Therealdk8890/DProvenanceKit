@@ -1,14 +1,17 @@
 # DProvenanceKit Reasoning Assurance Pilot
 
-A fixed-scope, **$1,500 one-time, 30-day engagement** for a team that needs a clear view of
+A fixed-scope, **$4,500 one-time, 30-day engagement** for a team that needs a clear view of
 one AI workflow's current reasoning evidence and its most important blind spots.
 
 ## The offer
 
-- **Price:** $1,500 USD, one time
+- **Price:** $4,500 USD, one time
 - **Duration:** 30 days
 - **Scope:** one AI or AI-assisted workflow
-- **Delivered:** one integration review and one written reasoning assurance report
+- **Delivered:** instrumentation review, golden baseline, 3–5 governance policies, CI
+  regression gate, audit and provenance report, and two calls
+- **You run the software:** your engineer installs and instruments (2–6 hours); the pilot
+  supplies governance expertise and the audit record, not code in your repository
 - **Data boundary:** local-first; synthetic or redacted examples are enough for the review
 
 The public DProvenanceKit library remains free under Apache 2.0. The pilot price pays for the
@@ -79,7 +82,7 @@ prove facts or reasoning that were never captured.
 2. Confirm the single workflow, review emphasis, written scope, and kickoff timing.
 3. Mutually accept that scope and timing.
 4. Pay through the
-   [secure $1,500 checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00), or request an
+   an invoice issued after the scope is agreed in writing, or request an
    invoice if procurement requires one.
 5. The 30-day engagement begins on the agreed kickoff date after payment.
 6. Complete the review and deliver the reasoning assurance report.

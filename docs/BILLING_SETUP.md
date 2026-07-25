@@ -14,7 +14,7 @@ support subscriptions and no hosted, team, or enterprise SaaS tiers.
 
 | Product | Price | Billing | Lookup key |
 |---------|-------|---------|------------|
-| DProvenanceKit Pilot | $1,500 | One time | `dpk_pilot_once` |
+| DProvenanceKit Pilot | $4,500 | One time | `dpk_pilot_once` |
 
 Additional integration, assurance, support, or training engagements are scoped and invoiced
 individually. Do not publish a self-serve checkout for work without a defined fulfillment
@@ -79,7 +79,7 @@ After payment:
 Publish this link only for an accepted, defined pilot:
 
 ```text
-Pilot: https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
+Pilot: invoiced directly (50% on signature, 50% on delivery). The old $1,500 Stripe payment link is RETIRED — do not reuse it.
 ```
 
 Invoice separately scoped work only after both parties agree on its deliverables and price.

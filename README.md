@@ -497,12 +497,12 @@ Docs, the web Explorer, and more at **[dprovenance.dev](https://dprovenance.dev)
 
 DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use subject to the license terms. See [LICENSE](LICENSE).
 
-The live paid offer is a **$1,500 one-time, 30-day reasoning assurance pilot for one workflow**. It includes an integration review and one reasoning assurance report. Additional integration, gate implementation, support, or training work is scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
+The live paid offer is a **$4,500 one-time, 30-day Governed AI Deployment Pilot for one workflow**. It delivers an instrumentation review, a golden baseline, three to five governance policies, a CI regression gate, and an audit and provenance report. Your engineer installs and instruments; the pilot supplies the governance expertise and the audit record, not code in your repository. Additional workflows, support, or training are scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
 
 Review the [complete pilot scope](docs/PILOT.md), then
-**[request the $1,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
-After scope and kickoff timing are accepted, pay through
-[secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00). Review
+**[request the $4,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
+After scope and kickoff timing are accepted in writing, an invoice is issued —
+50% on signature, 50% on delivery. Review
 [COMMERCIAL.md](COMMERCIAL.md), or use the
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
 for invoice-based procurement and other scoped work.

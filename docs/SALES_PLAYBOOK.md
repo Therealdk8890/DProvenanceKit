@@ -1,6 +1,6 @@
 # Sales Playbook
 
-This is the lightweight process for selling the **$1,500 one-time, 30-day reasoning assurance
+This is the lightweight process for selling the **$4,500 one-time, 30-day reasoning assurance
 pilot**. DProvenanceKit's Apache-2.0 library remains free; the buyer pays for the defined
 integration and assurance work.
 
@@ -39,14 +39,23 @@ Use 30 minutes:
 
 ## Pilot scope
 
-The default pilot is **$1,500 one time**, lasts 30 days, and covers one workflow.
+The default pilot is **$4,500 one time**, lasts 30 days, and covers one workflow.
 
-Promise exactly two deliverables:
+Promise exactly six deliverables:
 
-1. **One integration review.** Within the accepted scope, it may examine instrumentation,
-   trace vocabulary, one representative run, and one agreed failure scenario.
-2. **One written reasoning assurance report.** It contains the findings, evidence gaps,
-   limitations, recommended next gate or implementation step, and closeout recommendation.
+1. **Instrumentation review.** A written assessment of instrumentation, trace vocabulary,
+   representative runs, and the agreed failure scenario.
+2. **Golden baseline.** A validated reference run committed to their repository.
+3. **Three to five governance policies** with written rationale per rule.
+4. **CI deployment gate** that fails a PR on regression and comments the diff.
+5. **Audit and provenance report** — findings, evidence gaps, limitations, and how to present
+   it to an auditor or customer.
+6. **Two calls** (kickoff, handover) plus async support answered within two business days.
+
+Say this on every call: **they run the software.** Their engineer installs and instruments
+(2–6 hours). You supply governance expertise, the policies, and the audit record — never code
+inside their repo. That sentence is what keeps this a 15-hour engagement instead of a
+40-hour one.
 
 Out of scope:
 
@@ -59,7 +68,7 @@ Out of scope:
 Checkout for an accepted pilot:
 
 ```text
-https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00
+[invoice issued after scope is agreed — the old $1,500 Stripe link is retired]
 ```
 
 Do not request payment until the workflow, written scope, and kickoff timing are accepted.
@@ -75,7 +84,7 @@ DProvenanceKit pilot kickoff
 Body:
 
 ```text
-Thanks for starting a DProvenanceKit reasoning assurance pilot.
+Thanks for starting a DProvenanceKit Governed AI Deployment Pilot.
 
 To keep the 30-day scope tight, please send:
 
@@ -107,7 +116,7 @@ I build DProvenanceKit, an open-source Swift library that records and diffs AI r
 paths. It is useful when an output still looks fluent but the model silently skipped a
 critical step, changed its source path, or stopped calling a tool.
 
-I am offering a $1,500, 30-day assurance pilot for one workflow. We review the integration,
+I am offering a $4,500, 30-day Governed AI Deployment Pilot for one workflow. We review the integration,
 examine one agreed failure risk, and deliver a short assurance report covering the evidence
 gaps and recommended next gate. The workflow can stay local, and a synthetic or redacted
 example is enough to start.
@@ -148,8 +157,8 @@ domain review, legal judgment, security review, or compliance certification.
 
 Ask for one of three decisions:
 
-- Accept the workflow, written scope, and kickoff timing, then start the **$1,500 pilot**
-  through [secure checkout](https://buy.stripe.com/3cI5kx9E03Rh353el8fYY00).
+- Accept the workflow, written scope, and kickoff timing, then start the **$4,500 pilot**
+  through an invoice issued after the scope is agreed in writing.
 - Request a written quote for a narrowly scoped integration, assurance, or training
   engagement.
 - Decide the workflow is not a fit and stop.
