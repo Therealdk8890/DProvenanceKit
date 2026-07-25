@@ -13,6 +13,7 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
     case invalidValue(flag: String, value: String, reason: String)
     case minF1RequiresGate
     case requireRoleBindingRequiresProofPack
+    case certificateRequiresProofPack
     case missingRequiredFlag(String)
 
     var description: String {
@@ -33,6 +34,8 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
             return "--min-f1 has no effect without --gate; pass --gate or drop --min-f1"
         case .requireRoleBindingRequiresProofPack:
             return "--require-role-binding only applies to proof packs; pass --proof-pack or drop it"
+        case .certificateRequiresProofPack:
+            return "--certificate only applies to proof packs; pass --proof-pack or drop it"
         case .missingRequiredFlag(let flag):
             return "missing required flag \(flag)"
         }
@@ -51,6 +54,15 @@ struct CLIInvocation: Equatable {
         case verify
     }
 
+    /// How a certificate is rendered. Both carry identical content; the choice is about the
+    /// reader's medium, not the strength of the claim.
+    enum CertificateFormat: String, CaseIterable {
+        /// Fixed-width, safe to paste into a memo, an email, or a CI log.
+        case text
+        /// Self-contained HTML — no external assets, prints to PDF from any browser.
+        case html
+    }
+
     var mode: Mode = .evaluate
     var gate = false
     var minF1: Double?
@@ -62,6 +74,10 @@ struct CLIInvocation: Equatable {
     /// verify --proof-pack: fail a v1 (value-presence-only) pack instead of accepting it
     /// with a warning — require the role to be signer-vouched (v2).
     var requireRoleBinding = false
+    /// verify --proof-pack: render a human-readable certificate instead of the engineer-facing
+    /// summary. The exit code is unchanged — a certificate is a rendering of the verification,
+    /// never a second opinion about it.
+    var certificate: CertificateFormat?
     /// Normalized (lowercased) 64-hex-character signer key IDs.
     var trustedKeyIDs: Set<String> = []
 }
@@ -80,7 +96,7 @@ enum CLIArguments {
         .diagnose: [], .stability: [],
         .webExport: ["--case", "--out"],
         .attestDemo: ["--out"],
-        .verify: ["--in", "--trusted-key"],
+        .verify: ["--in", "--trusted-key", "--certificate", "--out"],
     ]
 
     static func parse(_ args: [String]) throws -> CLIInvocation {
@@ -146,6 +162,9 @@ enum CLIArguments {
         if invocation.requireRoleBinding, !invocation.proofPack {
             throw CLIArgumentError.requireRoleBindingRequiresProofPack
         }
+        if invocation.certificate != nil, !invocation.proofPack {
+            throw CLIArgumentError.certificateRequiresProofPack
+        }
         if invocation.mode == .verify, invocation.inPath == nil {
             throw CLIArgumentError.missingRequiredFlag("--in=<attestation.json>")
         }
@@ -158,6 +177,14 @@ enum CLIArguments {
         to invocation: inout CLIInvocation
     ) throws {
         switch name {
+        case "--certificate":
+            guard let format = CLIInvocation.CertificateFormat(rawValue: value.lowercased()) else {
+                throw CLIArgumentError.invalidValue(
+                    flag: name, value: value,
+                    reason: "expected one of: \(CLIInvocation.CertificateFormat.allCases.map(\.rawValue).joined(separator: ", "))"
+                )
+            }
+            invocation.certificate = format
         case "--min-f1":
             guard let parsed = Double(value), parsed.isFinite else {
                 throw CLIArgumentError.invalidValue(

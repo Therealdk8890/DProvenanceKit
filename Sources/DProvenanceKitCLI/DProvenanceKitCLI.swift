@@ -60,7 +60,13 @@ struct DProvenanceKitCLI {
         }
         if invocation.mode == .verify {
             if invocation.proofPack {
-                runVerifyProofPack(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs, requireRoleBinding: invocation.requireRoleBinding)
+                runVerifyProofPack(
+                    inPath: invocation.inPath!,
+                    trustedKeyIDs: invocation.trustedKeyIDs,
+                    requireRoleBinding: invocation.requireRoleBinding,
+                    certificate: invocation.certificate,
+                    outPath: invocation.outPath
+                )
             } else {
                 runVerify(inPath: invocation.inPath!, trustedKeyIDs: invocation.trustedKeyIDs)
             }
@@ -310,13 +316,44 @@ struct DProvenanceKitCLI {
     /// embedded artifact's recomputed SHA-256 against its declared digest and against the
     /// signed event payloads (docs/PROOF_PACK.md). All verification logic lives in the
     /// library (`ProofPackDocument.verify`); this arm only decodes and reports.
-    static func runVerifyProofPack(inPath: String, trustedKeyIDs: Set<String>, requireRoleBinding: Bool) {
+    static func runVerifyProofPack(
+        inPath: String,
+        trustedKeyIDs: Set<String>,
+        requireRoleBinding: Bool,
+        certificate: CLIInvocation.CertificateFormat? = nil,
+        outPath: String? = nil
+    ) {
         let trustSet: Set<String>? = trustedKeyIDs.isEmpty ? nil : trustedKeyIDs
 
         do {
             let data = try Data(contentsOf: URL(fileURLWithPath: inPath))
             let pack = try ProofPackDocument.decodeJSON(data)
             let result = pack.verify(trustedKeyIDs: trustSet, requireRoleBinding: requireRoleBinding)
+
+            // A certificate renders the verification for a non-engineer reader. It never changes
+            // the verdict: an invalid pack still exits non-zero, and still renders — a reader who
+            // was handed a failing pack needs to see *why* in the same language as a passing one.
+            if let format = certificate {
+                let rendered: String
+                switch format {
+                case .text:
+                    rendered = ProofPackCertificate.plainText(
+                        result, pack: pack, issuedAt: Date(), toolVersion: DProvenanceKitVersion.current
+                    )
+                case .html:
+                    rendered = ProofPackCertificate.html(
+                        result, pack: pack, issuedAt: Date(), toolVersion: DProvenanceKitVersion.current
+                    )
+                }
+                if let outPath {
+                    try rendered.write(to: URL(fileURLWithPath: outPath), atomically: true, encoding: .utf8)
+                    printErr("Certificate written to \(outPath)")
+                } else {
+                    print(rendered, terminator: "")
+                }
+                exit(result.isValid ? 0 : 1)
+            }
+
             guard result.isValid else {
                 printErr("INVALID: \(result.failure.map(String.init(describing:)) ?? "unknown failure")")
                 if let attestation = result.attestation {

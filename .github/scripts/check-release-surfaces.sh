@@ -99,6 +99,13 @@ check_surfaces() {
   }
 
   package_url='https://github.com/Therealdk8890/DProvenanceKit'
+  # The library's own version string. It is stamped into every verification certificate, so a
+  # stale value would misattribute which tool produced a piece of evidence.
+  check_surface \
+    Sources/DProvenanceKit/Version.swift \
+    "library version constant" \
+    'public static let current = "' \
+    "= \"$release_version\""
   check_surface \
     README.md \
     "README install version" \
