@@ -308,8 +308,10 @@ public enum ProofPackVerifier {
         // Payloads were already structurally validated by attestation verification; a payload
         // that fails to parse here simply binds nothing (fail-closed).
         let payloads: [Any?] = pack.attestation.trace.events.map { event in
-            guard let data = event.payloadJSON.data(using: .utf8) else { return nil }
-            return try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+            guard let data = event.payloadJSON.data(using: .utf8),
+                  let parsed = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+            else { return nil }
+            return unwrappingErasedPayload(parsed)
         }
 
         var bindings: [ProofPackArtifactBinding] = []
@@ -377,6 +379,37 @@ public enum ProofPackVerifier {
     /// the check on `role`/`sha256` is what actually makes the role signer-vouched — and
     /// requiring both in the same object stops splicing one artifact's digest onto another's
     /// role from elsewhere in the same signed trace.
+    /// Unwraps a payload recorded through `AnyTraceableEvent`, whose `Codable` carries the
+    /// domain payload as a JSON *string* under `rawJSON` — so such an event encodes as
+    /// `{"priorityValue":…,"rawJSON":"{…}","typeIdentifier":…}`.
+    ///
+    /// The binding search walks parsed objects, so without this a `role`/`sha256` pair inside
+    /// `rawJSON` is unreachable and *every* artifact in such a trace is unbindable. That made
+    /// DProvenanceKit's own erasure type silently defeat DProvenanceKit's own proof packs: a
+    /// consumer recording through `AnyTraceableEvent` could sign a perfectly good trace and
+    /// still only ever get `artifactNotBound`.
+    ///
+    /// Only this exact shape is unwrapped — three keys, `typeIdentifier` and `rawJSON` both
+    /// strings. Arbitrary strings that merely happen to parse as JSON are deliberately left
+    /// opaque: a payload that echoes user-controlled text must never become binding material,
+    /// or an application that logs an attacker-supplied string could have a role/digest pair
+    /// signed into its trace without ever intending to vouch for it.
+    ///
+    /// Unwrapping only ever reaches *signed* bytes, so nothing outside the signature's
+    /// coverage becomes bindable. Relabelling still fails: the pack's `role` must match the
+    /// one recorded inside `rawJSON`.
+    private static func unwrappingErasedPayload(_ value: Any) -> Any {
+        guard let object = value as? [String: Any],
+              object.count == 3,
+              object["priorityValue"] != nil,
+              object["typeIdentifier"] is String,
+              let raw = object["rawJSON"] as? String,
+              let data = raw.data(using: .utf8),
+              let inner = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+        else { return value }
+        return inner
+    }
+
     private static func containsRoleBinding(_ value: Any, sha256: String, role: String) -> Bool {
         switch value {
         case let object as [String: Any]:
