@@ -35,35 +35,50 @@ rewrite, an undefined transformation project, or guaranteed detection of every A
 
 ## What is included
 
-### Integration review
+The pilot owes six deliverables.
 
-The review examines the selected workflow's current observable execution path and
-instrumentation. Depending on the accepted scope, it may cover:
+### 1. Instrumentation review
+
+A written assessment of the workflow's current observable execution path and instrumentation.
+Depending on the accepted scope, it may cover:
 
 - event vocabulary and priority choices
 - trace coverage around the agreed failure risk
 - one representative run and one synthetic or redacted failure scenario
 - where evidence is missing, ambiguous, or too weak to support a reliable gate
+- which steps' disappearance should page someone
 
-The review is an assessment. Implementing a CI gate, anomaly rules, or application changes is
-not included unless it is quoted as separate follow-on work.
+### 2. Golden baseline
 
-### Reasoning assurance report
+A validated reference run, committed to your repository, that future runs are compared
+against.
 
-The single written report documents:
+### 3. Three to five governance policies
 
-- what workflow and risk were reviewed
-- what observable evidence is currently captured
-- material gaps and limitations
-- a recommended next gate or implementation step
-- whether to continue internally, request a new scoped engagement, or stop
+Authored for your workflow — structural divergence, required steps, claim support, allowed
+models, or others agreed at kickoff — delivered as a ruleset with written rationale per rule.
+
+### 4. CI deployment gate
+
+A GitHub Actions or GitLab CI configuration that fails a pull request when reasoning regresses
+against the baseline, and comments the diff explaining what changed.
+
+### 5. Audit and provenance report
+
+What the baseline established, which policies apply, what they would have caught, remaining
+evidence gaps and limitations, and how to present that to an auditor or a customer.
 
 The report does not certify correctness or compliance. It makes the current evidence boundary
-explicit so the buyer can make a better next decision.
+explicit so you can make a better next decision.
+
+### 6. Two calls
+
+Kickoff and handover, plus written async support throughout, answered within two business
+days.
 
 ## What is not included
 
-- implementation of a CI regression gate or anomaly rules
+- code written or debugged inside your repository, or a broad application rewrite
 - hosted infrastructure, a managed dashboard, or a team SaaS product
 - multiple workflows or open-ended custom development
 - legal advice or review of legal conclusions

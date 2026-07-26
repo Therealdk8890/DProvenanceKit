@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DProvenanceKit Reasoning Assurance Pilot</title>
-  <meta name="description" content="A $4,500 one-time, 30-day engagement for one AI workflow: one integration review and one written reasoning assurance report." />
+  <meta name="description" content="A $4,500 one-time, 30-day engagement for one AI workflow: instrumentation review, golden baseline, governance policies, a CI deployment gate, an audit and provenance report, and two calls." />
   <style>
     :root {
       color-scheme: dark light;
@@ -31,8 +31,8 @@
 <main>
   <div class="hero wrap">
     <span class="eyebrow">Fixed-scope paid service</span>
-    <h1>Review one AI workflow before its blind spots become incidents.</h1>
-    <p class="lead">A focused integration review and written reasoning assurance report for a workflow where a silent change creates real risk.</p>
+    <h1>Govern one AI workflow before its blind spots become incidents.</h1>
+    <p class="lead">A golden baseline, governance policies, and a CI gate that fails the build when reasoning regresses — for one workflow where a silent change creates real risk.</p>
     <div class="price">$4,500 one time</div>
     <div class="sub">30 days · one AI workflow · local-first</div>
     <div class="actions">
@@ -42,15 +42,19 @@
   </div>
 
   <section><div class="wrap">
-    <h2>Two defined deliverables</h2>
+    <h2>Six defined deliverables</h2>
     <div class="grid">
-      <div class="card"><h3>Integration review</h3><p class="muted">Review the selected workflow's observable execution path, trace coverage, and instrumentation around one agreed failure risk.</p></div>
-      <div class="card"><h3>Assurance report</h3><p class="muted">Receive one written report describing captured evidence, material gaps, limitations, and a recommended next gate or implementation step.</p></div>
+      <div class="card"><h3>Instrumentation review</h3><p class="muted">A written assessment of the workflow's trace coverage around one agreed failure risk, flagging where reasoning steps are not captured and which steps' disappearance should page someone.</p></div>
+      <div class="card"><h3>Golden baseline</h3><p class="muted">A validated reference run, committed to your repository, that future runs are compared against.</p></div>
+      <div class="card"><h3>Governance policies</h3><p class="muted">Three to five policies authored for your workflow, delivered as a ruleset with written rationale for each rule.</p></div>
+      <div class="card"><h3>CI deployment gate</h3><p class="muted">A GitHub Actions or GitLab CI configuration that fails a pull request when reasoning regresses against the baseline, and comments the diff explaining what changed.</p></div>
+      <div class="card"><h3>Audit and provenance report</h3><p class="muted">What the baseline established, which policies apply, what they would have caught, and how to present that to an auditor or a customer.</p></div>
+      <div class="card"><h3>Two calls</h3><p class="muted">Kickoff and handover, plus written async support throughout, answered within two business days.</p></div>
     </div>
   </div></section>
 
   <section><div class="wrap">
-    <h2>What the review can examine</h2>
+    <h2>What the instrumentation review examines</h2>
     <div class="grid">
       <div class="card"><h3>Workflow evidence</h3><p class="muted">One representative run and one synthetic or redacted failure scenario for the selected workflow.</p></div>
       <div class="card"><h3>Trace vocabulary</h3><p class="muted">Whether the current events and priorities make the important execution steps visible.</p></div>
@@ -64,16 +68,16 @@
     <div class="grid timeline">
       <div class="card step"><h3>Request</h3><p class="muted">Submit a synthetic or redacted description of one workflow and its failure risk.</p></div>
       <div class="card step"><h3>Accept</h3><p class="muted">Confirm the written scope, review emphasis, and kickoff timing.</p></div>
-      <div class="card step"><h3>Pay</h3><p class="muted">Use secure checkout or an invoice only after both sides accept the scope and timing.</p></div>
-      <div class="card step"><h3>Review</h3><p class="muted">The 30-day engagement begins on the agreed kickoff date after payment.</p></div>
-      <div class="card step"><h3>Report</h3><p class="muted">Receive the integration findings and one written reasoning assurance report.</p></div>
+      <div class="card step"><h3>Invoice</h3><p class="muted">An invoice is issued only after both sides accept the scope and timing — 50% on signature, 50% on delivery, net 15. There is no self-serve checkout at this scope.</p></div>
+      <div class="card step"><h3>Kickoff</h3><p class="muted">The 30-day engagement begins on the agreed kickoff date after the first invoice.</p></div>
+      <div class="card step"><h3>Handover</h3><p class="muted">Receive the baseline, the policy ruleset, the CI gate, and the audit and provenance report.</p></div>
     </div>
   </div></section>
 
   <section><div class="wrap">
     <h2>Clear boundaries</h2>
-    <div class="notice"><strong>The pilot reviews evidence; it does not promise to implement a CI gate.</strong></div>
-    <p class="lead" style="margin-top:22px">It does not include hosted infrastructure, a managed dashboard, multiple workflows, open-ended custom development, legal advice, an SLA, indemnity, or compliance certification.</p>
+    <div class="notice"><strong>You run the software.</strong> Your engineer installs the SDK and instruments the workflow from the documented quickstart, typically two to six hours. The pilot supplies the governance expertise, the policies, and the audit record — not code written inside your repository.</div>
+    <p class="lead" style="margin-top:22px">It does not include code written or debugged in your repository, a broad application rewrite, hosted infrastructure, a managed dashboard, multiple workflows, on-call or incident support, legal advice, an SLA, indemnity, or compliance certification.</p>
     <p class="muted">DProvenanceKit evaluates observable, instrumented execution. It does not expose hidden chain-of-thought, guarantee factual correctness, or detect every possible AI failure. Keep secrets and confidential client data out of the public intake.</p>
   </div></section>
 
