@@ -68,10 +68,12 @@ After payment:
 2. Create or update the private fulfillment record; do not put confidential details in a
    public GitHub issue.
 3. Send the onboarding email from [SALES_PLAYBOOK.md](SALES_PLAYBOOK.md).
-4. Schedule the integration review.
+4. Schedule the kickoff call.
 5. Confirm the single workflow, success test, and 30-day boundary in writing.
 6. Ask for a synthetic or redacted good/bad example, not confidential client data.
-7. Complete the integration review and deliver one written reasoning assurance report.
+7. Deliver the six pilot deliverables: instrumentation review, golden baseline, three to five
+   governance policies, the CI deployment gate, the audit and provenance report, and the
+   kickoff and handover calls. See [PILOT.md](PILOT.md) for the authoritative scope.
 8. Record the closeout decision: continue internally, quote a new scope, or stop.
 
 ## Public link
