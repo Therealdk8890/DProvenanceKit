@@ -6,6 +6,25 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Proof packs now bind artifacts recorded through `AnyTraceableEvent`.** That type carries
+  its domain payload as a JSON *string* under `rawJSON`, so an event recorded through it
+  encodes as `{"priorityValue":…,"rawJSON":"{…}","typeIdentifier":…}`. The binding search
+  walks parsed objects, so a `role`/`sha256` pair inside that string was unreachable and
+  *every* artifact in such a trace failed with `artifactNotBound` — DProvenanceKit's own
+  erasure type silently defeated DProvenanceKit's own proof packs. Any consumer that ingests
+  an external trace (rather than recording typed events) hit this: a perfectly well-formed,
+  correctly signed trace could never produce a usable pack. The verifier now unwraps exactly
+  this shape before searching. Covered by `ProofPackErasedPayloadTests`.
+
+  Unwrapping is deliberately restricted to `AnyTraceableEvent`'s exact three-key shape rather
+  than "any string that parses as JSON": an application that echoes user-controlled text into
+  its trace must never thereby sign a role/digest pair it did not intend to vouch for. The
+  change only ever reaches bytes already covered by the signature, and it does not weaken v2
+  role binding — relabelling an artifact after signing, or substituting its bytes, still
+  fails. This makes strictly more packs verify and none fewer, so a pack that verified before
+  still verifies.
+
 ## [0.8.0] - 2026-07-25
 
 ### Added
