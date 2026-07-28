@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-07-28
+
 ### Fixed
 - **Proof packs now bind artifacts recorded through `AnyTraceableEvent`.** That type carries
   its domain payload as a JSON *string* under `rawJSON`, so an event recorded through it
