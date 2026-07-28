@@ -4,10 +4,30 @@ This is the lightweight process for selling the **$4,500 one-time, 30-day reason
 pilot**. DProvenanceKit's Apache-2.0 library remains free; the buyer pays for the defined
 integration and assurance work.
 
+The pilot is the way in. The recurring revenue is the **annual OEM / embed license** described
+under [Expansion](#expansion-pilot--annual-oem-license). Sell the pilot; plan for the license.
+
 ## Offer in one sentence
 
 DProvenanceKit helps a team prove when one AI workflow's reasoning changed, which steps
 supported an output, and whether a silent regression should block release.
+
+## Who this lands with
+
+The sharpest version of this sale is a vendor whose **enterprise customer's security team
+sends them a compliance questionnaire** asking, in effect: *how do we audit what your AI
+actually did, and prove it wasn't tampered with, without your model or our data leaving our
+environment?* When data legally cannot leave the device — PHI, attorney-client privilege,
+classification, data residency — a cloud logging or audit service cannot answer that question,
+and the vendor is stuck.
+
+Lead with that questionnaire. Do not lead with cryptography, and do not use the phrase "AI
+observability" — it is a commodity category and it invites a commodity comparison.
+
+Prospect qualification for that motion lives in
+[`go-to-market/oem-design-partner-kit.md`](../go-to-market/oem-design-partner-kit.md), which
+defines the three hard filters and the 60-day kill test. Qualify against those filters *before*
+pitching; a mis-qualified pitch burns the experiment's signal.
 
 ## Qualification questions
 
@@ -101,10 +121,16 @@ enough for the first integration pass.
 
 ## Outreach email
 
+Lead with the buyer's problem, not the library. The first sentence must contain a real detail
+about *their* product — something you could only know by looking at it. Never send with a
+bracketed placeholder still in the text.
+
+### Primary — regulated, on-device vendor (the questionnaire wedge)
+
 Subject:
 
 ```text
-Catch silent AI regressions before they reach clients
+on-device AI audit trail for <Company>'s <regulated> customers
 ```
 
 Body:
@@ -112,14 +138,49 @@ Body:
 ```text
 Hi <name>,
 
-I build DProvenanceKit, an open-source Swift library that records and diffs AI reasoning
-paths. It is useful when an output still looks fluent but the model silently skipped a
-critical step, changed its source path, or stopped calling a tool.
+You ship <specific AI feature> on-device in <Company> — which means when your enterprise
+customer's security team asks "how do we audit what your AI actually did, and prove it wasn't
+tampered with, without your model or our data leaving our environment?", a cloud logging
+service isn't an answer you can give them.
 
-I am offering a $4,500, 30-day Governed AI Deployment Pilot for one workflow. We review the integration,
-examine one agreed failure risk, and deliver a short assurance report covering the evidence
-gaps and recommended next gate. The workflow can stay local, and a synthetic or redacted
-example is enough to start.
+DProvenanceKit is an Apache-2.0 Swift library that turns each AI run into a signed,
+offline-verifiable record of the reasoning path — added, dropped, and reordered steps included
+— and can fail CI when a model or OS update silently changes behavior. It runs inside your
+process. Nothing leaves the device.
+
+I run a 30-day pilot that gets it embedded and produces the audit record, and I license the
+attestation to ship inside regulated products like yours. Worth 20 minutes to see whether your
+questionnaires are asking for exactly this?
+
+— Danny · github.com/Therealdk8890/DProvenanceKit
+```
+
+### Secondary — team running agents in or near production, not regulated
+
+Use only when the prospect fails the on-device filter but has a real silent-regression problem.
+These are outside the OEM experiment; do not let them consume the qualified-pitch budget.
+
+Subject:
+
+```text
+the agent regression your output tests pass
+```
+
+Body:
+
+```text
+Hi <name>,
+
+<specific detail about their agent or workflow>. The failure worth worrying about there is the
+one where a model or prompt change makes the agent quietly stop calling a tool — the answer
+still reads fine, the output assertions still pass, and it surfaces in production.
+
+DProvenanceKit records the execution path itself and fails CI when the structure changes: a
+tool dropped, a step reordered, a source path changed. Open source, runs entirely in your own
+runner, no data leaves.
+
+I run a $4,500, 30-day pilot on one workflow: golden baseline, three to five governance
+policies, a CI gate, and an audit report. A synthetic or redacted example is enough to start.
 
 Would a 20-minute fit call be useful?
 ```
@@ -153,6 +214,43 @@ use the code. Implementing a recommended gate is separately scoped follow-on wor
 No. The pilot reviews trace evidence against an agreed failure risk. It does not replace
 domain review, legal judgment, security review, or compliance certification.
 
+**"Our reviewer already accepts our cloud audit log."**
+
+Then they may not need this, and it is worth finding that out in the first ten minutes rather
+than the third call. The distinction that matters is whether their reviewer needs the record to
+be *verifiable by someone who does not trust the service that produced it* — a signed artifact
+that checks out offline, against the exact bytes it describes — or whether an attested log from
+a trusted vendor is sufficient. If it is sufficient, say so and disqualify.
+
+**Log every instance of this answer.** It is the single most important signal in the pipeline:
+if it recurs, the honest conclusion is that this is a feature rather than a business, and the
+[kill test](../go-to-market/oem-design-partner-kit.md) has done its job.
+
+## Expansion: pilot → annual OEM license
+
+The pilot is a $4,500 one-time engagement. It does not, by itself, constitute a business. The
+recurring line is an **annual OEM / embed license**: the right to ship DProvenanceKit's
+attestation and role-bound proof pack inside the customer's own regulated product — on-prem,
+air-gapped, or private build — together with a support retainer. Low five figures, scaled by
+seats or deployments, priced per engagement, no public self-serve tier.
+
+**When to raise it:** at handover, not at intake. The audit report is the proof; the license
+conversation is what the proof earns. Raising it during the pilot sale adds a procurement
+question to a decision that is currently small enough to be made by one person.
+
+**The trigger to listen for:** the customer asks some version of *"can we give this artifact to
+our customer / our auditor / our regulator?"* That is the moment the pilot deliverable stops
+being an internal engineering artifact and starts being part of their product. Answer it with
+the license.
+
+**The boundary that must hold.** Everything in this repository is Apache 2.0, which already
+permits commercial use, embedding, modification, and distribution subject to its terms. The
+license does **not** sell permission to use public code the customer already has. It can only
+cover a genuinely separate proprietary component, scoped, licensed, and delivered outside this
+repository — or the support, assurance, and update commitments that surround the embed. No such
+proprietary component exists today. Until one does, sell the retainer and the assurance work,
+and say plainly that the library itself is free. See [COMMERCIAL.md](../COMMERCIAL.md).
+
 ## Close
 
 Ask for one of three decisions:
@@ -162,3 +260,7 @@ Ask for one of three decisions:
 - Request a written quote for a narrowly scoped integration, assurance, or training
   engagement.
 - Decide the workflow is not a fit and stop.
+
+At pilot handover, ask for a fourth: whether the attestation should ship inside their product
+under an annual license. If the answer is no, ask what would have to be true for it to be yes,
+and record the answer — that is the roadmap.
