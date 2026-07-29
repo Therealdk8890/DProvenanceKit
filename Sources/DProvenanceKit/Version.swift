@@ -6,5 +6,5 @@
 /// `.github/scripts/check-release-surfaces.sh` holds it to the newest released heading in
 /// CHANGELOG.md — cutting a release without updating it fails CI.
 public enum DProvenanceKitVersion {
-    public static let current = "0.8.0"
+    public static let current = "0.8.1"
 }
