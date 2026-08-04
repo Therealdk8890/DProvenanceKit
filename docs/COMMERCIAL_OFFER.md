@@ -126,7 +126,7 @@ the review standard.
 ## 30-day sales sprint
 
 1. Identify 25 qualified teams with one visible legal, regulated, or on-device AI workflow.
-2. Ask for a 20-minute fit call, using the message in [SALES_PLAYBOOK.md](SALES_PLAYBOOK.md).
+2. Ask for a 20-minute fit call, using the message in the internal sales playbook.
 3. Target 10 calls and two paid pilots.
 4. Keep the scope to one workflow and collect a redacted good/bad example before kickoff.
 5. Turn each completed pilot into a buyer-approved case study or private reference when

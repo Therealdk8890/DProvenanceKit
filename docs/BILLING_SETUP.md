@@ -67,7 +67,7 @@ After payment:
 1. Confirm the customer, organization, and preferred contact.
 2. Create or update the private fulfillment record; do not put confidential details in a
    public GitHub issue.
-3. Send the onboarding email from [SALES_PLAYBOOK.md](SALES_PLAYBOOK.md).
+3. Send the onboarding email from the internal sales playbook.
 4. Schedule the kickoff call.
 5. Confirm the single workflow, success test, and 30-day boundary in writing.
 6. Ask for a synthetic or redacted good/bad example, not confidential client data.
