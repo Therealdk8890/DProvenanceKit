@@ -24,6 +24,9 @@ on:
     - cron: "0 14 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   vector-drift:
     name: Vendored vectors match canonical Python source
