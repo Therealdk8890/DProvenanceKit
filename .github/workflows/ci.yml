@@ -55,7 +55,17 @@ jobs:
         continue-on-error: true
         run: |
           BIN=$(swift build --show-bin-path)
-          XCTEST=$(ls -d "$BIN"/*.xctest | head -1)
+          XCTEST=""
+          for candidate in "$BIN"/*.xctest; do
+            if [ -d "$candidate" ]; then
+              XCTEST="$candidate"
+              break
+            fi
+          done
+          if [ -z "$XCTEST" ]; then
+            echo "No .xctest bundle found under $BIN"
+            exit 1
+          fi
           MACHO="$XCTEST/Contents/MacOS/$(basename "$XCTEST" .xctest)"
           PROF="$BIN/codecov/default.profdata"
           echo "coverage inputs: bundle=$XCTEST profdata=$PROF"
