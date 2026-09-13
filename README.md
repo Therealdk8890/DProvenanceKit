@@ -286,12 +286,9 @@ GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
 
 ## Why This Exists
 
-AI systems make decisions that affect real people. Regulators want to see the reasoning. Cloud-based observability platforms aren't designed for that.
+AI systems make decisions that affect real people. Regulators want to see the reasoning. Cloud-basedi observability platforms aren't designed for that.
 
 DProvenanceKit is built for teams that care about:
 - **Privacy:** Data stays local
 - **Auditability:** Reasoning is provable and verifiable
-- **Liability:** Proof that the decision was sound
-- **Compliance:** Evidence that regulators will accept
-
-If your AI makes healthcare, financial, legal, or insurance decisions, you need this.
+- **Liability:** Proof that the decision 
