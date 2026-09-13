@@ -15,7 +15,7 @@ Doctor: “What evidence supported this recommendation?”
 Lawyer: “What sources supported this argument?”
 Auditor: “Can you prove this record wasn’t changed?”
 
-Traditional APM and AI observability platforms are designed primarily for debugging and operational visibility. They can show what happened, but they aren’t designed to provide an independently verifiable record of decision provenance.
+Traditional APM and AI observability platforms are built primarily for debugging and operational visibility. They can show what happened, but they aren’t designed to provide an independently verifiable record of decision provenance.
 
 DProvenanceKit provides the infrastructure to record, compare, sign, and independently verify AI decision artifacts.
 
@@ -84,8 +84,6 @@ Cryptographic signing establishes integrity and authenticity of the signed artif
 
 It does not, by itself, prove that an AI’s reasoning was correct, unbiased, complete, or legally compliant.
 
-That distinction is important.
-
 DProvenanceKit provides the evidence infrastructure. Your organization’s validation, governance, policies, and domain-specific controls determine whether the underlying decision was acceptable.
 
 ⸻
@@ -143,10 +141,7 @@ pip install dprovenancekit
 Swift Package Manager:
 
 dependencies: [
-    .package(
-        url: "https://github.com/Therealdk8890/DProvenanceKit",
-        from: "0.8.1"
-    )
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")
 ]
 
 You instrument your AI workflow, establish baselines, and define your own governance policies.
@@ -171,9 +166,7 @@ Does not include:
 * Code in your repository
 * Ongoing support
 
-Typical scope:
-
-One AI workflow in healthcare, finance, legal, insurance, or another regulated environment.
+Typical scope: One AI workflow in healthcare, finance, legal, insurance, or another regulated environment.
 
 Timeline: 30 days.
 
