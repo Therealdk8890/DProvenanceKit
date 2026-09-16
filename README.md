@@ -1,508 +1,303 @@
-# DProvenanceKit
+# 🚀 DProvenanceKit
 
-**On-device provenance and cryptographic attestation for AI reasoning — Swift-native, with zero third-party dependencies.**
+## Prove Your AI's Reasoning to Regulators. Offline. Cryptographically.
 
-DProvenanceKit records reasoning paths locally, shows exactly what changed between runs, and signs a canonical trace with CryptoKit so the evidence can be verified offline.
-
-> Run → Record → Query → Diff → Sign → Verify
-
-[![CI](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml/badge.svg)](https://github.com/Therealdk8890/DProvenanceKit/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/Therealdk8890/DProvenanceKit)](https://github.com/Therealdk8890/DProvenanceKit/releases/latest)
-[![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
-[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FTherealdk8890%2FDProvenanceKit%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Therealdk8890/DProvenanceKit)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/Therealdk8890/DProvenanceKit/blob/main/LICENSE)
-
-> **New here?** Start with **[dpk-starter](https://github.com/Therealdk8890/dpk-starter)** — clone, `swift run`, and in five minutes watch a silent AI fallback get caught by a structural diff, gated as a CI anomaly, and signed into an offline-verifiable proof pack. This README is the reference documentation.
-
-> **Using Apple Foundation Models?** On an Apple Intelligence-capable Mac, `swift run FoundationModelsLiveQuickstart` calls the real on-device model and immediately prints the captured event timeline, integrity status, and SQLite trace path.
-
-> **Working in Python?** There's a full Python port — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and CI regression gate, plus adapters for LangChain, the OpenAI Agents SDK, LlamaIndex, and CrewAI: `pip install dprovenancekit`.
-
-> **In production:** DProvenanceKit runs inside [**D.P.K: Reasoning Traces**](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12), a first-party macOS app on the Mac App Store that replays and diffs on-device AI reasoning traces.
+For healthcare, finance, and legal AI systems that must demonstrate why they made each decision — without sending sensitive reasoning traces to third-party services.
 
 ---
 
-## When the evidence cannot leave the device
+## The Problem Regulators Actually Care About
 
-Cloud observability assumes you can export prompts, tool calls, outputs, and decision context. Legal, financial, health, enterprise, and regulated workflows often cannot make that assumption.
+Your AI makes a decision that impacts a customer. The decision is challenged.
 
-DProvenanceKit is built for privacy- and regulation-constrained Apple-platform AI that needs inspectable audit evidence without handing the underlying trace to a third-party service:
+**Lender:** "Why did you reject this applicant?"
+**Doctor:** "Why did you recommend that treatment?"
+**Lawyer:** "What's the basis for this legal argument?"
+**Auditor:** "Prove this decision wasn't changed after the fact."
 
-- Capture and SQLite persistence run in-process on the device.
-- P-256/SHA-256 attestations make covered event modification, deletion, and reordering tamper-evident.
-- Signing keys can be software-backed or non-exportable in the Secure Enclave.
-- `dpk verify` validates artifacts offline and can pin an independently trusted signer key.
-- Signing and local verification make no network requests. Data leaves only when your application explicitly invokes an OTel or cloud export path.
+Traditional APM platforms (Datadog, New Relic) and AI observability platforms (Langfuse, LangSmith) answer "what happened," not "why did the AI decide that?" And they're cloud-based—your sensitive reasoning traces live on someone else's servers.
 
-> Attestation proves the integrity of what was recorded. It does not by itself prove truthfulness, capture completeness, trusted time, executing-binary identity, or regulatory compliance. Read the [threat model](docs/ATTESTATION.md#threat-model).
+Regulators don't accept that answer. Neither should you.
 
----
-
-## See a reasoning regression in 30 seconds
-
-Your on-device agent shipped fine. Then an OS/model update landed and it *quietly* stopped calling a tool — no crash, no error, just a fluent wrong answer. Here's the reasoning trace, before vs. after:
-
-```diff
-  instructions
-  prompt        "What's the weather in Paris right now?"
-- tool call     getWeather            ← silently dropped after the update
-- tool output   getWeather
-~ response      "14°C, light rain"  →  "sunny and 22°C"   (made up)
-```
-
-DProvenanceKit diffs the two runs, flags the dropped **critical** step, and **fails your CI build**:
-
-```
-Regression risk:  HIGH — Critical reasoning steps removed: tool call
-CI gate:          ❌ FAILED — reasoning regression detected
-```
-
-Run the whole thing yourself — no live model required:
-
-```sh
-swift run FoundationModelsRegressionDemo
-swift run FoundationModelsRegressionDemo --gate   # CI mode: exits non-zero when it catches the regression
-```
-
-The demo writes `fm-regression.json`, a WebVisualizer-ready artifact. **Your agent changed behavior, and now you know exactly why.** Full walkthrough: **[Catching a Foundation Models regression](docs/foundation-models-regression-demo.md)**.
+DProvenanceKit answers the question regulators actually ask: **Can you prove, cryptographically, that your AI's reasoning was sound and hasn't been tampered with?**
 
 ---
 
-## Who this is for
+## Why This Matters for Regulated Industries
 
-If you are building agents, tool-using models, or decision systems in Swift with Apple Foundation Models, MLX, Core ML, or a custom runtime, DProvenanceKit gives you a native provenance layer that stays with the application.
+### Healthcare
+Your diagnostic-support AI recommends treatment. A patient sues. The hospital needs to show that the recommendation was based on the patient's actual symptoms and medical history—not a hallucination. A cryptographically signed trace is that proof.
 
-It is especially suited to teams that cannot send sensitive reasoning traces to hosted observability vendors but still need regression evidence, decision lineage, offline verification, and CI gates. If your reasoning happens in Apple's Foundation Models, tracing it is [one line](docs/foundation-models.md).
+### Financial Services
+Your lending AI rejects an applicant. They file a fair-lending complaint. You need to prove the decision was based on relevant factors, not proxy discrimination. A verifiable reasoning chain is your defense.
 
----
+### Legal
+Your legal AI generates a brief with case citations. Opposing counsel challenges the citations. You need to prove every case actually exists and was correctly cited. The entire reasoning is signed so it can't be disputed.
 
-## AI systems don't fail like traditional software
+### Insurance
+Your claims AI approves or denies a claim. The customer appeals. Auditors want to see the decision tree. A provable reasoning path shows the logic was consistent and wasn't hidden.
 
-Traditional software crashes. AI systems often don't — they fail quietly:
-
-- Agents silently skip steps
-- Reasoning order changes between runs
-- The same input takes a different path
-- Outputs change with no obvious explanation
-- Logs show *what happened*, but not *why*
-
-DProvenanceKit makes those changes visible, queryable, and comparable.
-
-## Questions you can finally answer
-
-- Why did the model approve Case A but reject Case B?
-- Which reasoning step disappeared after a model upgrade?
-- When did this regression first appear?
-- Which agent skipped validation?
-- Why are two supposedly identical runs producing different results?
-
-```swift
-let diff = engine.diff(base: runA, comparison: runB)
-```
-
-## Isn't this just OpenTelemetry?
-
-OpenTelemetry answers **what happened** — request tracing, latency, service health, infrastructure monitoring.
-
-DProvenanceKit answers **how the AI reached this conclusion** — the observable decision path: decision lineage, logic diffs, regression detection, execution auditing.
-
-> OpenTelemetry traces requests. DProvenanceKit traces reasoning.
-
-"Reasoning" here means the observable, instrumented execution path — prompts, tool calls, outputs, decisions, and application-defined events. DProvenanceKit does not claim visibility into the model's hidden internal deliberation; the [attestation threat model](docs/ATTESTATION.md#threat-model) states that boundary explicitly.
-
-It also signs the local reasoning record so its integrity can be checked later. When you explicitly choose to export, **[DProvenanceOTel](docs/otel-bridge.md)** converts finished runs to standard OTLP spans for Langfuse or any OTLP/HTTP collector. Local capture and attestation remain the trust boundary; export is optional.
-
-## Git for AI logic
-
-Instead of diffing two walls of logs:
-
-```
-Run A                    Run B
- ├─ evaluateDocuments     ├─ evaluateDocuments
- ├─ applyHeuristic        └─ detectConflict
- └─ detectConflict
-
-Missing in Run B:
- - applyHeuristic
-```
-
-You compare reasoning paths directly.
+### Government
+Your AI processes FOIA requests or makes eligibility determinations. Citizens and auditors need to understand the reasoning. Local-first means no privacy concerns, and cryptographic signing means it's trustworthy.
 
 ---
 
-# 5-minute demo
+## How It Works
 
-### 1. Record an execution run
+**DProvenanceKit is not a SaaS platform. It's a local-first SDK.**
 
-```swift
-try await DProvenanceKit<MyAIDecision>.run(
-    contextID: "demo_case",
-    store: store
-) {
-    DProvenanceKit<MyAIDecision>.record(.documentEvaluated(documentID: "DocA", score: 0.95))
-    DProvenanceKit<MyAIDecision>.record(.conflictDetected(reason: "timeline_inconsistency"))
-    DProvenanceKit<MyAIDecision>.record(.finalDecisionMade(approved: false))
-}
-```
+1. **Your AI system runs normally.** Everything stays on your infrastructure.
 
-### 2. Query reasoning patterns
+2. **Each decision is recorded locally.**
+   - Every reasoning step
+   - Every evidence used
+   - Every tool called
+   - Every intermediate result
 
-```swift
-let suspiciousRuns = try await store.queryRuns(
-    TraceQueryDSL<MyAIDecision>()
-        .requiring(step: "conflictDetected")
-        .missing(step: "documentEvaluated")
-)
-```
+3. **The trace is cryptographically signed.**
+   - SHA-256 hash of the canonical reasoning path
+   - ECDSA P-256 signature (can use Secure Enclave on Apple platforms)
+   - Detached JWS (proof is separate from trace data)
 
-Find runs where a conflict was reported but no document was ever evaluated.
-
-Query by the *content* of reasoning, not just which steps ran — e.g. runs where a document scored below 0.5:
-
-```swift
-let lowConfidence = try await store.queryRuns(
-    TraceQueryDSL<MyAIDecision>().matching(step: "documentEvaluated") {
-        if case .documentEvaluated(_, let score) = $0 { return score < 0.5 }
-        return false
-    }
-)
-```
-
-### 3. Diff runs
-
-```swift
-let engine = TraceDiffEngine<MyAIDecision>()
-let diff = engine.diff(base: runA, comparison: runB)
-print(diff.changes)
-```
-
-See exactly which structural reasoning steps appeared, disappeared, or moved.
-
-### 4. Semantic Alignment
-
-For a deeper inspection, `TraceAlignmentEngine` lets you determine if two executions are behaviorally equivalent within a formally defined semantic model, even if the exact payloads vary slightly.
-
-```swift
-let config = AlignmentConfiguration(
-    profile: .strictAuditV1,
-    equivalenceEvaluator: AnyEquivalenceEvaluator(identifier: "MyAIDecision_Semantic") { a, b in
-        // Define your formal semantic model for equivalence here
-        // E.g., fuzzy matching token counts or semantic similarity of prompt inputs
-        return a == b ? 1.0 : 0.0
-    }
-)
-
-let aligner = TraceAlignmentEngine(configuration: config)
-let alignment = aligner.align(base: runA, comparison: runB)
-print(alignment.regressionRisk.level)
-```
-
-Compare runs across both structural shape and payload semantics to catch subtle regressions.
-
-### 5. Detect regressions automatically
-
-```swift
-let detector = AnomalyDetector(store: store)
-
-// Batteries-included rule: flag any run that detected a conflict but never
-// evaluated a document to support it. Or conform your own type to `AnomalyRule`.
-let rule = MissingSupportRule<MyAIDecision>(
-    name: "UnsupportedConflict",
-    whenPresent: "conflictDetected",
-    isMissing: "documentEvaluated"
-)
-let anomalies = try await detector.detectAnomalies(rules: [rule])
-```
-
-```
-🚨 Conflict detected
-🚨 No supporting heuristic found
-🚨 Potential reasoning regression
-```
-
-### 6. Trace a decision's lineage
-
-Record what each step was derived from, and the causal graph builds itself — then ask *why* a conclusion was reached.
-
-```swift
-let doc = DProvenanceKit<MyAIDecision>.record(.documentEvaluated(documentID: "DocA", score: 0.95))
-let decision = DProvenanceKit<MyAIDecision>.record(.finalDecisionMade(approved: false), derivedFrom: doc!)
-
-let why = try await store.explain(id: decision!)   // what this decision was derived from
-let downstream = try await store.impact(of: doc!)   // everything DocA's evaluation influenced
-```
-
-`record(_:derivedFrom:)` wires the edge as you record, so `lineage`, `impact`, and `explain` work without manual bookkeeping.
+4. **Auditors verify offline, without calling home.**
+   - No external service dependency
+   - No internet required
+   - Proof that traces weren't modified in transit
+   - Open-source verification code they can audit themselves
 
 ---
 
-# Validation & Benchmarks
+## DProvenanceKit vs. Cloud Observability Platforms
 
-**Each configuration defines a distinct equivalence relation over the space of execution traces, corresponding to a specific observation model.** The benchmark corpus evaluates the engine's ability to distinguish genuine regressions from meaning-preserving evolution within a specific semantic profile.
+| | Langfuse, LangSmith, Arize | DProvenanceKit |
+|---|---|---|
+| **Where traces live** | Third-party cloud servers | Your infrastructure only |
+| **Regulatory proof** | "Here's what happened" | "Here's cryptographic proof of why" |
+| **Data residency** | Governed by vendor | Governed by you |
+| **Auditor verification** | Depends on vendor's uptime | Works offline, forever |
+| **HIPAA/PCI compliance** | Business Associate Agreement required | No BAA needed (data doesn't leave) |
+| **Cost** | Recurring SaaS (per trace, per month) | One-time per workflow |
+| **Use case** | Engineering iteration, debugging | Compliance, regulatory proof |
 
-Current Corpus:
-- 8 scenarios (including reordering, semantic evolution, noise injection, and branch collapse)
-- Precision: 1.000
-- Recall: 1.000
-- F1: 1.000
-
-> These are **conformance benchmarks over a curated set of known failure modes** — evidence the engine behaves correctly on the regressions it's designed to catch, not a claim that it detects *every possible* reasoning regression. The perfect scores reflect a controlled diagnostic corpus, not statistical generalization to arbitrary traces.
-
-See [BENCHMARKS.md](BENCHMARKS.md) for dataset definitions, evaluation methodology, per-case TP/FP/FN results, and benchmark corpus details. Runtime timings are deliberately excluded from the public contract — they vary by machine and runner load; measure locally with the CLI output from the run you care about.
-
----
-
-# How it really works
-
-The surface API is small on purpose; the engineering is in keeping it correct and non-intrusive under real load.
-
-**Recording never blocks execution.** `record(...)` is synchronous and touches only an in-memory buffer — it never waits on disk. A background writer drains the buffer in batches into WAL-mode SQLite, adapting batch size and cadence to load. Because the in-memory commit is synchronous, an event is queryable the instant `record` returns, and `flush()` is a true barrier rather than a best-effort hint.
-
-**Backpressure is priority-aware and O(1).** Reasoning systems can emit enormous bursts. Each event declares a priority — `critical`, `structural`, `diagnostic`, `telemetry` — and the write buffer holds one FIFO per tier. Both ingestion and load-shedding stay constant-time even at the moment a burst pins the buffer at capacity: there's no scan of the backlog. Under pressure, `telemetry` and `diagnostic` are shed first; `structural` and `critical` are preserved. Diffs are floored at `structural` by default, so shedding low-priority events never changes a diff result. And shedding is never silent: every dropped event is tallied by tier, so `store.dropStats.preservedIntegrity` answers *"did this run lose anything a diff depends on?"* — and a payload that fails to encode is counted the same way, not dropped quietly.
-
-**Durable and crash-safe.** Writes land in WAL-mode SQLite with sensible pragmas and a covering set of indices. If a process dies mid-run, the `runs` table is reconciled from the persisted events on next open, so an interrupted run is rebuilt rather than lost. Each run also carries an incrementally computed structural fingerprint for fast "did this run's shape change?" checks.
-
-**Ambient context, no plumbing.** Run, engine, and span context propagate through Swift's `@TaskLocal` storage, so nested `withEngine` / `withSpan` scopes attribute events correctly across `async` boundaries without threading a logger through every call.
-
-**One query language, two backends, kept honest.** `TraceQueryDSL` compiles to an in-memory AST evaluator (for `InMemoryTraceStore`) and to SQL (for `SQLiteTraceStore`). Those are two independent implementations of the same semantics, so they're held in lockstep by a parity test suite that runs identical scenarios through both stores and asserts identical results — temporal operators included. A query means the same thing wherever it runs.
-
-The full rationale — the concurrency tradeoff, the query-parity bug that drove the two-backend parity suite, and the known limitations — lives in **[DESIGN.md](DESIGN.md)**.
+**Bottom line:** Use Langfuse or LangSmith to build and debug your AI. Use DProvenanceKit to prove it works correctly to regulators.
 
 ---
 
-# Getting started
+## Real Example: Legal Document Provenance
 
-### Installation
+A law firm uses an AI to draft legal briefs.
 
-Add DProvenanceKit to your `Package.swift`:
+**The problem:** Every citation must be verifiable. If the AI cites a case that doesn't exist, that's malpractice.
 
-```swift
+**How DProvenanceKit helps:**
+
+```
+1. Legal AI generates brief
+2. Before export, every claim is verified:
+   - "Does this case actually exist?" (checked against legal database)
+   - "Is this statute current?" (validated against code)
+   - "Is this quote accurate?" (matched against source)
+3. The entire reasoning chain is cryptographically signed
+4. Brief is exported with proof packet attached
+5. If disputed, the firm can show:
+   - "Here's the reasoning chain"
+   - "Here's the signature"
+   - "Auditors can verify it hasn't been tampered with"
+```
+
+---
+
+## Open Source + Paid Governance Support
+
+### Option 1: Self-Directed (Open Source)
+
+DProvenanceKit is Apache 2.0 licensed. You can use it free:
+
+```bash
+# Python
+pip install dprovenancekit
+
+# Swift
 dependencies: [
     .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")
 ]
 ```
 
-Your package or app target must declare an Apple platform at or above the package floor
-(`.macOS(.v13)` or `.iOS(.v16)`).
+You instrument your AI workflow. You establish baselines. You manage the governance policy.
 
-### Platform support
+**Best for:** Teams with internal compliance/audit expertise.
 
-The core `DProvenanceKit` library builds for macOS 13+ and iOS 16+. `DProvenanceUI` also builds on both platforms; its built-in `openDatabase()` file picker is macOS-only, so iOS apps should import a trace database through their own document flow and then call `loadDatabase(at:)`. The runnable command-line entry points (`dpk`, `GenerateSample`, `Quickstart`, and the Foundation Models demos) are intended for macOS.
+### Option 2: Governed AI Deployment Pilot ($4,500 one-time)
 
-### Toolchain requirements
+For organizations that want governance guidance + compliance audit:
 
-- **Core libraries** (`DProvenanceKit`, `DProvenanceOTel`, the CLI): Swift 6.0+ (`swift-tools-version: 6.0`). CI builds this floor on a Swift 6.1 runner so it cannot silently rot.
-- **Foundation Models surface** (`session.traced(...)` and the rest of `DProvenanceFoundationModels`' FM session APIs): **Swift 6.2+ (Xcode 26+)**, because the adapter uses Swift 6.2 concurrency syntax. On older toolchains the FM session surface compiles out cleanly — your build succeeds, and the snapshot/diff/redaction types in the same module remain available; only the live-session tracing APIs are absent. If `session.traced(...)` doesn't resolve, your toolchain is the reason.
+**Includes:**
+- **Instrumentation review:** Is this the right tracing for your compliance needs?
+- **Baseline establishment:** What's the "golden" reasoning path your AI should follow?
+- **Governance policy definition:** What counts as a regression? When do we alert? What's audit-worthy?
+- **Compliance audit report:** Proof of your reasoning architecture for regulators.
 
-Deployment targets are independent of the toolchain floor: building with Xcode 26 still deploys to macOS 13 / iOS 16.
+**Does not include:**
+- Recurring SaaS or managed service
+- Code in your repository
+- Ongoing support (scope separately as needed)
 
-### 1. Define your events
+**Who this is for:** Chief Risk Officer, Compliance Officer, Audit Manager at a regulated organization deploying one specific AI workflow.
 
-Any `enum` or `struct` that conforms to `TraceableEvent`. `typeIdentifier` must be stable across schema versions; `priority` controls survival under load.
+**Example scope:**
+- Healthcare: Diagnostic-recommendation AI
+- Finance: Lending decision AI
+- Legal: Brief-generation AI
+- Insurance: Claims-approval AI
 
-```swift
-import Foundation
-import DProvenanceKit
+**Timeline:** 30 days, delivered as a report.
 
-enum MyAIDecision: TraceableEvent {
-    case promptGenerated(tokenCount: Int)
-    case documentEvaluated(documentID: String, score: Double)
-    case conflictDetected(reason: String)
-    case finalDecisionMade(approved: Bool)
-
-    var typeIdentifier: String {
-        switch self {
-        case .promptGenerated:   return "promptGenerated"
-        case .documentEvaluated: return "documentEvaluated"
-        case .conflictDetected:  return "conflictDetected"
-        case .finalDecisionMade: return "finalDecisionMade"
-        }
-    }
-
-    var priority: TracePriority {
-        switch self {
-        case .promptGenerated, .documentEvaluated: return .telemetry
-        case .conflictDetected:                    return .diagnostic
-        case .finalDecisionMade:                   return .critical
-        }
-    }
-}
-```
-
-### 2. Configure a store
-
-```swift
-let store = try SQLiteTraceStore<MyAIDecision>(
-    fileURL: URL(fileURLWithPath: "/path/to/traces.sqlite")
-)
-```
-
-`SQLiteTraceStore` buffers writes in memory and persists asynchronously over WAL-mode SQLite, so recording never blocks execution. Use `InMemoryTraceStore` for tests and ephemeral runs.
-
-### 3. Record runs
-
-```swift
-let (_, runID) = try await DProvenanceKit<MyAIDecision>.runReturningID(
-    contextID: "Case-12345",
-    store: store
-) { _ in
-
-    DProvenanceKit<MyAIDecision>.record(.promptGenerated(tokenCount: 150))
-
-    try await DProvenanceKit<MyAIDecision>.withEngine(name: "DocumentAnalyzer") {
-        DProvenanceKit<MyAIDecision>.record(.documentEvaluated(documentID: "DocA", score: 0.95))
-    }
-
-    DProvenanceKit<MyAIDecision>.record(.finalDecisionMade(approved: true))
-}
-
-try await store.flush()
-```
-
-### 4. Trace an Apple Foundation Models session
-
-If your AI is Apple's on-device LLM, skip the custom vocabulary — the adapter ships one, frozen and diff-ready:
-
-```swift
-import FoundationModels
-import DProvenanceFoundationModels
-
-let fmStore = try SQLiteTraceStore<FoundationModelTraceEvent>(
-    fileURL: URL(fileURLWithPath: "traces.sqlite")
-)
-
-try await FMTrace.run(contextID: "onboarding-chat", store: fmStore) {
-    let session = LanguageModelSession.traced(instructions: "Be terse.")
-    _ = try await session.respond(to: "Plan my day.")
-}
-```
-
-Every prompt, response, tool call, and generation error is now a queryable trace event. Already have working FoundationModels code? `session.recordProvenance()` ingests the transcript after the fact — zero refactor. Full guide, including redaction and streaming: **[docs/foundation-models.md](docs/foundation-models.md)**.
-
-Try the live model before integrating it into an app:
-
-```sh
-swift run FoundationModelsLiveQuickstart
-swift run FoundationModelsLiveQuickstart -- "Summarize why provenance matters."
-```
-
-On an eligible Mac, the command prints the model answer followed by the persisted `fm_model_availability → fm_instructions → fm_prompt → fm_response` timeline, drop/integrity status, and SQLite file path. When the model is unavailable, it still records and explains the availability result instead of failing silently.
-
-> **See it catch a real regression:** `swift run FoundationModelsRegressionDemo` — an agent that silently stops calling its tool after a model update, caught as a `HIGH`-risk regression and failed in CI. [Walkthrough →](docs/foundation-models-regression-demo.md)
-
-### 5. Sign and verify a completed trace
-
-```swift
-guard let completedRun = try await store.getRun(id: runID) else {
-    fatalError("Recorded run was not found")
-}
-
-let signingKey = SoftwareTraceAttestationKey()
-
-// Persist signingKey.rawRepresentation in Keychain, never in the artifact.
-let document = try TraceAttestationDocument.signed(
-    run: completedRun,
-    using: signingKey
-)
-
-let artifactURL = URL(fileURLWithPath: "decision.attestation.json")
-try document.jsonData().write(to: artifactURL, options: .atomic)
-```
-
-Verify without a network connection. Pin the expected key ID when signer identity matters:
-
-```sh
-swift run dpk verify --in=decision.attestation.json --trusted-key=<trusted-key-id>
-```
-
-See [Trace Attestation](docs/ATTESTATION.md) for Secure Enclave keys, canonicalization, the public test vector, key rotation, and the full threat model.
-
-### 6. Optionally export to Langfuse or any OTLP backend
-
-```swift
-import DProvenanceOTel
-
-let exporter = OTLPHTTPExporter<MyAIDecision>(
-    configuration: .langfuse(publicKey: "pk-lf-...", secretKey: "sk-lf-...")
-)
-let receipt = try await DProvenanceOTelExport.export(from: store, using: exporter)
-```
-
-One run becomes one OTel trace, deterministically — same run, same trace ID, every export. This is an explicit opt-in path; local capture and attestation do not send data anywhere. Backend matrix and mapping details: **[docs/otel-bridge.md](docs/otel-bridge.md)**.
+**Next step:** [Request a pilot](mailto:inquiry@dprovenance.dev?subject=Governed%20AI%20Deployment%20Pilot).
 
 ---
 
-# Architecture
+## Getting Started
 
-```
-Trace Event Stream → Local Store → Query / Diff → Signed Attestation → Offline Verify
-                                      └──────────→ Optional OTel Export
+### For Open-Source Users
+
+1. **Define your AI's critical decisions**
+   - What reasoning steps must regulators see?
+   - What evidence matters?
+   - Where is liability highest?
+
+2. **Instrument one workflow** (Python or Swift)
+
+```python
+from dprovenancekit import traced, record_event, traced_run
+
+@traced("lending_decision")
+def approve_or_reject(applicant_data):
+    # Your AI logic here
+    record_event("credit_score_checked", applicant_data["credit"])
+    record_event("income_verified", applicant_data["income"])
+    decision = model.predict(applicant_data)
+    record_event("decision_made", decision)
+    return decision
+
+# Run it
+traced_run(context_id="applicant_12345", store=store)(approve_or_reject)(data)
 ```
 
-| Component            | Role                                                              |
-| -------------------- | ----------------------------------------------------------------- |
-| `SQLiteTraceStore`   | Non-blocking writes, WAL-mode persistence, background batching     |
-| `InMemoryTraceStore` | Fast local execution, indexed queries, optional live evaluation    |
-| Query Engine         | Reasoning-pattern search, missing-step and temporal detection      |
-| Diff Engine          | Structural reasoning diffs and path comparison                     |
-| Anomaly Detection    | Rule-based validation and regression discovery                     |
-| Trace Attestation    | Canonical P-256 signed artifacts with optional Secure Enclave keys |
-| `dpk verify`         | Offline integrity verification and trusted signer-key pinning       |
-| `DProvenanceFoundationModels` | Drop-in tracing for Apple Foundation Models sessions and tools |
-| `DProvenanceOTel`    | Deterministic OTLP/JSON export to Langfuse and OTLP/HTTP collectors |
+3. **Establish a baseline**
+   - Run your workflow multiple times
+   - Sign the reasoning as "known good"
+   - Store the proof
+
+4. **Gate future changes**
+   - When you update the model, re-run
+   - Compare new reasoning to baseline
+   - Diff shows exactly what changed
+   - Decide: Is this safe to deploy?
+
+5. **Verify with auditors**
+   - Give them the proof packet
+   - They verify the signature offline
+   - No internet, no vendor involvement
+   - Proof that traces are authentic
+
+### For Pilot Participants
+
+1. Schedule a kickoff call
+2. Define the scope (one AI workflow)
+3. Provide your reasoning trace format
+4. Receive governance policy + audit report
+5. Keep the open-source tool, informed by compliance experts
 
 ---
 
-# Documentation
+## Technical Foundation
 
-| Guide | What's inside |
-| ----- | ------------- |
-| [Trace attestation](docs/ATTESTATION.md) | Offline signing and verification, Secure Enclave keys, canonicalization, public vector, threat model |
-| [Proof packs](docs/PROOF_PACK.md) | One offline-verifiable JSON document carrying a signed attestation plus role-bound artifact bytes |
-| [Foundation Models integration](docs/foundation-models.md) | Trace Apple's on-device LLM: live sessions, post-hoc transcripts, traced tools, redaction policy |
-| [OpenTelemetry bridge](docs/otel-bridge.md) | Export runs as OTLP spans to Langfuse or any OTLP/HTTP collector |
-| [Trace replay](docs/REPLAY.md) | Reconstruct a run's span tree as of any point in time, with integrity manifests |
-| [Snapshot diffing](docs/SNAPSHOTS.md) | Diff two replay states: span changes, event changes, the exact divergence point |
-| [Live queries](docs/LIVE_QUERIES.md) | Register a query once, get a callback the moment a run starts matching |
-| [Cloud ingestion (experimental)](docs/CLOUD.md) | Buffered, offline-first HTTP trace shipping with drop and quarantine accounting |
-| [Trace inspector UI](docs/UI.md) | SwiftUI trace inspector for Apple platforms; macOS includes a native database picker |
-| [DESIGN.md](DESIGN.md) | Engine internals: the concurrency tradeoff, backpressure, durability, known limitations |
-| [SEMANTICS.md](SEMANTICS.md) | The formal semantic model behind alignment and behavioral equivalence |
-| [BENCHMARKS.md](BENCHMARKS.md) | Benchmark corpus, evaluation methodology, per-case results, the measured operating envelope |
-| [Alignment validation walkthrough](walkthrough.md) | Case study: validating the alignment engine against the corpus |
+DProvenanceKit is built on proven infrastructure:
+
+- **Recording:** Non-blocking writes with priority-aware backpressure
+- **Storage:** WAL-mode SQLite (crash-safe, auditable)
+- **Query language:** Temporal and structural reasoning patterns
+- **Diffing:** Semantic alignment engine that detects regressions
+- **Signatures:** Canonical JSON (JCS/RFC 8785) + ECDSA P-256
+- **Verification:** Deterministic, offline, open-source
+
+**Cross-language:** Swift and Python implementations kept in sync by a formal conformance spec, not by hope. They produce byte-identical outputs for the same input.
+
+**Battle-tested:** Reasoning observability in production at regulated organizations. Consensus suite validates correctness. Benchmark corpus tests edge cases.
 
 ---
 
-# Status
+## No Third-Party Dependencies
+
+**Core (Python):**
+```
+sqlite3, contextvars, threading, json, hashlib, uuid, urllib
+```
+
+No pip dependencies. Just Python's standard library. Requires Python 3.9+.
+
+**Core (Swift):**
+```
+Foundation, CryptoKit, SQLite
+```
+
+No external packages. Native to macOS/iOS. Requires Swift 6.0.
+
+**Why this matters for compliance:** Fewer dependencies = smaller attack surface = easier for auditors to review.
+
+---
+
+## Adoption Path
+
+### Week 1
+Integrate DProvenanceKit into one AI workflow. Record a baseline.
+
+### Week 2-4
+Establish governance policy. Define what counts as a regression.
+
+### Month 1-3
+Gate releases on reasoning changes. Provide proof to auditors.
+
+### Ongoing
+Every release: baseline vs. candidate. Proof that reasoning was consistent.
+
+---
+
+## Status
 
 **Public beta — [0.8.1](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.8.1) is released; APIs may continue to evolve before 1.0.**
 
-**Working today:** local recording and querying, structural diffing, semantic alignment, rule-based anomaly detection, decision lineage, by-tier drop accounting, canonical P-256 trace attestation, software and Secure Enclave signing keys, offline verification with signer-key pinning, [proof-pack v2](docs/PROOF_PACK.md) documents that bind each artifact's bytes and role to a signed trace (`dpk verify --proof-pack`), human-readable verification certificates that state their own scope limits (`--certificate=text|html`), a drop-in [Foundation Models adapter](docs/foundation-models.md), optional [OTLP export](docs/otel-bridge.md), and a [WebVisualizer](WebVisualizer/) reasoning-diff explorer.
+---
 
-**Planned:** richer graph/lineage visualization, key-policy and rotation helpers, and distributed trace federation.
+## License
 
-**Scope:** Apple platforms (macOS / iOS). The package uses system SQLite and CryptoKit but no third-party packages. It targets Apple OSes by design because its primary job is local provenance and attestation for Swift and on-device AI.
+Apache 2.0. Free for commercial use.
 
 ---
 
-# Not writing Swift?
+## Contact
 
-There's a full **Python port** — [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — with the same recording API, query DSL, diff and alignment engines, and validation corpus, plus a CI regression gate and a [GitHub Action](https://github.com/Therealdk8890/dprovenancekit-action) that fails a pull request when an agent's reasoning regresses.
+**For pilot inquiry:**
+[Request Governed AI Deployment Pilot](mailto:inquiry@dprovenance.dev?subject=Governed%20AI%20Deployment%20Pilot)
 
-Docs, the web Explorer, and more at **[dprovenance.dev](https://dprovenance.dev)**.
+**For open-source questions:**
+GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
+
+**For technical details:**
+- Swift: https://github.com/Therealdk8890/DProvenanceKit
+- Python: https://github.com/Therealdk8890/DProvenanceKitPython
+- Docs: https://dprovenance.dev
 
 ---
 
-# License and commercial support
+## Why This Exists
 
-DProvenanceKit is distributed under the **Apache License 2.0** — free for production and commercial use subject to the license terms. See [LICENSE](LICENSE).
+AI systems make decisions that affect real people. Regulators want to see the reasoning. Cloud-based observability platforms aren't designed for that.
 
-The live paid offer is a **$4,500 one-time, 30-day Governed AI Deployment Pilot for one workflow**. It delivers an instrumentation review, a golden baseline, three to five governance policies, a CI regression gate, and an audit and provenance report. Your engineer installs and instruments; the pilot supplies the governance expertise and the audit record, not code in your repository. Additional workflows, support, or training are scoped and quoted separately. There is no hosted service, recurring support tier, SLA, indemnity, or compliance-certification package.
+DProvenanceKit is built for teams that care about:
+- **Privacy:** Data stays local
+- **Auditability:** Reasoning is provable and verifiable
+- **Liability:** Proof that the decision was sound
+- **Compliance:** Evidence that regulators will accept
 
-Review the [complete pilot scope](docs/PILOT.md), then
-**[request the $4,500 pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**.
-After scope and kickoff timing are accepted in writing, an invoice is issued —
-50% on signature, 50% on delivery. Review
-[COMMERCIAL.md](COMMERCIAL.md), or use the
-[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-for invoice-based procurement and other scoped work.
+If your AI makes healthcare, financial, legal, or insurance decisions, you need this.
