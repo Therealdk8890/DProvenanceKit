@@ -1,44 +1,46 @@
 # 🚀 DProvenanceKit
 
-## Prove Your AI's Reasoning to Regulators. Offline. Cryptographically.
+## Tamper-evident records of instrumented AI decision paths — offline-verifiable, CI-gated
 
-For healthcare, finance, and legal AI systems that must demonstrate why they made each decision — without sending sensitive reasoning traces to third-party services.
+For teams in healthcare, finance, and legal building AI systems that need a local-first record of *which instrumented steps ran*, a regression gate when that path drifts, and (on Swift) a signed attestation they can verify without calling home.
 
-> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install dprovenancekit`. Same regression gate and adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI.
+> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install dprovenancekit`. Same recording, diff, and CI gate; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Cryptographic attestation and proof packs are Swift-only today (see matrix below).
 
 ---
 
-## The Problem Regulators Actually Care About
+## The gap request-level observability leaves open
 
 Your AI makes a decision that impacts a customer. The decision is challenged.
 
 **Lender:** "Why did you reject this applicant?"
 **Doctor:** "Why did you recommend that treatment?"
 **Lawyer:** "What's the basis for this legal argument?"
-**Auditor:** "Prove this decision wasn't changed after the fact."
+**Auditor:** "Has this recorded decision path been altered since it was written?"
 
-Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, prove *why* an agent took a given decision path — or that the path has not been tampered with. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
+Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, give you a **queryable, diffable, locally retained record of the instrumented decision path** — or a CI check that refuses merge when that path regresses. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
 
-DProvenanceKit answers the question regulators actually ask: **Can you prove, cryptographically, that your AI's reasoning was sound and hasn't been tampered with?**
+DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation to what was recorded.**
+
+It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. For the signed-artifact threat model, read [docs/ATTESTATION.md — What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
 
 ---
 
-## Why This Matters for Regulated Industries
+## Built for teams in regulated industries
 
 ### Healthcare
-Your diagnostic-support AI recommends treatment. A patient sues. The hospital needs to show that the recommendation was based on the patient's actual symptoms and medical history—not a hallucination. A cryptographically signed trace is that proof.
+Diagnostic-support and clinical decision tools need a durable record of which checks ran and what evidence was attached — retained locally, comparable across releases, and (when attested) integrity-checked offline.
 
 ### Financial Services
-Your lending AI rejects an applicant. They file a fair-lending complaint. You need to prove the decision was based on relevant factors, not proxy discrimination. A verifiable reasoning chain is your defense.
+Lending and underwriting workflows need an auditable trail of the instrumented factors that entered a decision, plus a CI gate when that trail changes after a model or prompt update.
 
 ### Legal
-Your legal AI generates a brief with case citations. Opposing counsel challenges the citations. You need to prove every case actually exists and was correctly cited. The entire reasoning is signed so it can't be disputed.
+Brief-generation and citation workflows need a retained chain of verification steps your team instrumented — not a promise that citations are correct, but a record you can review, diff, and (Swift) attest.
 
 ### Insurance
-Your claims AI approves or denies a claim. The customer appeals. Auditors want to see the decision tree. A provable reasoning path shows the logic was consistent and wasn't hidden.
+Claims workflows need a consistent, queryable decision path for appeals and internal audit — and a regression signal when automation drifts.
 
 ### Government
-Your AI processes FOIA requests or makes eligibility determinations. Citizens and auditors need to understand the reasoning. Local-first means no privacy concerns, and cryptographic signing means it's trustworthy.
+Eligibility and records workflows often cannot ship raw reasoning to a hosted SaaS. Local-first recording keeps data where policy requires; attestation (Swift) adds integrity for exports you choose to share.
 
 ---
 
@@ -48,37 +50,54 @@ Your AI processes FOIA requests or makes eligibility determinations. Citizens an
 
 1. **Your AI system runs normally.** Everything stays on your infrastructure.
 
-2. **Each decision is recorded locally.**
-   - Every reasoning step
-   - Every evidence used
-   - Every tool called
-   - Every intermediate result
+2. **Each instrumented decision path is recorded locally.**
+   - Reasoning steps you wrap or emit
+   - Evidence and tool calls you record
+   - Intermediate results you choose to capture
 
-3. **The trace is cryptographically signed.**
-   - SHA-256 hash of the canonical reasoning path
-   - ECDSA P-256 signature (can use Secure Enclave on Apple platforms)
-   - Detached JWS (proof is separate from trace data)
+3. **Compare and gate.**
+   - Diff a candidate run against a golden baseline
+   - Fail CI when the path regresses beyond policy
+   - Keep using your existing eval and observability stack
 
-4. **Auditors verify offline, without calling home.**
-   - No external service dependency
-   - No internet required
-   - Proof that traces weren't modified in transit
-   - Open-source verification code they can audit themselves
+4. **Attest (Swift).**
+   - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
+   - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
+   - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
+   - Offline verification with no network dependency
+
+Python shares recording, query, diff, and the CI gate. It does **not** yet sign traces or emit proof packs — use the Swift SDK (or wait for a port) when you need cryptographic attestation.
+
+---
+
+## Swift vs Python capability matrix
+
+| Capability | Swift (`DProvenanceKit`) | Python (`dprovenancekit`) |
+|---|---|---|
+| Record / store / query instrumented paths | Yes | Yes |
+| Semantic diff + golden baselines | Yes | Yes |
+| CI regression gate | Yes (`dpk` / package tools) | Yes (`dprovenancekit gate`, pytest `golden_trace`, [GitHub Action](https://github.com/marketplace/actions/dprovenancekit-regression-gate)) |
+| Framework adapters (LangChain, Agents, …) | Foundation Models (+ OTel bridge) | LangChain, OpenAI Agents, LlamaIndex, CrewAI, OTel ingest |
+| Trace attestation (`DPK-BINARY-V1` + P-256 DER) | **Yes** | **Not yet** |
+| Proof packs | **Yes** | **Not yet** |
+| Secure Enclave–backed keys | **Yes** (Apple platforms) | N/A |
+
+Cross-language conformance covers fingerprints, query semantics, profile hash, and alignment verdicts per [TRACE_SPEC_v1](https://github.com/Therealdk8890/DProvenanceKitPython/blob/main/conformance/TRACE_SPEC_v1.md). Payload encodings need **not** be byte-identical across SDKs; equivalence is on decoded payloads and structural fingerprints.
 
 ---
 
 ## Works with your observability stack
 
-DProvenanceKit aims to be the local-first standard for **AI reasoning observability** — record, diff, attest, and CI-gate the decision path. It is built to sit **beside** OpenTelemetry, LangSmith, Langfuse, and Arize, not to replace them.
+DProvenanceKit aims to be the local-first layer for **AI decision-path observability** — record, diff, attest (Swift), and CI-gate the instrumented path. It is built to sit **beside** OpenTelemetry, LangSmith, Langfuse, and Arize, not to replace them.
 
 | | Platform / request observability (LangSmith, Langfuse, OTel, …) | DProvenanceKit |
 |---|---|---|
-| **Job** | Spans, dashboards, evals, production monitoring | Reasoning path, golden baselines, signed proof, CI gate |
-| **Question** | What happened? | Did the decision path regress — and can we prove it? |
+| **Job** | Spans, dashboards, evals, production monitoring | Decision path, golden baselines, CI gate, signed attestation (Swift) |
+| **Question** | What happened? | Did the instrumented decision path regress — and (Swift) can we verify the record wasn’t altered after signing? |
 | **Where data lives** | Collector or hosted platform (by design) | Local-first; optional OTel export when you choose |
 | **How they fit** | Keep using them | Add DPK next to them |
 
-**Bottom line:** Use LangSmith, Langfuse, and OpenTelemetry for platform observability. Use DProvenanceKit when you need the reasoning layer to be queryable, diffable, attestable, and refused in CI when it drifts.
+**Bottom line:** Use LangSmith, Langfuse, and OpenTelemetry for platform observability. Use DProvenanceKit when you need the decision path to be queryable, diffable, refused in CI when it drifts, and — on Swift — attestable offline.
 
 ---
 
@@ -92,17 +111,19 @@ A law firm uses an AI to draft legal briefs.
 
 ```
 1. Legal AI generates brief
-2. Before export, every claim is verified:
-   - "Does this case actually exist?" (checked against legal database)
-   - "Is this statute current?" (validated against code)
-   - "Is this quote accurate?" (matched against source)
-3. The entire reasoning chain is cryptographically signed
-4. Brief is exported with proof packet attached
+2. Before export, instrumented verification steps are recorded:
+   - Case existence check against a legal database
+   - Statute currency check
+   - Quote accuracy check against source
+3. (Swift) The recorded chain is attested (DPK-BINARY-V1 + P-256 DER)
+4. Brief is exported with an optional proof pack binding report digests
 5. If disputed, the firm can show:
-   - "Here's the reasoning chain"
-   - "Here's the signature"
-   - "Auditors can verify it hasn't been tampered with"
+   - The instrumented reasoning chain that was recorded
+   - (Swift) The signature and offline verification result
+   - That the attested record has not been tampered with since signing
 ```
+
+Attestation establishes integrity of what was recorded — not truthfulness of citations or legal sufficiency. See [What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
 
 ---
 
@@ -128,20 +149,21 @@ You instrument your AI workflow. You establish baselines. You manage the governa
 
 ### Option 2: Governed AI Deployment Pilot ($4,500 one-time)
 
-For organizations that want governance guidance + compliance audit:
+For organizations that want governance guidance and a structured review of one AI workflow:
 
 **Includes:**
 - **Instrumentation review:** Is this the right tracing for your compliance needs?
 - **Baseline establishment:** What's the "golden" reasoning path your AI should follow?
 - **Governance policy definition:** What counts as a regression? When do we alert? What's audit-worthy?
-- **Compliance audit report:** Proof of your reasoning architecture for regulators.
+- **Compliance-oriented audit report:** A written summary of your reasoning architecture and how DPK artifacts support review — not certification, indemnity, or a guarantee of regulatory acceptance.
 
 **Does not include:**
 - Recurring SaaS or managed service
 - Code in your repository
 - Ongoing support (scope separately as needed)
+- Certification under any legal or industry framework
 
-**Who this is for:** Chief Risk Officer, Compliance Officer, Audit Manager at a regulated organization deploying one specific AI workflow.
+**Who this is for:** Chief Risk Officer, Compliance Officer, Audit Manager at an organization in a regulated industry deploying one specific AI workflow.
 
 **Example scope:**
 - Healthcare: Diagnostic-recommendation AI
@@ -160,7 +182,7 @@ For organizations that want governance guidance + compliance audit:
 ### For Open-Source Users
 
 1. **Define your AI's critical decisions**
-   - What reasoning steps must regulators see?
+   - Which instrumented steps must appear in an audit trail?
    - What evidence matters?
    - Where is liability highest?
 
@@ -184,8 +206,8 @@ traced_run(context_id="applicant_12345", store=store)(approve_or_reject)(data)
 
 3. **Establish a baseline**
    - Run your workflow multiple times
-   - Sign the reasoning as "known good"
-   - Store the proof
+   - Pin a known-good run
+   - Store the baseline with the repo
 
 4. **Gate future changes**
    - When you update the model, re-run
@@ -193,11 +215,11 @@ traced_run(context_id="applicant_12345", store=store)(approve_or_reject)(data)
    - Diff shows exactly what changed
    - Decide: Is this safe to deploy?
 
-5. **Verify with auditors**
-   - Give them the proof packet
-   - They verify the signature offline
-   - No internet, no vendor involvement
-   - Proof that traces are authentic
+5. **Attest and verify (Swift)**
+   - Sign with `TraceAttestationDocument` / `dpk attest`
+   - Hand auditors the attestation or proof pack
+   - They verify offline — no internet, no vendor involvement
+   - Integrity of the recorded path, within the [documented limits](docs/ATTESTATION.md#what-it-does-not-establish)
 
 ### For Pilot Participants
 
@@ -205,24 +227,23 @@ traced_run(context_id="applicant_12345", store=store)(approve_or_reject)(data)
 2. Define the scope (one AI workflow)
 3. Provide your reasoning trace format
 4. Receive governance policy + audit report
-5. Keep the open-source tool, informed by compliance experts
+5. Keep the open-source tool, informed by compliance-oriented review
 
 ---
 
 ## Technical Foundation
 
-DProvenanceKit is built on proven infrastructure:
-
 - **Recording:** Non-blocking writes with priority-aware backpressure
 - **Storage:** WAL-mode SQLite (crash-safe, auditable)
 - **Query language:** Temporal and structural reasoning patterns
 - **Diffing:** Semantic alignment engine that detects regressions
-- **Signatures:** Canonical JSON (JCS/RFC 8785) + ECDSA P-256
-- **Verification:** Deterministic, offline, open-source
+- **Attestation (Swift):** `DPK-BINARY-V1` canonicalization + ECDSA P-256 (SHA-256, ASN.1 DER); optional Secure Enclave keys
+- **Verification (Swift):** Deterministic, offline, open-source — see [docs/ATTESTATION.md](docs/ATTESTATION.md)
+- **Proof packs (Swift):** Signed attestation + embedded artifact digests — [docs/PROOF_PACK.md](docs/PROOF_PACK.md)
 
-**Cross-language:** Swift and Python implementations kept in sync by a formal conformance spec, not by hope. They produce byte-identical outputs for the same input.
+**Cross-language:** Swift and Python stay aligned via a formal Trace Spec and shared conformance vectors (fingerprint, query, profile hash, alignment). Payload bytes need not match across languages; see TRACE_SPEC §2.
 
-**Battle-tested:** Reasoning observability in production at regulated organizations. Consensus suite validates correctness. Benchmark corpus tests edge cases.
+**Quality bar:** Conformance suite and benchmark corpus exercise edge cases. Built for teams in regulated industries; not a claim of production certification or regulator endorsement.
 
 ---
 
@@ -255,10 +276,10 @@ Integrate DProvenanceKit into one AI workflow. Record a baseline.
 Establish governance policy. Define what counts as a regression.
 
 ### Month 1-3
-Gate releases on reasoning changes. Provide proof to auditors.
+Gate releases on reasoning-path changes. Export attestations or proof packs where Swift is in the pipeline.
 
 ### Ongoing
-Every release: baseline vs. candidate. Proof that reasoning was consistent.
+Every release: baseline vs. candidate. A clear record of whether the instrumented path stayed consistent.
 
 ---
 
@@ -286,17 +307,18 @@ GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
 - Swift: https://github.com/Therealdk8890/DProvenanceKit
 - Python: https://github.com/Therealdk8890/DProvenanceKitPython
 - Docs: https://dprovenance.dev
+- Attestation limits: [docs/ATTESTATION.md](docs/ATTESTATION.md)
 
 ---
 
 ## Why This Exists
 
-AI systems make decisions that affect real people. Regulators want to see the reasoning. Cloud-based observability platforms aren't designed for that.
+AI systems make decisions that affect real people. Teams in regulated industries need a durable, local record of instrumented decision paths — and a way to catch regressions before release. Cloud-based observability platforms aren't designed for that job alone.
 
 DProvenanceKit is built for teams that care about:
-- **Privacy:** Data stays local
-- **Auditability:** Reasoning is provable and verifiable
-- **Liability:** Proof that the decision was sound
-- **Compliance:** Evidence that regulators will accept
+- **Privacy:** Data stays local unless you explicitly export
+- **Auditability:** Paths are queryable, diffable, and (Swift) integrity-checkable offline
+- **Change control:** CI can refuse merges when the golden path drifts
+- **Honest scope:** Attestation supports audit workflows; it is not by itself certification or proof that a decision was “sound”
 
-If your AI makes healthcare, financial, legal, or insurance decisions, you need this.
+If your AI makes healthcare, financial, legal, or insurance decisions, start with one workflow and a golden baseline.
