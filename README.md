@@ -119,7 +119,7 @@ pip install dprovenancekit
 
 # Swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit.git", from: "0.2.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")
 ]
 ```
 
@@ -260,6 +260,12 @@ Gate releases on reasoning changes. Provide proof to auditors.
 
 ### Ongoing
 Every release: baseline vs. candidate. Proof that reasoning was consistent.
+
+---
+
+## Status
+
+**Public beta — [0.8.1](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.8.1) is released; APIs may continue to evolve before 1.0.**
 
 ---
 
