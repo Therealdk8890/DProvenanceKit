@@ -4,6 +4,8 @@
 
 For healthcare, finance, and legal AI systems that must demonstrate why they made each decision — without sending sensitive reasoning traces to third-party services.
 
+> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install dprovenancekit`. Same regression gate and adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI.
+
 ---
 
 ## The Problem Regulators Actually Care About
