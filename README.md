@@ -17,9 +17,7 @@ Your AI makes a decision that impacts a customer. The decision is challenged.
 **Lawyer:** "What's the basis for this legal argument?"
 **Auditor:** "Prove this decision wasn't changed after the fact."
 
-Traditional APM platforms (Datadog, New Relic) and AI observability platforms (Langfuse, LangSmith) answer "what happened," not "why did the AI decide that?" And they're cloud-based—your sensitive reasoning traces live on someone else's servers.
-
-Regulators don't accept that answer. Neither should you.
+Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, prove *why* an agent took a given decision path — or that the path has not been tampered with. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
 
 DProvenanceKit answers the question regulators actually ask: **Can you prove, cryptographically, that your AI's reasoning was sound and hasn't been tampered with?**
 
@@ -69,19 +67,18 @@ Your AI processes FOIA requests or makes eligibility determinations. Citizens an
 
 ---
 
-## DProvenanceKit vs. Cloud Observability Platforms
+## Works with your observability stack
 
-| | Langfuse, LangSmith, Arize | DProvenanceKit |
+DProvenanceKit aims to be the local-first standard for **AI reasoning observability** — record, diff, attest, and CI-gate the decision path. It is built to sit **beside** OpenTelemetry, LangSmith, Langfuse, and Arize, not to replace them.
+
+| | Platform / request observability (LangSmith, Langfuse, OTel, …) | DProvenanceKit |
 |---|---|---|
-| **Where traces live** | Third-party cloud servers | Your infrastructure only |
-| **Regulatory proof** | "Here's what happened" | "Here's cryptographic proof of why" |
-| **Data residency** | Governed by vendor | Governed by you |
-| **Auditor verification** | Depends on vendor's uptime | Works offline, forever |
-| **HIPAA/PCI compliance** | Business Associate Agreement required | No BAA needed (data doesn't leave) |
-| **Cost** | Recurring SaaS (per trace, per month) | One-time per workflow |
-| **Use case** | Engineering iteration, debugging | Compliance, regulatory proof |
+| **Job** | Spans, dashboards, evals, production monitoring | Reasoning path, golden baselines, signed proof, CI gate |
+| **Question** | What happened? | Did the decision path regress — and can we prove it? |
+| **Where data lives** | Collector or hosted platform (by design) | Local-first; optional OTel export when you choose |
+| **How they fit** | Keep using them | Add DPK next to them |
 
-**Bottom line:** Use Langfuse or LangSmith to build and debug your AI. Use DProvenanceKit to prove it works correctly to regulators.
+**Bottom line:** Use LangSmith, Langfuse, and OpenTelemetry for platform observability. Use DProvenanceKit when you need the reasoning layer to be queryable, diffable, attestable, and refused in CI when it drifts.
 
 ---
 

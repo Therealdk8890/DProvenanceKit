@@ -3,27 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DProvenanceKit vs LangSmith: Open-Source SDK vs Platform</title>
-<meta name="description" content="Looking for an open source LangSmith alternative? An honest comparison: DProvenanceKit's local-first SDK and CI regression gates vs LangSmith's hosted platform.">
+<title>DProvenanceKit and LangSmith: reasoning gate alongside the platform</title>
+<meta name="description" content="How DProvenanceKit and LangSmith fit together: a local-first reasoning SDK and CI gate alongside LangSmith's hosted observability and evals platform.">
 <link rel="canonical" href="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="DProvenanceKit">
-<meta property="og:title" content="DProvenanceKit vs LangSmith: Open-Source SDK vs Platform">
-<meta property="og:description" content="An honest comparison for teams weighing a LangSmith alternative: a zero-dependency, local-first SDK with built-in CI regression gates vs a hosted observability and evals platform.">
+<meta property="og:title" content="DProvenanceKit and LangSmith: reasoning gate alongside the platform">
+<meta property="og:description" content="How the tools fit together: a zero-dependency, local-first reasoning SDK with CI gates alongside LangSmith's hosted observability and evals platform.">
 <meta property="og:url" content="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
 <meta property="og:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
 <meta property="og:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DProvenanceKit vs LangSmith: Open-Source SDK vs Platform">
-<meta name="twitter:description" content="An honest comparison for teams weighing a LangSmith alternative: a zero-dependency, local-first SDK with built-in CI regression gates vs a hosted observability and evals platform.">
+<meta name="twitter:title" content="DProvenanceKit and LangSmith: reasoning gate alongside the platform">
+<meta name="twitter:description" content="How the tools fit together: a zero-dependency, local-first reasoning SDK with CI gates alongside LangSmith's hosted observability and evals platform.">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
 <meta name="twitter:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "DProvenanceKit vs LangSmith: Open-Source SDK vs Platform",
-  "description": "An honest comparison of DProvenanceKit — a zero-dependency, local-first, open-source Python SDK for agent regression testing and CI gating — and LangSmith, the hosted observability and evals platform from the LangChain team.",
+  "headline": "DProvenanceKit and LangSmith: reasoning gate alongside the platform",
+  "description": "How DProvenanceKit (local-first reasoning SDK and CI gate) works alongside LangSmith (hosted observability and evals from the LangChain team).",
   "datePublished": "2026-07-03",
   "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
   "url": "https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/",
@@ -169,7 +169,7 @@
 <main>
   <div class="wrap hero">
     <p class="crumb"><a href="https://dprovenance.dev/">dprovenance.dev</a> / compare / dprovenancekit-vs-langsmith</p>
-    <h1>DProvenanceKit vs LangSmith: which fits your workflow?</h1>
+    <h1>DProvenanceKit and LangSmith: which role each plays</h1>
     <p class="sub">These two get compared because both record what an AI agent did. Past that, they are different shapes of tool. <strong>LangSmith</strong> is a hosted-first observability and evals platform from the LangChain team — dashboards, monitoring, annotation queues, a managed backend. <strong><a href="https://dprovenance.dev/">DProvenanceKit</a></strong> is an open-source (Apache-2.0), zero-dependency Python SDK — stdlib only — that records each agent run as a queryable, diffable trace in a local SQLite file and <strong>fails CI when the reasoning drifts</strong>.</p>
     <p class="sub">To be plain about it up front: <strong>if you want team dashboards, production monitoring, and hosted evals with human annotation, pick LangSmith.</strong> It is a mature platform, and this page will not pretend otherwise. If what you are missing is regression testing — a golden baseline, a structural diff, an exit code 1 in a pull request — that is the one job DProvenanceKit was built for, and the job this comparison is about.</p>
   </div>
@@ -236,7 +236,7 @@
     <div class="wrap">
       <p class="sec-kicker"><span class="no"># 02</span> · the core difference</p>
       <h2>Regression testing as a first-class citizen</h2>
-      <p class="lede">Most searches for a <strong>LangSmith alternative</strong> compare dashboards to dashboards. DProvenanceKit isn't a dashboard. Its center of gravity is the thing observability platforms treat as an afterthought: <strong>proving that this week's agent still reasons like last week's</strong> — automatically, in CI, before the merge. Observability tells you what happened; a regression gate refuses to let the drift ship.</p>
+      <p class="lede">Most searches for a <strong>LangSmith companion</strong> compare dashboards to dashboards. DProvenanceKit isn't a dashboard. Its center of gravity is the thing observability platforms treat as an afterthought: <strong>proving that this week's agent still reasons like last week's</strong> — automatically, in CI, before the merge. Observability tells you what happened; a regression gate refuses to let the drift ship.</p>
       <ul class="facts">
         <li><strong>Golden baselines are files.</strong> A known-good run is saved as a SQLite trace (e.g. <code>tests/goldens/research-agent.sqlite</code>) and committed like any other snapshot. <code>pytest --dprov-update-golden</code> re-records it deliberately; a plain <code>pytest</code> gates against it.</li>
         <li><strong>Run fingerprints make drift cheap to detect.</strong> Every run gets a structural identity of its execution path — a reordered tool, a skipped retrieval step, a dropped verify step all change the fingerprint.</li>
@@ -357,7 +357,7 @@ tracer = DProvenanceTracer(store)
     <div class="wrap">
       <p class="sec-kicker"><span class="no"># 07</span> · get started</p>
       <h2>Try the open-source gate on one agent</h2>
-      <p class="lede">The honest test of any <strong>open source LangSmith alternative</strong> claim is what happens in the first ten minutes. Record one golden run, break the agent on purpose, and watch the diff fail. No account, nothing leaves your machine.</p>
+      <p class="lede">The honest test of any <strong>complement to LangSmith</strong> claim is what happens in the first ten minutes. Record one golden run, break the agent on purpose, and watch the diff fail. No account, nothing leaves your machine.</p>
       <div class="code">
         <div class="code-bar"><span>shell</span><button type="button" id="copy-btn" aria-label="Copy install command">copy</button></div>
         <pre><span class="t-dollar">$ </span>pip install dprovenancekit</pre>
