@@ -122,6 +122,61 @@
         "run-reordered",
         "run-unverified-conflict"
       ]
+    },
+    {
+      "description": "finalDecisionMade occurs at or after the first documentEvaluated.",
+      "dsl": {
+        "type": "after",
+        "step": "documentEvaluated",
+        "followedBy": "finalDecisionMade"
+      },
+      "expected_context_ids": [
+        "run-complete",
+        "run-reordered"
+      ]
+    },
+    {
+      "description": "OR: Auditor engine OR never reached a final decision.",
+      "dsl": {
+        "type": "or",
+        "nodes": [
+          {
+            "type": "engineNameEquals",
+            "name": "Auditor"
+          },
+          {
+            "type": "missingStep",
+            "step": "finalDecisionMade"
+          }
+        ]
+      },
+      "expected_context_ids": [
+        "run-no-decision",
+        "run-reordered"
+      ]
+    },
+    {
+      "description": "NOT: runs that never reached a final decision.",
+      "dsl": {
+        "type": "not",
+        "node": {
+          "type": "containsStep",
+          "step": "finalDecisionMade"
+        }
+      },
+      "expected_context_ids": [
+        "run-no-decision"
+      ]
+    },
+    {
+      "description": "Exact context id match.",
+      "dsl": {
+        "type": "contextIDEquals",
+        "id": "run-complete"
+      },
+      "expected_context_ids": [
+        "run-complete"
+      ]
     }
   ]
 }
