@@ -66,6 +66,38 @@
         }
       ],
       "fingerprint": "362e27d1441613bc1f3bf4fcc4cdfbd3705ecf5e"
+    },
+    {
+      "description": "Empty engine string is part of the signature (distinct from 'Unknown').",
+      "events": [
+        {
+          "type": "promptGenerated",
+          "engine": ""
+        },
+        {
+          "type": "finalDecisionMade",
+          "engine": ""
+        }
+      ],
+      "fingerprint": "80d0e72f285a2c487f7c56880fdf6c536e7f4b54"
+    },
+    {
+      "description": "Repeated identical (type, engine) steps still fold in commit order.",
+      "events": [
+        {
+          "type": "documentEvaluated",
+          "engine": "Planner"
+        },
+        {
+          "type": "documentEvaluated",
+          "engine": "Planner"
+        },
+        {
+          "type": "finalDecisionMade",
+          "engine": "Planner"
+        }
+      ],
+      "fingerprint": "d5c5e87a0f27bb125568dda506965f93bb4b2747"
     }
   ]
 }

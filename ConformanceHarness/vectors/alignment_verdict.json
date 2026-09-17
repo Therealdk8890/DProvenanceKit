@@ -235,6 +235,211 @@
           "reordered"
         ]
       }
+    },
+    {
+      "description": "STRUCTURAL (non-critical) steps reordered -> states show reordered but regression stays none (only CRITICAL reorder elevates).",
+      "profile": "developer_debug_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "priority": 2,
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "priority": 2,
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "priority": 2,
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "priority": 2,
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        }
+      ],
+      "expected": {
+        "regression_level": "none",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "reordered",
+          "reordered"
+        ]
+      }
+    },
+    {
+      "description": "Two critical steps removed from comparison -> HIGH (0.95).",
+      "profile": "strict_audit_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "conflictDetected",
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003ea"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        }
+      ],
+      "expected": {
+        "regression_level": "high",
+        "regression_strength": 0.95,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "removed",
+          "removed"
+        ]
+      }
+    },
+    {
+      "description": "One critical step removed and a different step added -> HIGH (removed drives).",
+      "profile": "developer_debug_v1",
+      "base": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "conflictDetected",
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003ea"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "alternateCheck",
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d2"
+        }
+      ],
+      "expected": {
+        "regression_level": "high",
+        "regression_strength": 0.95,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "removed",
+          "added",
+          "exactMatch"
+        ]
+      }
+    },
+    {
+      "description": "TELEMETRY payload differs but is filtered by minimum_priority=STRUCTURAL -> identical structural spine, no regression.",
+      "profile": "strict_audit_v1",
+      "minimum_priority": "STRUCTURAL",
+      "base": [
+        {
+          "type": "tokenStats",
+          "attributes": {
+            "n": 10
+          },
+          "priority": 0,
+          "id": "00000000-0000-0000-0000-0000000003e8"
+        },
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000003e9"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000003ea"
+        }
+      ],
+      "comparison": [
+        {
+          "type": "tokenStats",
+          "attributes": {
+            "n": 99
+          },
+          "priority": 0,
+          "id": "00000000-0000-0000-0000-0000000007d0"
+        },
+        {
+          "type": "documentEvaluated",
+          "attributes": {
+            "doc": "A"
+          },
+          "id": "00000000-0000-0000-0000-0000000007d1"
+        },
+        {
+          "type": "finalDecisionMade",
+          "attributes": {
+            "approved": true
+          },
+          "id": "00000000-0000-0000-0000-0000000007d2"
+        }
+      ],
+      "expected": {
+        "regression_level": "none",
+        "regression_strength": 1.0,
+        "alignment_state_kinds": [
+          "exactMatch",
+          "exactMatch"
+        ]
+      }
     }
   ]
 }

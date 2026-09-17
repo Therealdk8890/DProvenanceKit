@@ -317,7 +317,19 @@ func checkAlignmentVerdict() {
         let engine = TraceAlignmentEngine(configuration: config)
         let base = buildRun(raw["base"] as! [[String: Any]], contextID: "base", runIndex: 0)
         let comparison = buildRun(raw["comparison"] as! [[String: Any]], contextID: "comparison", runIndex: 1)
-        let result = engine.align(base: base, comparison: comparison, minimumPriority: .structural)
+        // Fail closed on the vector's minimum_priority (default STRUCTURAL). Drift here
+        // would silently reintroduce telemetry into the alignment spine.
+        let minimumPriority: TracePriority = {
+            switch (raw["minimum_priority"] as? String) ?? "STRUCTURAL" {
+            case "TELEMETRY": return .telemetry
+            case "DIAGNOSTIC": return .diagnostic
+            case "STRUCTURAL": return .structural
+            case "CRITICAL": return .critical
+            default:
+                fatalError("unknown minimum_priority in alignment vector: \(raw["minimum_priority"] ?? "nil")")
+            }
+        }()
+        let result = engine.align(base: base, comparison: comparison, minimumPriority: minimumPriority)
 
         let expected = raw["expected"] as! [String: Any]
         let level = result.regressionRisk.level.rawValue

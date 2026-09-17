@@ -42,3 +42,12 @@ with one command (shows what changed):
 The alignment vectors carry an explicit `id` on every event; the harness builds its runs
 with those ids because the canonical alignment ordering tiebreaks on `(sequence, id)`
 (Trace Spec v1 §10.2).
+
+## Swift-only surfaces (not in this harness)
+
+Crypto attestation / proof-pack vectors under `docs/test-vectors/` are **Swift-only**.
+They are intentionally *not* vendored here and have no Python oracle yet. See the
+Python repo's `conformance/CROSS_LANGUAGE_GAPS.md` for the tracked gap list.
+This harness covers Trace Spec v1 golden vectors only and fails closed on drift
+via `.github/workflows/vector-sync.yml`.
+
