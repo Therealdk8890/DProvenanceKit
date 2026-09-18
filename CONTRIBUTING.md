@@ -39,6 +39,9 @@ swift run DProvenanceKitCLI evaluate --gate --min-f1=0.95   # also require an F1
 
 ## Public/private boundary
 
+**Do not merge proprietary AI Assurance Platform / Premium / Cloud control-plane code into this Apache-2.0 repository.** Platform features (cloud federation, team workspace, evidence retention/lifecycle, org policy management, hosted semantic evaluation, multi-user audit workflows, RBAC, enterprise deploy) belong in `DProvenanceKit-Premium` / `dprovenancekit-server` under a commercial license. See [docs/PRODUCT_LAYERS.md](docs/PRODUCT_LAYERS.md).
+
+
 This repository is the **public, Apache-2.0 library**. Anything merged and released here may
 be used, modified, embedded, and distributed subject to that license. Do not merge
 customer-confidential code or material intended to remain a genuinely separate proprietary

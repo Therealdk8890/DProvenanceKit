@@ -133,6 +133,8 @@ Attestation establishes integrity of what was recorded — not truthfulness of c
 
 ### Option 1: Self-Directed (Open Source)
 
+Product layers (OSS evidence engine vs commercial AI Assurance Platform): see [docs/PRODUCT_LAYERS.md](docs/PRODUCT_LAYERS.md).
+
 DProvenanceKit is Apache 2.0 licensed. You can use it free:
 
 ```bash

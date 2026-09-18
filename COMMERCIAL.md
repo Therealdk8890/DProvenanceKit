@@ -1,5 +1,7 @@
 # Commercial Support & Services
 
+> **License boundary:** public SDKs stay Apache-2.0. The AI Assurance Platform (federation, retention, policy, audit workflows, RBAC, enterprise deploy) lives in separate proprietary repos — see [docs/PRODUCT_LAYERS.md](docs/PRODUCT_LAYERS.md). Commercial code must never be merged into this Apache repository.
+
 DProvenanceKit is free and open source under the **Apache License 2.0**. Subject to its
 terms, you may use, modify, embed, and distribute the public code in production and commercial
 products without paying a license fee. See [LICENSE](LICENSE).
