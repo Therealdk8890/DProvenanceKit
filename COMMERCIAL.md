@@ -15,7 +15,7 @@ permission to use the public library.
 | I want to… | Do this |
 |------------|---------|
 | **Govern one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued for **$4,500 one time** (50% on signature, 50% on delivery) |
-| **Scope integration help, a CI gate, or a workshop** | Email **[inquiry@dprovenance.dev](mailto:inquiry@dprovenance.dev?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Scope integration help, a CI gate, or a workshop** | Email **[danielpaulkissel@gmail.com](mailto:danielpaulkissel@gmail.com?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
 | **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")`. Nothing to buy; follow the license terms. |
 | **Use the native Mac workbench** | [Download D.P.K: Reasoning Traces →](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12). Basic is currently free; see the app section below for Pro availability. |
 
@@ -60,7 +60,7 @@ synthetic or redacted example is enough for the first pass.
 After fit, scope, and kickoff timing are accepted in writing, an invoice is issued — 50% on
 signature, 50% on delivery of the assurance report, net 15. For procurement questions use the
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-or email **inquiry@dprovenance.dev**.
+or email **danielpaulkissel@gmail.com**.
 
 *Design partner rate: **$4,500 reduced from the standard $7,500**, for the first three
 customers, in exchange for a written testimonial and a case study published with your
@@ -162,6 +162,6 @@ Yes. Contributions and paid services are independent.
 
 Questions? Open a
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-or email **[inquiry@dprovenance.dev](mailto:inquiry@dprovenance.dev)**.
+or email **[danielpaulkissel@gmail.com](mailto:danielpaulkissel@gmail.com)**.
 
 *Last updated: September 2026*
