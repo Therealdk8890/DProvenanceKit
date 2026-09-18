@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DProvenanceKit Reasoning Assurance Pilot</title>
-  <meta name="description" content="A $4,500 one-time, 30-day engagement for one AI workflow: instrumentation review, golden baseline, governance policies, a CI deployment gate, an audit and provenance report, and two calls." />
+  <meta name="description" content="A $4,500 one-time, 30-day engagement for one AI workflow: instrumentation review, decision-path assurance report, and two calls. CI gate implementation is separately scoped follow-on." />
   <style>
     :root {
       color-scheme: dark light;
@@ -32,7 +32,7 @@
   <div class="hero wrap">
     <span class="eyebrow">Fixed-scope paid service</span>
     <h1>Govern one AI workflow before its blind spots become incidents.</h1>
-    <p class="lead">A golden baseline, governance policies, and a CI gate that fails the build when reasoning regresses — for one workflow where a silent change creates real risk.</p>
+    <p class="lead">An instrumentation review and a decision-path assurance report — for one workflow where a silent change to the instrumented path creates real risk. CI gate implementation is separately scoped follow-on.</p>
     <div class="price">$4,500 one time</div>
     <div class="sub">30 days · one AI workflow · local-first</div>
     <div class="actions">
@@ -42,13 +42,13 @@
   </div>
 
   <section><div class="wrap">
-    <h2>Six defined deliverables</h2>
+    <h2>Defined deliverables</h2>
     <div class="grid">
-      <div class="card"><h3>Instrumentation review</h3><p class="muted">A written assessment of the workflow's trace coverage around one agreed failure risk, flagging where reasoning steps are not captured and which steps' disappearance should page someone.</p></div>
-      <div class="card"><h3>Golden baseline</h3><p class="muted">A validated reference run, committed to your repository, that future runs are compared against.</p></div>
-      <div class="card"><h3>Governance policies</h3><p class="muted">Three to five policies authored for your workflow, delivered as a ruleset with written rationale for each rule.</p></div>
-      <div class="card"><h3>CI deployment gate</h3><p class="muted">A GitHub Actions or GitLab CI configuration that fails a pull request when reasoning regresses against the baseline, and comments the diff explaining what changed.</p></div>
-      <div class="card"><h3>Audit and provenance report</h3><p class="muted">What the baseline established, which policies apply, what they would have caught, and how to present that to an auditor or a customer.</p></div>
+      <div class="card"><h3>Instrumentation review</h3><p class="muted">A written assessment of the workflow's trace coverage around one agreed failure risk, flagging where instrumented steps are not captured and which steps' disappearance should page someone.</p></div>
+      <div class="card"><h3>Recommended baseline shape</h3><p class="muted">The report recommends a golden-baseline shape for your workflow. Committing and validating that baseline in your repository is follow-on work unless separately quoted.</p></div>
+      <div class="card"><h3>Suggested governance policies</h3><p class="muted">Suggested policies (structural divergence, required steps, claim support, allowed models, or others agreed at kickoff) appear as recommendations in the assurance report — not as a live ruleset committed to your CI.</p></div>
+      <div class="card"><h3>Recommended next gate (report only)</h3><p class="muted">The assurance report recommends a CI gate approach. Implementing the gate in your GitHub Actions or GitLab CI is separately scoped follow-on work — not included in the $4,500 pilot.</p></div>
+      <div class="card"><h3>Decision-path assurance report</h3><p class="muted">What current evidence establishes, remaining gaps, recommended baseline and policies, and a recommended CI gate approach — written for an auditor or customer conversation.</p></div>
       <div class="card"><h3>Two calls</h3><p class="muted">Kickoff and handover, plus written async support throughout, answered within two business days.</p></div>
     </div>
   </div></section>
@@ -76,7 +76,7 @@
 
   <section><div class="wrap">
     <h2>Clear boundaries</h2>
-    <div class="notice"><strong>You run the software.</strong> Your engineer installs the SDK and instruments the workflow from the documented quickstart, typically two to six hours. The pilot supplies the governance expertise, the policies, and the audit record — not code written inside your repository.</div>
+    <div class="notice"><strong>You run the software.</strong> Your engineer installs the SDK and instruments the workflow from the documented quickstart, typically two to six hours. The pilot supplies the governance expertise and the assurance record — not code written inside your repository, and not a CI gate already running in your pipeline.</div>
     <p class="lead" style="margin-top:22px">It does not include code written or debugged in your repository, a broad application rewrite, hosted infrastructure, a managed dashboard, multiple workflows, on-call or incident support, legal advice, an SLA, indemnity, or compliance certification.</p>
     <p class="muted">DProvenanceKit evaluates observable, instrumented execution. It does not expose hidden chain-of-thought, guarantee factual correctness, or detect every possible AI failure. Keep secrets and confidential client data out of the public intake.</p>
   </div></section>
@@ -86,7 +86,7 @@
     <p class="lead" style="margin-left:auto;margin-right:auto">Submitting the intake starts a fit and scope review. It does not create a contract or payment obligation.</p>
     <div class="actions" style="justify-content:center">
       <a class="btn primary" href="https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&amp;template=pilot.yml">Request the $4,500 pilot</a>
-      <a class="btn secondary" href="mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry">Email instead</a>
+      <a class="btn secondary" href="mailto:inquiry@dprovenance.dev?subject=DProvenanceKit%20paid%20pilot%20inquiry">Email instead</a>
     </div>
     <p class="small" style="margin-top:22px">Use synthetic or redacted information in GitHub. Send sensitive requirements through a private channel.</p>
   </div>

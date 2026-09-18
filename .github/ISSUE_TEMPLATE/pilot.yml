@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         The DProvenanceKit pilot is **$4,500 one time**, lasts 30 days, and covers one AI workflow.
-        It includes an integration review and one reasoning assurance report. Gate implementation, if needed, is separately scoped follow-on work.
+        It includes an integration review and one decision-path assurance report (plus kickoff/handover calls). CI gate implementation, golden-baseline commit, and live policy ruleset authorship — if needed — are separately scoped follow-on work.
 
         Submit this intake before paying. After the workflow, scope, and kickoff timing are accepted, you will use an invoice issued after the scope is agreed in writing or request an invoice.
 
@@ -36,7 +36,7 @@ body:
     id: workflow
     attributes:
       label: One workflow to de-risk
-      description: Describe the output and what could go wrong if its reasoning silently changes.
+      description: Describe the output and what could go wrong if its instrumented decision path silently changes.
       placeholder: A local drafting workflow must always connect each conclusion to an approved source.
     validations:
       required: true
@@ -81,7 +81,7 @@ body:
     id: contact
     attributes:
       label: Preferred contact
-      description: Email or GitHub handle. Use the commercial email instead if you do not want this public.
+      description: Email or GitHub handle. Prefer inquiry@dprovenance.dev offline if you do not want this public.
       placeholder: name@example.com or @handle
     validations:
       required: true

@@ -3,29 +3,32 @@
 This document defines the paid catalog without adding billing code or secrets to the public
 Apache-2.0 repository.
 
-Use the existing Stripe Payment Link only after the workflow, scope, and kickoff timing are
-accepted in writing. Do not add secret keys, webhook secrets, customer data, or hosted-service
-code to this repo.
+Invoice after the workflow, scope, and kickoff timing are accepted in writing. Do not add
+secret keys, webhook secrets, customer data, or hosted-service code to this repo. Do not
+reuse retired Stripe Payment Links.
 
 ## Stripe product
 
-The only public self-serve product is the one-time assurance **Pilot**. There are no recurring
-support subscriptions and no hosted, team, or enterprise SaaS tiers.
+The only public catalog product is the one-time assurance **Pilot**. There are no recurring
+support subscriptions and no hosted, team, or enterprise SaaS tiers. Prefer invoicing
+(50% on signature, 50% on delivery) over self-serve checkout until fulfillment is fully
+automated.
 
 | Product | Price | Billing | Lookup key |
 |---------|-------|---------|------------|
 | DProvenanceKit Pilot | $4,500 | One time | `dpk_pilot_once` |
 
-Additional integration, assurance, support, or training engagements are scoped and invoiced
-individually. Do not publish a self-serve checkout for work without a defined fulfillment
-scope.
+Additional integration, CI gate implementation, assurance, support, or training engagements
+are scoped and invoiced individually. Do not publish a self-serve checkout for work without a
+defined fulfillment scope.
 
 ## Product description
 
 Use this description for the pilot:
 
-> 30-day paid pilot for one AI workflow. Includes an integration review and one reasoning
-> assurance report. The Apache-2.0 library remains free.
+> 30-day paid pilot for one AI workflow. Includes an integration review and one decision-path
+> assurance report (plus kickoff and handover calls). CI gate implementation, if needed, is
+> separately scoped follow-on work. The Apache-2.0 library remains free.
 
 Billing covers services and customer-specific deliverables. The public Apache-2.0 code may
 already be used, modified, embedded, and distributed subject to the license; payment does not
@@ -64,17 +67,19 @@ Do not place restricted keys or customer identifiers in this repo.
 
 After payment:
 
-1. Confirm the customer, organization, and preferred contact.
+1. Confirm the customer, organization, and preferred contact (**inquiry@dprovenance.dev**).
 2. Create or update the private fulfillment record; do not put confidential details in a
    public GitHub issue.
 3. Send the onboarding email from the internal sales playbook.
 4. Schedule the kickoff call.
 5. Confirm the single workflow, success test, and 30-day boundary in writing.
 6. Ask for a synthetic or redacted good/bad example, not confidential client data.
-7. Deliver the six pilot deliverables: instrumentation review, golden baseline, three to five
-   governance policies, the CI deployment gate, the audit and provenance report, and the
-   kickoff and handover calls. See [PILOT.md](PILOT.md) for the authoritative scope.
-8. Record the closeout decision: continue internally, quote a new scope, or stop.
+7. Deliver the pilot deliverables only: instrumentation / integration review, decision-path
+   assurance report, and the kickoff and handover calls. See [PILOT.md](PILOT.md) for the
+   authoritative scope. Do **not** treat CI gate implementation, golden-baseline commit, or
+   live policy ruleset authorship as included unless separately quoted.
+8. Record the closeout decision: continue internally, quote CI gate / baseline follow-on, or
+   stop.
 
 ## Public link
 
@@ -101,8 +106,10 @@ and review request logs for unrecognized activity.
 ## Boundary rules
 
 - Everything in this public repository remains under Apache 2.0.
-- The pilot price pays for the defined 30-day engagement and deliverables.
-- Additional paid work is quoted per scope; no recurring tier is implied.
+- The pilot price pays for the defined 30-day engagement and deliverables (review + report +
+  calls).
+- Additional paid work (including CI gate implementation) is quoted per scope; no recurring
+  tier is implied.
 - DProvenanceKit currently offers no hosted service, SLA, indemnity, or compliance
   certification.
 - A purchase is not required to use or ship the public library.
