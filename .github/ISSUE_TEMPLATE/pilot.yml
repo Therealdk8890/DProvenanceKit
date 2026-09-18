@@ -81,7 +81,7 @@ body:
     id: contact
     attributes:
       label: Preferred contact
-      description: Email or GitHub handle. Prefer inquiry@dprovenance.dev offline if you do not want this public.
+      description: Email or GitHub handle. Use this field or email offline if you do not want the address public.
       placeholder: name@example.com or @handle
     validations:
       required: true
