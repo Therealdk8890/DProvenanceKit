@@ -82,6 +82,8 @@ Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` sof
 | Proof packs | **Yes** | **Not yet** |
 | Secure Enclave–backed keys | **Yes** (Apple platforms) | N/A |
 
+> **CI Action pin:** the Marketplace Action defaults to `install-spec: dprovenancekit==0.7.0`. Prefer pinning the Action itself to a commit SHA (see [dprovenancekit-action](https://github.com/Therealdk8890/dprovenancekit-action)).
+
 Cross-language conformance covers fingerprints, query semantics, profile hash, and alignment verdicts per [TRACE_SPEC_v1](https://github.com/Therealdk8890/DProvenanceKitPython/blob/main/conformance/TRACE_SPEC_v1.md). Payload encodings need **not** be byte-identical across SDKs; equivalence is on decoded payloads and structural fingerprints.
 
 ---
