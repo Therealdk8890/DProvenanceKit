@@ -13,7 +13,7 @@ permission to use the public library.
 | I want to… | Do this |
 |------------|---------|
 | **Govern one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued for **$4,500 one time** (50% on signature, 50% on delivery) |
-| **Scope integration help or a workshop** | Email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
+| **Scope integration help, a CI gate, or a workshop** | Email **[inquiry@dprovenance.dev](mailto:inquiry@dprovenance.dev?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
 | **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")`. Nothing to buy; follow the license terms. |
 | **Use the native Mac workbench** | [Download D.P.K: Reasoning Traces →](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12). Basic is currently free; see the app section below for Pro availability. |
 
@@ -27,28 +27,26 @@ The pilot covers **one AI workflow** with one clear failure risk. It is built fo
 team shipping legal, regulated, on-device, or tool-using AI where a fluent-but-wrong result
 is more dangerous than a crash.
 
-It runs for 30 days and produces six deliverables:
+It runs for 30 days and produces these deliverables:
 
-1. **Instrumentation review.** A written assessment of your recorded traces, flagging gaps
-   where reasoning steps are not captured, and identifying the steps whose disappearance
-   should page someone.
-2. **Golden baseline.** A validated reference run that future runs are compared against,
-   committed to your repository.
-3. **Three to five governance policies** authored for your workflow — structural divergence,
-   required steps, claim support, allowed models, or others agreed at kickoff — delivered as
-   a ruleset with written rationale for each rule.
-4. **CI deployment gate.** A GitHub Actions or GitLab CI configuration that fails a pull
-   request when reasoning regresses against the baseline, and comments the diff explaining
-   what changed.
-5. **Audit and provenance report.** What the baseline established, which policies apply, what
-   they would have caught, and how to present that to an auditor or a customer.
-6. **Two calls** — kickoff and handover — plus written async support throughout, answered
+1. **Instrumentation / integration review.** A written assessment of your recorded traces,
+   flagging gaps where instrumented steps are not captured, and identifying the steps whose
+   disappearance should page someone.
+2. **Decision-path assurance report.** What evidence the traces establish today, which
+   gaps remain, recommended golden-baseline shape, suggested governance policies (as
+   recommendations, not a committed ruleset in your CI), and a recommended CI gate approach
+   for a follow-on engagement if you want one.
+3. **Two calls** — kickoff and handover — plus written async support throughout, answered
    within two business days.
+
+**CI deployment gate implementation** (GitHub Actions / GitLab CI that fails a pull request
+when the instrumented path regresses), **committing a golden baseline**, and **authoring a
+live policy ruleset in your repository** are **not** included in the pilot. Those are
+separately scoped, quoted follow-on work.
 
 **You run the software.** Your engineer installs the SDK and instruments the workflow
 following the documented quickstart, typically two to six hours. The pilot supplies
-governance expertise, the policies, and the audit record — not code written inside your
-repository.
+governance expertise and the assurance record — not code written inside your repository.
 
 The pilot does **not** include code written or debugged in your repository, hosted
 infrastructure, a broad application rewrite, on-call or incident support, legal advice, a
@@ -58,9 +56,9 @@ synthetic or redacted example is enough for the first pass.
 **[Request the pilot →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
 
 After fit, scope, and kickoff timing are accepted in writing, an invoice is issued — 50% on
-signature, 50% on delivery of the audit report, net 15. For procurement questions use the
+signature, 50% on delivery of the assurance report, net 15. For procurement questions use the
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-or email the address above.
+or email **inquiry@dprovenance.dev**.
 
 *Design partner rate: **$4,500 reduced from the standard $7,500**, for the first three
 customers, in exchange for a written testimonial and a case study published with your
@@ -71,7 +69,8 @@ approval and any anonymisation you require.*
 Scoped support is available by quote when a pilot is not the right shape:
 
 - integration reviews and implementation workshops
-- CI regression-gate design or implementation
+- CI regression-gate design or implementation (typical follow-on after the pilot)
+- golden baseline + policy ruleset commit into your repository
 - trace-vocabulary and OpenTelemetry export reviews
 - team training using synthetic or redacted examples
 
@@ -85,7 +84,8 @@ The public Apache-2.0 library includes:
 
 - recording, querying, structural diffing, and regression detection
 - provenance and source lineage
-- local P-256 trace attestation and role-bound proof packs
+- local P-256 trace attestation and role-bound proof packs (Swift; Python MVP via
+  `dprovenancekit[crypto]` software keys)
 - offline verification and the local CI regression gate
 - the Foundation Models adapter (`DProvenanceFoundationModels`)
 - the OpenTelemetry / OTLP exporter (`DProvenanceOTel`)
@@ -130,8 +130,9 @@ Yes. Follow the Apache 2.0 terms; no separate commercial agreement or payment is
 
 **$4,500 one time** for 30 days and one workflow, invoiced 50% on signature and 50% on
 delivery. The standard rate is $7,500; $4,500 is the design-partner rate for the first three
-customers. This page and the [commercial offer](docs/COMMERCIAL_OFFER.md) define the same
-scope.
+customers. This page, [docs/PILOT.md](docs/PILOT.md), and the
+[commercial offer](docs/COMMERCIAL_OFFER.md) define the same scope: integration review +
+decision-path assurance report + two calls. CI gate implementation is follow-on.
 
 Regulated workflows requiring a compliance export are quoted separately.
 
@@ -159,6 +160,6 @@ Yes. Contributions and paid services are independent.
 
 Questions? Open a
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-or email **[therealdk8890+lineage@gmail.com](mailto:therealdk8890+lineage@gmail.com)**.
+or email **[inquiry@dprovenance.dev](mailto:inquiry@dprovenance.dev)**.
 
-*Last updated: July 2026*
+*Last updated: September 2026*

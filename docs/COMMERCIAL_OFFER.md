@@ -1,20 +1,20 @@
 # Commercial Offer
 
 DProvenanceKit is free Apache-2.0 infrastructure for recording, querying, diffing, and
-exporting reasoning traces. The commercial offer is hands-on assurance work around that
-engine: review one risky AI workflow, define what must not silently change, and leave the
-buyer with a concise evidence report and a recommended next gate.
+exporting instrumented decision-path traces. The commercial offer is hands-on assurance work
+around that engine: review one risky AI workflow, define what must not silently change, and
+leave the buyer with a concise evidence report and a recommended next gate.
 
 ## Positioning
 
-**AI reasoning assurance for a workflow that cannot afford silent regressions.**
+**AI decision-path assurance for a workflow that cannot afford silent regressions.**
 
 DProvenanceKit is strongest where a fluent wrong answer is worse than a crash:
 
 - legal AI drafting and review workflows
 - on-device Foundation Models applications
 - agents that call tools, search, or retrieve evidence
-- CI pipelines that must fail when a critical reasoning step disappears
+- CI pipelines that must fail when a critical instrumented step disappears
 - regulated workflows that need traceable, reviewable behavior
 
 ## First buyer
@@ -34,50 +34,43 @@ known failure mode, and one decision the resulting evidence will support.
 
 | Offer | Price | Scope | Promise |
 |-------|-------|-------|---------|
-| **30-day Governed AI Deployment Pilot** | **$4,500 one time** | One AI workflow | Establish a golden baseline, author governance policies, put a regression gate in CI, and deliver an auditable deployment decision record. |
+| **30-day Governed AI Deployment Pilot** | **$4,500 one time** | One AI workflow | Instrumentation / integration review + decision-path assurance report + two calls. CI gate implementation is separately scoped follow-on. |
 
 **[Request pilot fit →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)**
 
 After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued —
-50% on signature, 50% on delivery of the audit report, net 15. For procurement questions,
+50% on signature, 50% on delivery of the assurance report, net 15. For procurement questions,
 open a
 [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-instead.
+or email **inquiry@dprovenance.dev**.
 
 ## Pilot deliverables
 
-The pilot owes six deliverables:
+The pilot owes three deliverables:
 
-1. **Instrumentation review.** Within the accepted scope, a written assessment of the
-   workflow's instrumentation, trace vocabulary, representative runs, and the agreed failure
-   scenario — flagging where reasoning steps are not captured and which steps' disappearance
-   should page someone.
-2. **Golden baseline.** A validated reference run, committed to the buyer's repository, that
-   future runs are compared against.
-3. **Three to five governance policies** authored for the workflow — structural divergence,
-   required steps, claim support, allowed models, or others agreed at kickoff — delivered as
-   a ruleset with written rationale per rule.
-4. **CI deployment gate.** A GitHub Actions or GitLab CI configuration that fails a pull
-   request when reasoning regresses against the baseline, commenting the diff.
-5. **Audit and provenance report.** What the baseline established, which policies apply, what
-   they would have caught, remaining evidence gaps and limitations, and how to present this to
-   an auditor or customer.
-6. **Two calls** — kickoff and handover — plus written async support answered within two
+1. **Instrumentation / integration review.** Within the accepted scope, a written assessment
+   of the workflow's instrumentation, trace vocabulary, representative runs, and the agreed
+   failure scenario — flagging where instrumented steps are not captured and which steps'
+   disappearance should page someone.
+2. **Decision-path assurance report.** What current evidence establishes, remaining gaps,
+   recommended golden-baseline shape, suggested governance policies (recommendations only),
+   and a recommended CI gate approach for follow-on work.
+3. **Two calls** — kickoff and handover — plus written async support answered within two
    business days.
 
 **The buyer runs the software.** Their engineer installs the SDK and instruments the workflow
 from the documented quickstart, typically two to six hours. The pilot supplies governance
-expertise, the policies, and the audit record — never code written inside the buyer's
-repository.
+expertise and the assurance record — never code written inside the buyer's repository.
 
-A good pilot ends with a gate running in the buyer's CI and a report explaining what the
-baseline established, whether current instrumentation exposes the agreed risk, what evidence
-is still missing, and what step to consider next.
+A good pilot ends with a clear evidence boundary in writing and a concrete next step. It does
+**not** end with a gate already running in the buyer's CI unless that was separately quoted.
 
 ## Out of scope
 
 The pilot does not include:
 
+- CI deployment gate implementation (quote as follow-on)
+- committing a golden baseline or live policy ruleset into the buyer's repository
 - hosted infrastructure or a managed team dashboard
 - a broad app rewrite or open-ended custom development
 - legal advice or review of the buyer's legal conclusions
@@ -97,6 +90,7 @@ Possible scopes include:
 
 - implementation workshop
 - CI regression-gate design or implementation
+- golden baseline + policy ruleset commit
 - trace-vocabulary and OpenTelemetry export review
 - team training using synthetic or redacted examples
 
@@ -109,14 +103,14 @@ scope and terms outside this repository.
 
 For legal workflows, use this concrete question:
 
-> Before a draft leaves review, can the trace show which facts, documents, and reasoning
+> Before a draft leaves review, can the trace show which facts, documents, and instrumented
 > steps supported it — and what rule should catch a missing critical support step?
 
 The pilot can surface:
 
 - missing evidence steps
 - unsupported conclusions identified by an agreed rule
-- changed reasoning paths after a model or OS update
+- changed instrumented paths after a model or OS update
 - source-to-draft lineage
 - reviewer notes tied to trace evidence
 
@@ -161,4 +155,4 @@ Use the output to show:
   an invoice issued after the scope is agreed in writing.
 - **Need an invoice or different scoped engagement:** open a
   [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-  or use the email address in [COMMERCIAL.md](../COMMERCIAL.md).
+  or email **[inquiry@dprovenance.dev](mailto:inquiry@dprovenance.dev)**.

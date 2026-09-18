@@ -4,7 +4,7 @@
 
 For teams in healthcare, finance, and legal building AI systems that need a local-first record of *which instrumented steps ran*, a regression gate when that path drifts, and (on Swift) a signed attestation they can verify without calling home.
 
-> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install dprovenancekit`. Same recording, diff, and CI gate; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Cryptographic attestation and proof packs are Swift-only today (see matrix below).
+> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install "dprovenancekit[crypto]"` (attestation MVP on main / **0.7.0+**; older PyPI wheels lack it). Same recording, diff, CI gate, and `DPK-BINARY-V1` software attestation; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Proof packs and Secure Enclave remain Swift-only (see matrix below).
 
 ---
 
@@ -66,7 +66,7 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
    - Offline verification with no network dependency
 
-Python shares recording, query, diff, and the CI gate. End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path). It does **not** yet sign traces or emit proof packs — use the Swift SDK (or wait for a port) when you need cryptographic attestation.
+Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
 
 ---
 
@@ -78,7 +78,7 @@ Python shares recording, query, diff, and the CI gate. End-to-end decision-path 
 | Semantic diff + golden baselines | Yes | Yes |
 | CI regression gate | Yes (`dpk` / package tools) | Yes (`dprovenancekit gate`, pytest `golden_trace`, [GitHub Action](https://github.com/marketplace/actions/dprovenancekit-regression-gate)) |
 | Framework adapters (LangChain, Agents, …) | Foundation Models (+ OTel bridge) | LangChain, OpenAI Agents, LlamaIndex, CrewAI, OTel ingest |
-| Trace attestation (`DPK-BINARY-V1` + P-256 DER) | **Yes** | **Not yet** |
+| Trace attestation (`DPK-BINARY-V1` + P-256 DER) | **Yes** | **MVP yes** (`dprovenancekit[crypto]`; software keys; **0.7.0+** / on main) |
 | Proof packs | **Yes** | **Not yet** |
 | Secure Enclave–backed keys | **Yes** (Apple platforms) | N/A |
 
@@ -276,7 +276,7 @@ Integrate DProvenanceKit into one AI workflow. Record a baseline.
 Establish governance policy. Define what counts as a regression.
 
 ### Month 1-3
-Gate releases on reasoning-path changes. Export attestations or proof packs where Swift is in the pipeline.
+Gate releases on instrumented-path changes. Export attestations or proof packs where needed (Python: software keys via `[crypto]`; Swift: software or Secure Enclave; proof packs Swift-only).
 
 ### Ongoing
 Every release: baseline vs. candidate. A clear record of whether the instrumented path stayed consistent.
