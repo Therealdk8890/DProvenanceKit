@@ -177,7 +177,7 @@ For organizations that want governance guidance and a structured review of one A
 
 **Timeline:** 30 days, delivered as a report.
 
-**Next step:** [Request a pilot](mailto:inquiry@dprovenance.dev?subject=Governed%20AI%20Deployment%20Pilot).
+**Next step:** [Request a pilot](mailto:danielpaulkissel@gmail.com?subject=Governed%20AI%20Deployment%20Pilot).
 
 ---
 
@@ -302,7 +302,7 @@ Apache 2.0. Free for commercial use.
 ## Contact
 
 **For pilot inquiry:**
-[Request Governed AI Deployment Pilot](mailto:inquiry@dprovenance.dev?subject=Governed%20AI%20Deployment%20Pilot)
+[Request Governed AI Deployment Pilot](mailto:danielpaulkissel@gmail.com?subject=Governed%20AI%20Deployment%20Pilot)
 
 **For open-source questions:**
 GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
