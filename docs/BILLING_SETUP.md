@@ -67,7 +67,7 @@ Do not place restricted keys or customer identifiers in this repo.
 
 After payment:
 
-1. Confirm the customer, organization, and preferred contact (**inquiry@dprovenance.dev**).
+1. Confirm the customer, organization, and preferred contact (**danielpaulkissel@gmail.com**).
 2. Create or update the private fulfillment record; do not put confidential details in a
    public GitHub issue.
 3. Send the onboarding email from the internal sales playbook.
