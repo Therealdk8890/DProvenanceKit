@@ -1,0 +1,18 @@
+{
+  "context_id": "decision-path.candidate-regressed",
+  "description": "Deliberate regression: CRITICAL claimVerified step removed (still decides).",
+  "steps": [
+    {
+      "engine": "Retriever",
+      "type": "sourcesRetrieved",
+      "priority": "structural",
+      "detail": "3 policy sources"
+    },
+    {
+      "engine": "Decider",
+      "type": "decisionMade",
+      "priority": "critical",
+      "detail": "approved"
+    }
+  ]
+}

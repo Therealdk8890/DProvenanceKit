@@ -13,6 +13,7 @@ FoundationModels framework, which needs the macOS 26 SDK.
 swift build          # builds all targets, including the OTel/FoundationModels bridges
 swift test           # ~490 tests across the core, UI, FoundationModels, and OTel targets
 swift run Quickstart # end-to-end tour of the Run → Record → Query → Diff loop
+swift run E2EDecisionPathDemo  # decision-path gate + attest (Python e2e twin)
 ```
 
 The benchmark corpus is the regression gate. Run it the way CI does:
