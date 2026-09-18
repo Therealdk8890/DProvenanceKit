@@ -54,6 +54,10 @@ let package = Package(
         .executable(
             name: "FoundationModelsLiveQuickstart",
             targets: ["FoundationModelsLiveQuickstart"]
+        ),
+        .executable(
+            name: "E2EDecisionPathDemo",
+            targets: ["E2EDecisionPathDemo"]
         )
     ],
     targets: [
@@ -114,9 +118,22 @@ let package = Package(
             name: "FoundationModelsLiveQuickstart",
             dependencies: ["DProvenanceFoundationModels"]
         ),
+        // Shared runner for the e2e decision-path demo (Instrument → Gate → Attest → Verify).
+        // Kept as a library so XCTest can call the same code path as `swift run`.
+        .target(
+            name: "E2EDecisionPathDemoLib",
+            dependencies: ["DProvenanceKit"],
+            path: "Sources/E2EDecisionPathDemoLib"
+        ),
+        // One-shot engineer-facing twin of the Python examples/e2e_decision_path demo.
+        .executableTarget(
+            name: "E2EDecisionPathDemo",
+            dependencies: ["E2EDecisionPathDemoLib"],
+            path: "Sources/E2EDecisionPathDemo"
+        ),
         .testTarget(
             name: "DProvenanceKitTests",
-            dependencies: ["DProvenanceKit", "DProvenanceUI"]
+            dependencies: ["DProvenanceKit", "DProvenanceUI", "E2EDecisionPathDemoLib"]
         ),
         // Covers the CLI's fail-closed argument validation: a malformed --trusted-key
         // or --min-f1 must stop the run, never silently weaken it.

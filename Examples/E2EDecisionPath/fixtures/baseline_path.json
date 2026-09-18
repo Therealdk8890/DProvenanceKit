@@ -1,0 +1,24 @@
+{
+  "context_id": "decision-path.baseline",
+  "description": "Clean instrumented decision path: retrieve → verify (CRITICAL) → decide (CRITICAL).",
+  "steps": [
+    {
+      "engine": "Retriever",
+      "type": "sourcesRetrieved",
+      "priority": "structural",
+      "detail": "3 policy sources"
+    },
+    {
+      "engine": "Verifier",
+      "type": "claimVerified",
+      "priority": "critical",
+      "detail": "2 of 3 sources agree"
+    },
+    {
+      "engine": "Decider",
+      "type": "decisionMade",
+      "priority": "critical",
+      "detail": "approved"
+    }
+  ]
+}

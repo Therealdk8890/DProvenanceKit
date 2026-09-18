@@ -66,7 +66,7 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
    - Offline verification with no network dependency
 
-Python shares recording, query, diff, and the CI gate. It does **not** yet sign traces or emit proof packs — use the Swift SDK (or wait for a port) when you need cryptographic attestation.
+Python shares recording, query, diff, and the CI gate. End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path). It does **not** yet sign traces or emit proof packs — use the Swift SDK (or wait for a port) when you need cryptographic attestation.
 
 ---
 
