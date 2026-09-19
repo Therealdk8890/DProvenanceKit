@@ -3,27 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DProvenanceKit vs LangSmith: attestation and CI proof, not another dashboard</title>
-<meta name="description" content="Honest comparison: LangSmith is hosted observability and evals. DProvenanceKit is local-first decision-path evidence with CI gates and cryptographic attestation for teams that need proof, not another dashboard.">
+<title>DProvenanceKit vs LangSmith: AI agent regression testing (not another dashboard)</title>
+<meta name="description" content="Output tests, LLM evals, and OTel can all PASS while a required verify step disappears. DProvenanceKit gates AI agent execution-path regressions in CI and attests the evidence — complementary to LangSmith, not a rival dashboard.">
 <link rel="canonical" href="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="DProvenanceKit">
-<meta property="og:title" content="DProvenanceKit vs LangSmith: attestation and CI proof, not another dashboard">
-<meta property="og:description" content="LangSmith for dashboards and evals. DProvenanceKit for local decision-path evidence, CI regression gates, and offline-verifiable attestation — complementary, not a rival dashboard.">
+<meta property="og:title" content="DProvenanceKit vs LangSmith: AI agent regression testing (not another dashboard)">
+<meta property="og:description" content="The visceral demo: output PASS · eval PASS · OTel PASS · DProvenanceKit FAIL when verify is dropped. Regression testing for agent execution paths; attestation for audit-ready proof. Use beside LangSmith.">
 <meta property="og:url" content="https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/">
 <meta property="og:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
 <meta property="og:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="DProvenanceKit vs LangSmith: attestation and CI proof, not another dashboard">
-<meta name="twitter:description" content="LangSmith for dashboards and evals. DProvenanceKit for local decision-path evidence, CI gates, and offline-verifiable attestation.">
+<meta name="twitter:title" content="DProvenanceKit vs LangSmith: AI agent regression testing (not another dashboard)">
+<meta name="twitter:description" content="The visceral demo: output PASS · eval PASS · OTel PASS · DProvenanceKit FAIL when verify is dropped. Regression testing for agent execution paths; attestation for audit-ready proof. Use beside LangSmith.">
 <meta name="twitter:image" content="https://raw.githubusercontent.com/Therealdk8890/DProvenanceKitPython/main/assets/demo.gif">
 <meta name="twitter:image:alt" content="Terminal demo: DProvenanceKit diffs two agent runs and fails CI when the candidate drops its verify step and loops its search tool">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "DProvenanceKit vs LangSmith: attestation and CI proof, not another dashboard",
-  "description": "An honest comparison: LangSmith is a hosted observability and evals platform; DProvenanceKit is a local-first decision-path evidence layer with CI regression gates and cryptographic attestation for regulated and enterprise buyers.",
+  "headline": "DProvenanceKit vs LangSmith: AI agent regression testing (not another dashboard)",
+  "description": "Output tests, LLM evals, and OTel can all PASS while a required verify step disappears. DProvenanceKit gates AI agent execution-path regressions in CI and attests the evidence — complementary to LangSmith, not a rival dashboard.",
   "datePublished": "2026-07-03",
   "author": { "@type": "Organization", "name": "DProvenanceKit", "url": "https://dprovenance.dev/" },
   "url": "https://dprovenance.dev/compare/dprovenancekit-vs-langsmith/",
@@ -149,6 +149,22 @@
     section{padding:36px 0}
     .hero{padding:40px 0 4px}
   }
+
+  /* killer scoreboard */
+  .scoreboard{margin:28px 0 8px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg3)}
+  .scoreboard .sb-head{padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:var(--sans);font-size:13px;color:var(--dim)}
+  .scoreboard .sb-head strong{color:var(--text)}
+  .scoreboard table{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:14px}
+  .scoreboard th,.scoreboard td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
+  .scoreboard tr:last-child th,.scoreboard tr:last-child td{border-bottom:none}
+  .scoreboard th{width:42%;color:var(--dim);font-weight:500}
+  .scoreboard td{font-family:var(--mono);font-weight:700;letter-spacing:.02em}
+  .scoreboard .pass{color:var(--green-hi)}
+  .scoreboard .fail{color:var(--red);background:var(--red-bg)}
+  .scoreboard .sb-foot{padding:14px 16px;font-family:var(--sans);font-size:14px;color:var(--dim);border-top:1px solid var(--border)}
+  .scoreboard .sb-foot strong{color:var(--text)}
+  .scoreboard .sb-foot a{color:var(--green-hi)}
+
 </style>
 </head>
 <body>
@@ -169,15 +185,29 @@
 <main>
   <div class="wrap hero">
     <p class="crumb"><a href="https://dprovenance.dev/">dprovenance.dev</a> / compare / dprovenancekit-vs-langsmith</p>
-    <h1>DProvenanceKit vs LangSmith: proof vs dashboards</h1>
-    <p class="sub"><strong>LangSmith</strong> is a hosted observability and evals platform — traces, dashboards, monitoring, annotation queues. Use it when your team needs to <em>see</em> agent behavior. <strong><a href="https://dprovenance.dev/">DProvenanceKit</a></strong> is a local-first <em>decision-path evidence</em> layer (Apache-2.0): SQLite traces you own, a CI gate that refuses merge when the path drifts, and <strong>cryptographic attestation</strong> so an auditor can verify a run offline — without trusting your dashboard.</p>
-    <p class="sub">Be plain about it: <strong>if you want team dashboards, production monitoring, and hosted evals, pick LangSmith</strong> (and keep it). DProvenanceKit does not replace that. If you sell into enterprises or ship in regulated spaces — fintech, healthtech, legal-adjacent — and someone will ask you to <strong>prove the agent did not drop a required step</strong>, that is the job this page is about.</p>
+    <h1>DProvenanceKit vs LangSmith: catch the regression your evals miss</h1>
+    <p class="sub"><strong>DProvenanceKit</strong> is <em>regression testing for AI agent execution paths</em>: record a golden decision path, diff the next run, fail CI when a required step disappears — even when the final answer still looks right. <strong>LangSmith</strong> is the hosted observability and evals platform you keep for dashboards, monitoring, and annotation. Use them together.</p>
+    <p class="sub">Most stacks already have output tests, LLM judges, and OpenTelemetry. Those can all stay green while the agent quietly drops <code>verify</code>. That gap is the whole product.</p>
+
+    <div class="scoreboard" role="region" aria-label="Why output tests miss agent regressions">
+      <div class="sb-head">Same agent change: a required <strong>verify</strong> step is deleted. Final answer still looks fine.</div>
+      <table>
+        <tbody>
+          <tr><th scope="row">Output test (string / snapshot)</th><td class="pass">PASS</td></tr>
+          <tr><th scope="row">LLM-as-judge / eval suite</th><td class="pass">PASS</td></tr>
+          <tr><th scope="row">OpenTelemetry / LangSmith monitoring</th><td class="pass">PASS</td></tr>
+          <tr><th scope="row">DProvenanceKit execution-path gate</th><td class="fail">FAIL — verify step disappeared</td></tr>
+        </tbody>
+      </table>
+      <div class="sb-foot">That is <strong>regression testing for AI agent execution paths</strong> — the front door. Cryptographic attestation is how you later prove the path that shipped. <a href="https://github.com/Therealdk8890/dprovenancekit-action/tree/main/examples/synthetic-regression">Run the 60-second CI demo →</a></div>
+    </div>
+
   </div>
 
   <section id="table">
     <div class="wrap">
       <p class="sec-kicker"><span class="no"># 01</span> · at a glance</p>
-      <h2>Evidence and attestation vs hosted observability</h2>
+      <h2>Execution-path regression vs hosted observability</h2>
       <p class="lede">Every claim in the LangSmith column below was checked against <a href="https://www.langchain.com/langsmith">langchain.com</a> and <a href="https://docs.langchain.com/langsmith/home">docs.langchain.com</a> on July 3, 2026. LangSmith's pricing and features move; treat their pricing page as the source of truth for current numbers.</p>
       <div class="tbl-wrap">
         <table class="cmp">
@@ -206,7 +236,7 @@
               <td>SDK clients are MIT-licensed; the platform itself is a proprietary hosted service.</td>
             </tr>
             <tr>
-              <th scope="row">CI regression gating</th>
+              <th scope="row">CI gate on agent execution path</th>
               <td><span class="yes">✓</span> Built in, four ways: <code>assert_no_regression</code>, the <code>golden_trace</code> pytest fixture, the server-less <code>gate</code> CLI, and a GitHub Action (+ a GitLab CI template).</td>
               <td>The <code>@pytest.mark.langsmith</code> integration logs test results to the platform as datasets and experiments; its docs as of July 2026 don't describe a built-in structural golden-baseline gate.</td>
             </tr>
@@ -240,10 +270,10 @@
   <section id="difference">
     <div class="wrap">
       <p class="sec-kicker"><span class="no"># 02</span> · the core difference</p>
-      <h2>Attestation and gates — not a smaller LangSmith</h2>
-      <p class="lede">Most “LangSmith alternative” pages compare dashboards to dashboards. That race is already lost to free/cheap incumbents. DProvenanceKit’s center of gravity is different: <strong>a decision path you can gate in CI and attest cryptographically</strong> — so a compliance officer or enterprise buyer gets an audit-ready artifact, not another chart. Observability tells you what happened; attestation + a regression gate let you <strong>refuse to ship drift</strong> and later prove what shipped.</p>
+      <h2>Regression testing first; attestation when buyers ask for proof</h2>
+      <p class="lede">The category at the front door is <strong>AI agent execution-path regression testing</strong>. Golden path → record → change prompt/model/tools → record candidate → structural + semantic diff → CI fails when <code>verify</code> vanished. Attestation and offline proof packs are the deeper layer for regulated and enterprise buyers — not the first sentence on the box.</p>
       <ul class="facts">
-        <li><strong>Attestation is the differentiator; the Action is the distribution.</strong> Fork the <a href="https://github.com/Therealdk8890/dprovenancekit-action/tree/main/examples/synthetic-regression">synthetic regression demo</a> to see CI fail when a required <code>verify</code> step is dropped. Then layer Swift Secure Enclave / Python <code>[crypto]</code> attestation when a buyer asks for offline proof.</li>
+        <li><strong>The killer demo is the differentiator; the Action is the distribution.</strong> Output tests, evals, and OTel can all pass while a required step disappears. Fork the <a href="https://github.com/Therealdk8890/dprovenancekit-action/tree/main/examples/synthetic-regression">synthetic regression demo</a> and watch CI fail on a dropped <code>verify</code>. Layer Swift Secure Enclave / Python <code>[crypto]</code> attestation when a buyer asks for offline proof.</li>
         <li><strong>Golden baselines are files.</strong> A known-good run is saved as a SQLite trace (e.g. <code>tests/goldens/research-agent.sqlite</code>) and committed like any other snapshot. <code>pytest --dprov-update-golden</code> re-records it deliberately; a plain <code>pytest</code> gates against it.</li>
         <li><strong>Run fingerprints make drift cheap to detect.</strong> Every run gets a structural identity of its execution path — a reordered tool, a skipped retrieval step, a dropped verify step all change the fingerprint.</li>
         <li><strong>Diffs are severity-graded, not binary.</strong> Regressions grade none / low / medium / high; a removed critical step (think <code>verify.claims</code> or <code>safety_check</code>) grades high. The gate is strict by default and loosens explicitly via <code>max_regression_level</code> or <code>allow_divergent_steps</code>, and you can plug in a custom <code>evaluator</code>.</li>
@@ -362,7 +392,7 @@ tracer = DProvenanceTracer(store)
   <section id="start">
     <div class="wrap">
       <p class="sec-kicker"><span class="no"># 07</span> · get started</p>
-      <h2>Start with the CI gate; graduate to attestation</h2>
+      <h2>Reproduce the FAIL in sixty seconds</h2>
       <p class="lede">The honest test of any <strong>complement to LangSmith</strong> claim is what happens in the first ten minutes. Record one golden run, break the agent on purpose, and watch the diff fail. No account, nothing leaves your machine.</p>
       <div class="code">
         <div class="code-bar"><span>shell</span><button type="button" id="copy-btn" aria-label="Copy install command">copy</button></div>
