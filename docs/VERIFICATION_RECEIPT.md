@@ -57,6 +57,17 @@ integrity of a recorded path; it cannot certify factual truth of the claim text.
 Digests and key IDs in fixtures are **examples** for the test matrix, not live
 signing material.
 
+## Schema validation vs invariant evaluation
+
+**JSON Schema validates structure. DPK’s invariant evaluator validates semantics.**
+
+- The receipt schema (`verification-receipt.schema.json`) checks that a `VerificationReceipt` is well-formed: required fields, enums, hash shapes, and projection metadata.
+- The invariant schema (`verification-invariant.schema.json`) checks that a `VerificationInvariant` document is well-formed: `required_steps`, `must_include`, and `ordering` entries.
+- Neither schema decides whether a receipt is actually `verified`. Passing JSON Schema validation does **not** mean the projected steps satisfy the invariant, and it does **not** mean integrity checks passed.
+- Status (`verified` / `incomplete` / `tampered`) is determined only by the **VerificationInvariant evaluator** (plus proof-pack / attestation integrity checks) when projecting from a proof pack.
+
+Consumers (CaseClarity, CI Action, Swift/Python tests) must call that evaluator — or an equivalent implementation of the same rules — rather than treating schema-valid JSON as a verified receipt.
+
 ## Machine-readable invariant
 
 `claim-path-v1` (see the fixture) declares:

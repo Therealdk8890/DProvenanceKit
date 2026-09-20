@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dprovenance.dev/schemas/verification-receipt.schema.json",
   "title": "DProvenanceKit VerificationReceipt",
-  "description": "Human-facing projection of an existing ProofPackDocument + TraceAttestation. Not a new cryptographic artifact. Verified means integrity-protected provenance satisfied the declared invariant — not that the claim is objectively true.",
+  "description": "Human-facing projection of an existing ProofPackDocument + TraceAttestation. Not a new cryptographic artifact. JSON Schema validates structure only \u2014 status (verified/incomplete/tampered) requires the VerificationInvariant evaluator plus proof-pack/attestation integrity checks. Verified means integrity-protected provenance satisfied the declared invariant \u2014 not that the claim is objectively true.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,7 +25,9 @@
     "claim": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["text"],
+      "required": [
+        "text"
+      ],
       "properties": {
         "text": {
           "type": "string",
@@ -36,7 +38,11 @@
     },
     "status": {
       "type": "string",
-      "enum": ["verified", "incomplete", "tampered"],
+      "enum": [
+        "verified",
+        "incomplete",
+        "tampered"
+      ],
       "description": "verified = required steps in order AND integrity checks passed. incomplete = missing required provenance/invariant evidence. tampered = bound evidence or attestation no longer validates."
     },
     "status_reason": {
@@ -49,7 +55,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "content_hash"],
+        "required": [
+          "name",
+          "content_hash"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -74,11 +83,19 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type", "label"],
+        "required": [
+          "type",
+          "label"
+        ],
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["evidence", "extract", "verify", "claim"],
+            "enum": [
+              "evidence",
+              "extract",
+              "verify",
+              "claim"
+            ],
             "description": "Canonical step type used by VerificationInvariant matching. Projected from instrumented trace event typeIdentifiers / roles."
           },
           "label": {
@@ -92,7 +109,11 @@
     "integrity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["evidence", "trace", "files_unchanged"],
+      "required": [
+        "evidence",
+        "trace",
+        "files_unchanged"
+      ],
       "properties": {
         "evidence": {
           "type": "boolean",
@@ -111,7 +132,10 @@
     "attestation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["receipt_id", "short_hash"],
+      "required": [
+        "receipt_id",
+        "short_hash"
+      ],
       "properties": {
         "receipt_id": {
           "type": "string",
@@ -150,12 +174,14 @@
     "projection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["from"],
+      "required": [
+        "from"
+      ],
       "properties": {
         "from": {
           "type": "string",
           "const": "proof_pack",
-          "description": "Receipt is always projected from an existing proof pack path — never a standalone crypto object."
+          "description": "Receipt is always projected from an existing proof pack path \u2014 never a standalone crypto object."
         },
         "proof_pack_version": {
           "type": "integer",
@@ -168,16 +194,28 @@
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "verified" } },
-        "required": ["status"]
+        "properties": {
+          "status": {
+            "const": "verified"
+          }
+        },
+        "required": [
+          "status"
+        ]
       },
       "then": {
         "properties": {
           "integrity": {
             "properties": {
-              "evidence": { "const": true },
-              "trace": { "const": true },
-              "files_unchanged": { "const": true }
+              "evidence": {
+                "const": true
+              },
+              "trace": {
+                "const": true
+              },
+              "files_unchanged": {
+                "const": true
+              }
             }
           }
         }
