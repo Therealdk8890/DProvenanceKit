@@ -6,6 +6,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Phase 1C Verification Receipt projector.** `VerificationReceipt`,
+  `VerificationInvariant` / `claim-path-v1`, and `VerificationReceiptProjector`
+  project a real `ProofPackDocument` through the shared invariant into a
+  schema-aligned receipt. Status is evaluated (integrity → tampered, else
+  invariant → incomplete, else verified) — not schema-inferred.
+  **Verified ≠ claim objectively true.** Golden tests under
+  `VerificationReceiptProjectorTests` load Phase 0 fixtures and exercise all
+  three statuses via real packs. See `docs/VERIFICATION_RECEIPT.md`.
+
 ## [0.8.1] - 2026-07-28
 
 ### Fixed
