@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "claim": {
+    "text": "The filing was submitted on May 14, 2025."
+  },
+  "status": "tampered",
+  "status_reason": "Source content hash no longer matches the digest bound in the signed proof pack (files_unchanged=false); attestation integrity checks fail.",
+  "sources": [
+    {
+      "name": "court_filing.pdf",
+      "role": "evidence-filing",
+      "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "docket_export.json",
+      "role": "evidence-docket",
+      "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "steps": [
+    { "type": "evidence", "label": "Evidence" },
+    { "type": "extract", "label": "Extract" },
+    { "type": "verify", "label": "Verify" },
+    { "type": "claim", "label": "Claim" }
+  ],
+  "integrity": {
+    "evidence": false,
+    "trace": false,
+    "files_unchanged": false
+  },
+  "attestation": {
+    "receipt_id": "vr-claim-path-v1-99999999-8888-4777-8666-555555555555",
+    "short_hash": "deadbeef",
+    "run_id": "99999999-8888-4777-8666-555555555555",
+    "context_id": "caseclarity.claim.verify",
+    "trace_digest": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "key_id": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+  },
+  "invariant_id": "claim-path-v1",
+  "projection": {
+    "from": "proof_pack",
+    "proof_pack_version": 2
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "claim-path-v1",
+  "version": "1.0",
+  "description": "Minimal claim-path invariant for Verification Receipt projection. Shared by DPK runtime, CaseClarity, dprovenancekit-action, and golden fixtures.",
+  "required_steps": ["evidence", "extract", "verify", "claim"],
+  "must_include": ["verify"],
+  "ordering": [
+    { "before": "evidence", "after": "extract" },
+    { "before": "extract", "after": "verify" },
+    { "before": "verify", "after": "claim" }
+  ]
+}
