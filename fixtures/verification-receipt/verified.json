@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "claim": {
+    "text": "The filing was submitted on May 14, 2025."
+  },
+  "status": "verified",
+  "sources": [
+    {
+      "name": "court_filing.pdf",
+      "role": "evidence-filing",
+      "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "docket_export.json",
+      "role": "evidence-docket",
+      "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "steps": [
+    { "type": "evidence", "label": "Evidence" },
+    { "type": "extract", "label": "Extract" },
+    { "type": "verify", "label": "Verify" },
+    { "type": "claim", "label": "Claim" }
+  ],
+  "integrity": {
+    "evidence": true,
+    "trace": true,
+    "files_unchanged": true
+  },
+  "attestation": {
+    "receipt_id": "vr-claim-path-v1-11111111-2222-4333-8444-555555555555",
+    "short_hash": "8f3a91c2",
+    "run_id": "11111111-2222-4333-8444-555555555555",
+    "context_id": "caseclarity.claim.verify",
+    "trace_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "key_id": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "invariant_id": "claim-path-v1",
+  "projection": {
+    "from": "proof_pack",
+    "proof_pack_version": 2
+  }
+}

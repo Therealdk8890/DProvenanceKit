@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dprovenance.dev/schemas/verification-receipt.schema.json",
+  "title": "DProvenanceKit VerificationReceipt",
+  "description": "Human-facing projection of an existing ProofPackDocument + TraceAttestation. Not a new cryptographic artifact. JSON Schema validates structure only \u2014 status (verified/incomplete/tampered) requires the VerificationInvariant evaluator plus proof-pack/attestation integrity checks. Verified means integrity-protected provenance satisfied the declared invariant \u2014 not that the claim is objectively true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "claim",
+    "status",
+    "sources",
+    "steps",
+    "integrity",
+    "attestation",
+    "invariant_id",
+    "projection"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "VerificationReceipt projection schema version."
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable claim text. Truth of the claim is outside this receipt's scope."
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "incomplete",
+        "tampered"
+      ],
+      "description": "verified = required steps in order AND integrity checks passed. incomplete = missing required provenance/invariant evidence. tampered = bound evidence or attestation no longer validates."
+    },
+    "status_reason": {
+      "type": "string",
+      "description": "Optional human-readable explanation, especially for incomplete and tampered."
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "content_hash"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Display name of a bound source artifact (often ProofPackArtifact.role or a filename)."
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Lowercase hex SHA-256 of source bytes. Aligns with ProofPackArtifact.sha256."
+          },
+          "role": {
+            "type": "string",
+            "description": "Optional ProofPackArtifact.role when distinct from display name."
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "label"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "evidence",
+              "extract",
+              "verify",
+              "claim"
+            ],
+            "description": "Canonical step type used by VerificationInvariant matching. Projected from instrumented trace event typeIdentifiers / roles."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable step label for UI."
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence",
+        "trace",
+        "files_unchanged"
+      ],
+      "properties": {
+        "evidence": {
+          "type": "boolean",
+          "description": "True when bound evidence artifacts pass ProofPack declared-digest + binding checks."
+        },
+        "trace": {
+          "type": "boolean",
+          "description": "True when TraceAttestation / TraceAttestationDocument verifies (signature + digest)."
+        },
+        "files_unchanged": {
+          "type": "boolean",
+          "description": "True when recomputed source content hashes match the hashes bound in the signed trace / proof pack."
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "short_hash"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable id for this projection instance (often derived from run_id + claim binding)."
+        },
+        "short_hash": {
+          "type": "string",
+          "minLength": 8,
+          "description": "Short display hash for UI (prefix of trace_digest or receipt_id material)."
+        },
+        "run_id": {
+          "type": "string",
+          "description": "Maps to TraceAttestation.runID / AttestableTrace.runID."
+        },
+        "context_id": {
+          "type": "string",
+          "description": "Maps to TraceAttestation.contextID."
+        },
+        "trace_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Maps to TraceAttestation.traceDigest (lowercase hex SHA-256)."
+        },
+        "key_id": {
+          "type": "string",
+          "description": "Maps to TraceAttestation.keyID (trusted signer pin)."
+        }
+      }
+    },
+    "invariant_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "References VerificationInvariant.id (e.g. claim-path-v1)."
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "const": "proof_pack",
+          "description": "Receipt is always projected from an existing proof pack path \u2014 never a standalone crypto object."
+        },
+        "proof_pack_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maps to ProofPackDocument.proofPackVersion when known."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "verified"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "integrity": {
+            "properties": {
+              "evidence": {
+                "const": true
+              },
+              "trace": {
+                "const": true
+              },
+              "files_unchanged": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

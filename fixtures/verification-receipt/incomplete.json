@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "claim": {
+    "text": "The filing was submitted on May 14, 2025."
+  },
+  "status": "incomplete",
+  "status_reason": "Required step type verify is missing; claim-path-v1 invariant is not satisfied.",
+  "sources": [
+    {
+      "name": "court_filing.pdf",
+      "role": "evidence-filing",
+      "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "docket_export.json",
+      "role": "evidence-docket",
+      "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ],
+  "steps": [
+    { "type": "evidence", "label": "Evidence" },
+    { "type": "extract", "label": "Extract" },
+    { "type": "claim", "label": "Claim" }
+  ],
+  "integrity": {
+    "evidence": true,
+    "trace": true,
+    "files_unchanged": true
+  },
+  "attestation": {
+    "receipt_id": "vr-claim-path-v1-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "short_hash": "a1b2c3d4",
+    "run_id": "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    "context_id": "caseclarity.claim.verify",
+    "trace_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "key_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "invariant_id": "claim-path-v1",
+  "projection": {
+    "from": "proof_pack",
+    "proof_pack_version": 2
+  }
+}

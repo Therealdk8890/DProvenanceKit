@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dprovenance.dev/schemas/verification-invariant.schema.json",
+  "title": "DProvenanceKit VerificationInvariant",
+  "description": "Machine-readable verification requirements shared by VerificationReceipt projection consumers (runtime, CaseClarity UI, CI Action, golden fixtures). JSON Schema validates the invariant document's shape only; evaluating whether a receipt's steps satisfy required_steps / must_include / ordering is the job of the VerificationInvariant evaluator \u2014 not of this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "required_steps",
+    "must_include",
+    "ordering"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable invariant identifier referenced by VerificationReceipt.invariant_id."
+    },
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "description": {
+      "type": "string"
+    },
+    "required_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "evidence",
+          "extract",
+          "verify",
+          "claim"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Step types that must all appear in the projected receipt steps list."
+    },
+    "must_include": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "evidence",
+          "extract",
+          "verify",
+          "claim"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Step types that are load-bearing for Verified status (typically includes verify)."
+    },
+    "ordering": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "before",
+          "after"
+        ],
+        "properties": {
+          "before": {
+            "type": "string",
+            "enum": [
+              "evidence",
+              "extract",
+              "verify",
+              "claim"
+            ]
+          },
+          "after": {
+            "type": "string",
+            "enum": [
+              "evidence",
+              "extract",
+              "verify",
+              "claim"
+            ]
+          }
+        }
+      },
+      "description": "Partial order constraints: each pair requires before to appear before after in the steps sequence."
+    }
+  }
+}
