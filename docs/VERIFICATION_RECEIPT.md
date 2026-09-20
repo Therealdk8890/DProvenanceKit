@@ -120,17 +120,42 @@ crypto layer.
 `receipt_id` / `short_hash` are projection identifiers for UI and correlation; they
 are not a new signature envelope.
 
-## Non-goals (Phase 0)
+## Phase 1C — DPK projector (executable)
+
+DPK now projects a real `ProofPackDocument` through `claim-path-v1` into a
+`VerificationReceipt`. Consumers should call this (or an equivalent evaluator of
+the same rules) rather than inventing status locally.
+
+| Symbol | Role |
+| --- | --- |
+| `VerificationInvariant` / `.claimPathV1` | Codable invariant + `evaluate(steps:)` |
+| `VerificationReceipt` | Codable receipt projection (schema-aligned) |
+| `VerificationReceiptProjector.project(...)` | ProofPack + invariant → receipt |
+| `ProofPackDocument.verificationReceipt(...)` | Convenience entry point |
+
+Example:
+
+```swift
+let receipt = pack.verificationReceipt(
+    claimText: "The filing was submitted on May 14, 2025.",
+    steps: VerificationReceiptProjector.claimPathSteps(includeVerify: true)
+)
+// receipt.status is verified | incomplete | tampered
+// Verified ≠ claim objectively true
+```
+
+Golden tests: `Tests/DProvenanceKitTests/VerificationReceiptProjectorTests.swift`
+load `fixtures/verification-receipt/*.json` and drive real packs through the
+projector for all three statuses (integrity failure takes precedence).
+
+### Follow-up (not this PR)
+
+- CaseClarity / dprovenancekit-action: share vectors and port to this evaluator
+  (or call DPK) so UI and CI cannot diverge on status meaning.
+
+## Non-goals (Phase 0 / 1C)
 
 - No new signing scheme, digest algorithm, or attestation envelope
-- No CaseClarity UI in this change set
-- No Swift/Python encoder required to land the contract (implementations come next)
+- No CaseClarity UI or Action rewrite in this change set
 - No generalized multi-domain receipt framework — one invariant (`claim-path-v1`)
-  and three fixtures are enough to lock the shared meaning of Verified
-
-## Next
-
-Once this contract is merged: implement the smallest CaseClarity claim path that
-emits a `VerificationReceipt` by projecting a real proof pack through
-`claim-path-v1`, then wire the Action to the same invariant for the
-missing-`verify` failure mode.
+- No expansion of the claim-path step taxonomy
