@@ -16,7 +16,7 @@ permission to use the public library.
 |------------|---------|
 | **Govern one AI workflow in 30 days** | Complete the [pilot intake →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml). After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued for **$4,500 one time** (50% on signature, 50% on delivery) |
 | **Scope integration help, a CI gate, or a workshop** | Email **[danielpaulkissel@gmail.com](mailto:danielpaulkissel@gmail.com?subject=DProvenanceKit%20scoped%20support%20inquiry)** or [open a commercial inquiry →](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml) |
-| **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")`. Nothing to buy; follow the license terms. |
+| **Use the library in my product** | It is already free under Apache 2.0 — `.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")`. Nothing to buy; follow the license terms. |
 | **Use the native Mac workbench** | [Download D.P.K: Reasoning Traces →](https://apps.apple.com/us/app/d-p-k-reasoning-traces/id6784076039?mt=12). Basic is currently free; see the app section below for Pro availability. |
 
 Kickoff timing is confirmed in writing after the workflow and scope are accepted.

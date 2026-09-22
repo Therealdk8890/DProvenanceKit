@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-22
+
 ### Added
 - **Phase 1C Verification Receipt projector.** `VerificationReceipt`,
   `VerificationInvariant` / `claim-path-v1`, and `VerificationReceiptProjector`
@@ -500,7 +502,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.1...0.9.0
+[0.8.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.6.0...0.6.1

@@ -143,7 +143,7 @@ pip install dprovenancekit
 
 # Swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.8.1")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
 ]
 ```
 
@@ -289,7 +289,7 @@ Every release: baseline vs. candidate. A clear record of whether the instrumente
 
 ## Status
 
-**Public beta — [0.8.1](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.8.1) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0) is released; APIs may continue to evolve before 1.0.**
 
 ---
 
