@@ -41,7 +41,9 @@ final class WarrantKitInteropTests: XCTestCase {
         let pack = try makePack(artifactBytes: bytes, digest: digest)
 
         var tampered = bytes
-        tampered[tampered.index(tampered.startIndex, offsetBy: tampered.count / 2)] ^= 0x01
+        let marker = Data("runtime-fixture-1".utf8)
+        let markerRange = try XCTUnwrap(tampered.range(of: marker))
+        tampered[markerRange.upperBound - 1] ^= 0x01
 
         let tamperedPack = ProofPackDocument(
             attestation: pack.attestation,
