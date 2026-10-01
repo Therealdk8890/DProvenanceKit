@@ -5,11 +5,9 @@ import XCTest
 
 /// Narrow interoperability test for the published WarrantKit portable evidence contract.
 ///
-/// DProvenanceKit treats the WarrantKit document as an opaque artifact. The only
-/// cross-boundary semantic assertion here is the runtime-binding identity rule:
-/// proof.runtime_binding.runtime_id must equal execution.runtime_id.
-///
-/// This deliberately does not turn DProvenanceKit into a WarrantKit verifier.
+/// DProvenanceKit treats the WarrantKit document as an opaque artifact. The semantic
+/// assertions here are limited to the runtime-binding invariants needed to demonstrate
+/// the boundary; DProvenanceKit does not become a WarrantKit verifier.
 final class WarrantKitInteropTests: XCTestCase {
     private struct ArtifactRef: Codable, Sendable, Equatable {
         let role: String
@@ -37,7 +35,7 @@ final class WarrantKitInteropTests: XCTestCase {
         XCTAssertEqual(result.bindings.first?.sha256, digest)
     }
 
-    func testByteFlipFailsBothProvenanceAndArtifactBinding() throws {
+    func testByteFlipFailsEvidenceBindingWhileSignedProvenanceRemainsIntact() throws {
         let bytes = try fixtureData()
         let digest = sha256(bytes)
         let pack = try makePack(artifactBytes: bytes, digest: digest)
@@ -62,18 +60,18 @@ final class WarrantKitInteropTests: XCTestCase {
 
         XCTAssertFalse(result.isValid)
         XCTAssertEqual(result.failure, .artifactDigestMismatch(index: 0))
-        // The DPK attestation remains valid: the signed provenance trace was not changed.
-        // The proof-pack artifact binding fails because the embedded bytes changed.
+        // The signed provenance trace is unchanged and therefore still valid. The
+        // proof-pack boundary rejects the substituted WarrantKit bytes.
         XCTAssertEqual(result.attestation?.isValid, true)
 
-        var tamperedDocument = try JSONSerialization.jsonObject(with: bytes) as! [String: Any]
-        let binding = tamperedDocument["proof"] as! [String: Any]
-        XCTAssertNotNil(binding["runtime_binding"])
+        // The WarrantKit evidence contract also rejects the mutated artifact because
+        // the embedded runtime-record digests no longer describe its bytes.
+        var tamperedDocument = try JSONSerialization.jsonObject(with: tampered) as! [String: Any]
+        XCTAssertThrowsError(try assertWarrantKitRuntimeBindingContract(tamperedDocument))
     }
 
     func testCryptographicallyValidReboundRecordIsRejectedByRuntimeContract() throws {
-        let original = try fixtureDocument()
-        var rebound = original
+        var rebound = try fixtureDocument()
         var proof = rebound["proof"] as! [String: Any]
         var runtimeBinding = proof["runtime_binding"] as! [String: Any]
         runtimeBinding["runtime_id"] = "runtime-forged"
@@ -86,15 +84,17 @@ final class WarrantKitInteropTests: XCTestCase {
         )
         let reboundDigest = sha256(reboundBytes)
 
-        // DPK can honestly sign and verify these bytes: provenance integrity says
-        // "these are the bytes the signer vouched for", not "the WarrantKit contract is true".
+        // DPK can honestly sign and verify these bytes: provenance integrity establishes
+        // what was signed, not whether the WarrantKit runtime-binding contract is satisfied.
         let pack = try makePack(artifactBytes: reboundBytes, digest: reboundDigest)
         let provenance = pack.verify(requireRoleBinding: true)
         XCTAssertTrue(provenance.isValid, provenance.failure.map(String.init(describing:)) ?? "unknown failure")
 
         // The WarrantKit runtime-binding contract rejects the rebound identity.
         XCTAssertThrowsError(try assertWarrantKitRuntimeBindingContract(rebound)) { error in
-            XCTAssertEqual(String(describing: error), "runtime binding runtime_id does not match execution")
+            XCTAssertTrue(
+                String(describing: error).contains("runtime binding runtime_id does not match execution")
+            )
         }
     }
 
@@ -162,7 +162,7 @@ final class WarrantKitInteropTests: XCTestCase {
     }
 
     /// Minimal semantic boundary assertion kept local to this interoperability test.
-    /// The actual portable verifier remains WarrantKit-owned and is not imported here.
+    /// The authoritative portable verifier remains WarrantKit-owned and is not imported here.
     private func assertWarrantKitRuntimeBindingContract(_ document: [String: Any]) throws {
         let execution = document["execution"] as! [String: Any]
         let proof = document["proof"] as! [String: Any]
@@ -174,6 +174,50 @@ final class WarrantKitInteropTests: XCTestCase {
                 code: 1,
                 userInfo: [NSLocalizedDescriptionKey: "runtime binding runtime_id does not match execution"]
             )
+        }
+
+        let runtimeID = binding["runtime_id"] as! String
+        let agentID = binding["agent_id"] as! String
+        let epoch = binding["epoch"] as! Int
+
+        for label in ["authority", "enforcement", "observation"] {
+            let item = binding[label] as! [String: Any]
+            let record = item["record"] as! [String: Any]
+
+            guard record["runtime_id"] as? String == runtimeID else {
+                throw NSError(
+                    domain: "WarrantKitInterop",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: "runtime binding \(label) runtime_id does not match"]
+                )
+            }
+            guard record["agent_id"] as? String == agentID else {
+                throw NSError(
+                    domain: "WarrantKitInterop",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "runtime binding \(label) agent_id does not match"]
+                )
+            }
+            guard record["epoch"] as? Int == epoch else {
+                throw NSError(
+                    domain: "WarrantKitInterop",
+                    code: 4,
+                    userInfo: [NSLocalizedDescriptionKey: "runtime binding \(label) epoch does not match"]
+                )
+            }
+
+            let canonical = try JSONSerialization.data(
+                withJSONObject: record,
+                options: [.sortedKeys, .withoutEscapingSlashes]
+            )
+            let expectedDigest = "sha256:" + sha256(canonical)
+            guard item["digest"] as? String == expectedDigest else {
+                throw NSError(
+                    domain: "WarrantKitInterop",
+                    code: 5,
+                    userInfo: [NSLocalizedDescriptionKey: "runtime binding \(label) digest does not match record"]
+                )
+            }
         }
     }
 }
