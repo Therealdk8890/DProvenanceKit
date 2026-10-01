@@ -1,0 +1,57 @@
+{
+  "schema_version": "agentcontain.evidence/v2",
+  "execution": {
+    "agent_id": "agent-fixture-1",
+    "epoch": 1,
+    "execution_id": "exec-fixture-1",
+    "policy_digest": "sha256:fixture-policy",
+    "policy_id": "production",
+    "runtime_id": "runtime-fixture-1"
+  },
+  "events": [
+    {"epoch": 1, "execution_id": "exec-fixture-1", "name": "containment_verified", "sequence": 1}
+  ],
+  "enforcement": {"complete": true},
+  "verification": {
+    "method": "runtime-pinned-second-evidence",
+    "scope": "external-runtime-enforcement",
+    "status": "verified"
+  },
+  "proof": {
+    "runtime_binding": {
+      "agent_id": "agent-fixture-1",
+      "authority": {
+        "digest": "sha256:5a51fdca5c91c1645da8f9507fb5c4e5c8625f1c5af52483ae5dda9a41a0b284",
+        "record": {
+          "agent_id": "agent-fixture-1", "epoch": 1, "revoked": true,
+          "revoked_at": "2026-09-30T12:00:01Z", "runtime_id": "runtime-fixture-1"
+        }
+      },
+      "enforcement": {
+        "digest": "sha256:c0e209ce3e65ef8c866b0355bfe49f4cd9db0ab7881623f5b24d06fb2e9be3e4",
+        "record": {
+          "action": "KILL", "agent_id": "agent-fixture-1", "epoch": 1,
+          "external_boundary": true, "occurred_at": "2026-09-30T12:00:02Z",
+          "runtime_id": "runtime-fixture-1"
+        }
+      },
+      "epoch": 1,
+      "observation": {
+        "digest": "sha256:eaf3e3ebd4d535a0282a02856904aa0032d7cd75102bc4151963de8852a0a4af",
+        "record": {
+          "agent_id": "agent-fixture-1", "can_execute": false, "epoch": 1,
+          "observed_at": "2026-09-30T12:00:03Z", "runtime_id": "runtime-fixture-1",
+          "state": "contained"
+        },
+        "state": "contained",
+        "observed_at": "2026-09-30T12:00:03Z"
+      },
+      "runtime_id": "runtime-fixture-1",
+      "schema_version": "agentcontain.runtime-binding/v1"
+    }
+  },
+  "receipt": null,
+  "governance": null,
+  "provenance": {"producer": "agentcontain-fixture"},
+  "external_evidence": []
+}
