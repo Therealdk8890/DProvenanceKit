@@ -1,0 +1,13 @@
+{
+  "schema_version": "external-anchor-exchange/v1",
+  "artifact_sha256": "9d8f2c7e4b5a6d1f3c8e2a7b9d4f6e1c5a8b3d7f2e9c4a6b1d8f5e3c7a2b9d6",
+  "anchor_system": "evidentia",
+  "anchor_id": "EV-FIXTURE-ANCHOR-001",
+  "anchored_at": "2026-10-01T12:00:00Z",
+  "provider": {
+    "proof_id": "EV-FIXTURE-001",
+    "event_hash": "fixture-event-hash",
+    "algorithm": "Ed25519",
+    "chain": "fixture"
+  }
+}
