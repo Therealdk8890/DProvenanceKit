@@ -178,10 +178,19 @@ public struct TraceAttestation: Codable, Sendable, Equatable {
 public struct TraceAttestationDocument: Codable, Sendable, Equatable {
     public let trace: AttestableTrace
     public let attestation: TraceAttestation
+    /// Optional RFC 3161 external timestamp. This field is outside the DPK
+    /// signature; the timestamp token independently commits to the exact
+    /// signed attestation envelope.
+    public let externalTimestamp: RFC3161Timestamp?
 
-    public init(trace: AttestableTrace, attestation: TraceAttestation) {
+    public init(
+        trace: AttestableTrace,
+        attestation: TraceAttestation,
+        externalTimestamp: RFC3161Timestamp? = nil
+    ) {
         self.trace = trace
         self.attestation = attestation
+        self.externalTimestamp = externalTimestamp
     }
 
     public static func signed<T: TraceableEvent, Key: TraceAttestationSigningKey>(
