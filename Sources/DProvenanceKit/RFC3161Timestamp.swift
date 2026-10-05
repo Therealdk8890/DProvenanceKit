@@ -172,6 +172,7 @@ public struct RFC3161TSATrust: Sendable, Equatable {
 
 public enum RFC3161TimestampVerificationFailure: String, Sendable, Equatable {
     case noTimestamp
+    case attestationInvalid
     case malformedToken
     case unsupportedHashAlgorithm
     case messageImprintMismatch
@@ -205,6 +206,15 @@ public enum RFC3161TimestampVerifier {
         document: TraceAttestationDocument,
         trustedTSA: RFC3161TSATrust
     ) -> RFC3161TimestampVerification {
+        guard document.verify().isValid else {
+            return RFC3161TimestampVerification(
+                isValid: false,
+                generationTimeUnixMicroseconds: nil,
+                tsaCertificateSHA256: nil,
+                failure: .attestationInvalid
+            )
+        }
+
         guard let timestamp = document.externalTimestamp else {
             return RFC3161TimestampVerification(
                 isValid: false,
@@ -220,6 +230,15 @@ public enum RFC3161TimestampVerifier {
                 generationTimeUnixMicroseconds: nil,
                 tsaCertificateSHA256: nil,
                 failure: .malformedToken
+            )
+        }
+
+        guard timestamp.hashAlgorithm == "SHA-256" else {
+            return RFC3161TimestampVerification(
+                isValid: false,
+                generationTimeUnixMicroseconds: nil,
+                tsaCertificateSHA256: nil,
+                failure: .unsupportedHashAlgorithm
             )
         }
 
