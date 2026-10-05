@@ -338,10 +338,13 @@ private enum RFC3161CMS {
         guard CMSDecoderCreate(&decoder) == errSecSuccess, let decoder else {
             throw RFC3161DER.ParseError.malformed
         }
-        let updateStatus = token.withUnsafeBytes { rawBuffer in
-            CMSDecoderUpdateMessage(
+        let updateStatus = token.withUnsafeBytes { rawBuffer -> OSStatus in
+            guard let baseAddress = rawBuffer.baseAddress else {
+                return errSecParam
+            }
+            return CMSDecoderUpdateMessage(
                 decoder,
-                rawBuffer.baseAddress ?? UnsafeRawPointer(bitPattern: 0),
+                baseAddress,
                 rawBuffer.count
             )
         }
