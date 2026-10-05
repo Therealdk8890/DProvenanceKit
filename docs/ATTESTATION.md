@@ -238,6 +238,47 @@ the signature.
 The key ID is the lowercase SHA-256 digest of the P-256 X9.63 public-key representation. Signatures
 use ASN.1 DER representation.
 
+## External RFC 3161 timestamping
+
+The built-in signature protects integrity, but the signing process's `issuedAtUnixMicroseconds` is still signer-claimed time. When a dispute depends on **when** an attestation existed, add an external RFC 3161 time-stamp token.
+
+```swift
+let signed = try TraceAttestationDocument.signed(
+    run: completedRun,
+    edges: lineageEdges,
+    using: signingKey
+)
+
+let timestamp = try await RFC3161TimestampClient.timestamp(
+    document: signed,
+    tsaURL: URL(string: "https://tsa.example.com/timestamp")!
+)
+
+let timestamped = signed.addingExternalTimestamp(timestamp)
+try timestamped.jsonData().write(
+    to: URL(fileURLWithPath: "decision.attestation.json"),
+    options: .atomic
+)
+```
+
+Verification on macOS requires pinning the TSA signing certificate:
+
+```swift
+let result = timestamped.verifyExternalTimestamp(
+    trustedTSA: RFC3161TSATrust(
+        certificateSHA256: "<pinned-tsa-certificate-sha256>"
+    )
+)
+
+precondition(result.isValid)
+```
+
+The verifier checks the CMS signature, the TSA signer certificate fingerprint, the SHA-256 message imprint, the request nonce, and the TSA `genTime`. RFC 3161 requires a TSA to use a dedicated timestamping certificate and the `id-kp-timeStamping` extended key usage. The TSA certificate fingerprint is therefore a deployment trust anchor and should be distributed through a channel separate from the timestamped artifact.
+
+This changes the evidence boundary from **"the signer says it was issued at time T"** to **"a separately trusted timestamp authority attested that this exact signed envelope existed at time T."** It still does not prove that the trace is truthful or complete.
+
+The timestamp token is stored verbatim in the JSON document, so an auditor can hand the token to an independent RFC 3161/CMS verifier. DPK does not operate a timestamping service and does not control the TSA's clock.
+
 ## Threat model
 
 ### What a valid, trusted attestation establishes
