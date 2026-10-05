@@ -338,12 +338,10 @@ private enum RFC3161CMS {
         guard CMSDecoderCreate(&decoder) == errSecSuccess, let decoder else {
             throw RFC3161DER.ParseError.malformed
         }
-        defer { CFRelease(decoder) }
-
         let updateStatus = token.withUnsafeBytes { rawBuffer in
             CMSDecoderUpdateMessage(
                 decoder,
-                rawBuffer.baseAddress,
+                rawBuffer.baseAddress ?? UnsafeRawPointer(bitPattern: 0),
                 rawBuffer.count
             )
         }
@@ -654,7 +652,8 @@ private enum RFC3161DER {
 
     private static func decodeOID(_ data: Data) -> [Int] {
         guard let first = data.first else { return [] }
-        var components = [Int(min(first / 40, 2), first % 40)]
+        let firstValue = Int(first)
+        var components = [min(firstValue / 40, 2), firstValue % 40]
         var value = 0
         for byte in data.dropFirst() {
             value = (value << 7) | Int(byte & 0x7F)
