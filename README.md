@@ -19,7 +19,7 @@ Your AI makes a decision that impacts a customer. The decision is challenged.
 
 Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, give you a **queryable, diffable, locally retained record of the instrumented decision path** — or a CI check that refuses merge when that path regresses. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
 
-DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation to what was recorded.**
+DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation — optionally anchored to an external RFC 3161 timestamp.**
 
 It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. For the signed-artifact threat model, read [docs/ATTESTATION.md — What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
 
@@ -60,11 +60,11 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Fail CI when the path regresses beyond policy
    - Keep using your existing eval and observability stack
 
-4. **Attest (Swift).**
+4. **Attest and anchor (Swift).**
    - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
    - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
-   - Offline verification with no network dependency
+   - Offline verification with no network dependency\n   - Optional RFC 3161 external timestamp over the exact signed attestation envelope; the TSA receives only a SHA-256 imprint
 
 Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
 
@@ -121,7 +121,7 @@ A law firm uses an AI to draft legal briefs.
 4. Brief is exported with an optional proof pack binding report digests
 5. If disputed, the firm can show:
    - The instrumented reasoning chain that was recorded
-   - (Swift) The signature and offline verification result
+   - (Swift) The signature, and — when configured — an independent RFC 3161 timestamp and offline verification result
    - That the attested record has not been tampered with since signing
 ```
 
