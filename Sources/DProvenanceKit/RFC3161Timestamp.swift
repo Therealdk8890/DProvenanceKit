@@ -496,9 +496,9 @@ private enum RFC3161DER {
         // contains TSTInfo inside the explicit [0] content wrapper. Locate the
         // first OCTET STRING that is the encapsulated content without accepting
         // arbitrary unrelated octet strings.
-        let root = try parse(token)
-        guard root.tag == 0x30 else { throw ParseError.malformed }
-        guard let signedDataWrapper = root.children.last(where: { $0.tag == 0xA0 }),
+        let tokenRoot = try parse(token)
+        guard tokenRoot.tag == 0x30 else { throw ParseError.malformed }
+        guard let signedDataWrapper = tokenRoot.children.last(where: { $0.tag == 0xA0 }),
               let signedData = signedDataWrapper.children.first,
               signedData.tag == 0x30 else {
             throw ParseError.malformed
