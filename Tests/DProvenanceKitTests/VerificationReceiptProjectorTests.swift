@@ -173,8 +173,8 @@ final class VerificationReceiptProjectorTests: XCTestCase {
     }
 
     func testProjectorIncompleteWhenRoleCannotDisambiguateDuplicateArtifactDigests() throws {
-        let firstBytes = Data(#"{\"claims\":[{\"id\":\"c1\",\"verdict\":\"supported\"}]}"#.utf8)
-        let secondBytes = Data(#"{\"claims\":[{\"id\":\"c2\",\"verdict\":\"refuted\"}]}"#.utf8)
+        let firstBytes = Data(#"{"claims":[{"id":"c1","verdict":"supported"}]}"#.utf8)
+        let secondBytes = Data(#"{"claims":[{"id":"c2","verdict":"refuted"}]}"#.utf8)
         let firstDigest = hex(firstBytes)
         let secondDigest = hex(secondBytes)
         XCTAssertNotEqual(firstDigest, secondDigest)
