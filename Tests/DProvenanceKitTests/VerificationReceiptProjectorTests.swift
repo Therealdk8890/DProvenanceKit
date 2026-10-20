@@ -155,6 +155,37 @@ final class VerificationReceiptProjectorTests: XCTestCase {
         )
     }
 
+    func testProjectorIncompleteWhenSourceDigestMapOmitsRequiredRole() throws {
+        let (pack, _) = try makeValidPack()
+        XCTAssertTrue(pack.verify().isValid)
+
+        let receipt = VerificationReceiptProjector.project(
+            pack: pack,
+            claimText: claimText,
+            steps: VerificationReceiptProjector.claimPathSteps(includeVerify: true),
+            currentSourceDigestsByRole: [:]
+        )
+
+        XCTAssertEqual(receipt.status, .incomplete)
+        XCTAssertTrue(receipt.integrity.allPassed, "missing recheck input is not proof of tampering")
+        XCTAssertTrue(receipt.statusReason?.contains("Source digest recheck is incomplete") == true)
+        XCTAssertTrue(receipt.statusReason?.contains(pack.artifacts[0].role) == true)
+    }
+
+    func testProjectorVerifiedWhenProvidedSourceDigestMatches() throws {
+        let (pack, digest) = try makeValidPack()
+        let receipt = VerificationReceiptProjector.project(
+            pack: pack,
+            claimText: claimText,
+            steps: VerificationReceiptProjector.claimPathSteps(includeVerify: true),
+            currentSourceDigestsByRole: [pack.artifacts[0].role: digest]
+        )
+
+        XCTAssertEqual(receipt.status, .verified)
+        XCTAssertTrue(receipt.integrity.allPassed)
+        XCTAssertNil(receipt.statusReason)
+    }
+
     func testProjectorTamperedWhenSourceDigestsDiverge() throws {
         let (pack, digest) = try makeValidPack()
         XCTAssertTrue(pack.verify().isValid)
