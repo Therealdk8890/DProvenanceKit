@@ -5,10 +5,11 @@ import Foundation
 /// `ProofPackDocument.verify` (and optional recomputed source digests); status comes from
 /// that integrity summary plus invariant evaluation.
 ///
-/// Status rules (locked, Phase 0 / 1C):
+/// Status rules:
 /// 1. Integrity failure → `tampered` (takes precedence over incomplete)
 /// 2. Else invariant failure → `incomplete`
-/// 3. Else → `verified`
+/// 3. Else an incomplete or ambiguous requested source recheck → `incomplete`
+/// 4. Else → `verified`
 ///
 /// **Verified ≠ claim objectively true.** It means integrity-protected provenance
 /// satisfied the declared invariant.
