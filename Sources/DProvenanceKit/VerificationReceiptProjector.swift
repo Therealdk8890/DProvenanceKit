@@ -73,14 +73,23 @@ public enum VerificationReceiptProjector {
 
     public static func project(_ input: Input) -> VerificationReceipt {
         let packVerification = input.pack.verify(trustedKeyIDs: input.trustedKeyIDs)
+        let invariantResult = input.invariant.evaluate(steps: input.steps)
+
+        // A role-keyed source-digest map cannot disambiguate two artifacts that share a
+        // role but bind different bytes. Do not misclassify that missing identity as tampering.
+        let digestsByRole = Dictionary(grouping: input.pack.artifacts, by: \.role)
+        let ambiguousSourceRoles = Set(digestsByRole.compactMap { role, artifacts in
+            Set(artifacts.map(\.sha256)).count > 1 ? role : nil
+        })
+        let effectiveSourceDigests = input.currentSourceDigestsByRole.map { current in
+            current.filter { !ambiguousSourceRoles.contains($0.key) }
+        }
         let integrity = deriveIntegrity(
             pack: input.pack,
             verification: packVerification,
-            currentSourceDigestsByRole: input.currentSourceDigestsByRole
+            currentSourceDigestsByRole: effectiveSourceDigests
         )
-        let invariantResult = input.invariant.evaluate(steps: input.steps)
-
-        let missingSourceRoles: [String] = input.currentSourceDigestsByRole.map { current in
+        let missingSourceRoles: [String] = effectiveSourceDigests.map { current in
             Array(Set(input.pack.artifacts.map(\.role).filter { current[$0] == nil })).sorted()
         } ?? []
 
@@ -95,10 +104,17 @@ public enum VerificationReceiptProjector {
         } else if !invariantResult.satisfied {
             status = .incomplete
             statusReason = invariantResult.reason
-        } else if !missingSourceRoles.isEmpty {
+        } else if !missingSourceRoles.isEmpty || !ambiguousSourceRoles.isEmpty {
             status = .incomplete
-            statusReason = "Source digest recheck is incomplete; missing digests for artifact roles: "
-                + missingSourceRoles.joined(separator: ", ") + "."
+            var reasons: [String] = []
+            if !missingSourceRoles.isEmpty {
+                reasons.append("missing digests for artifact roles: " + missingSourceRoles.joined(separator: ", "))
+            }
+            if !ambiguousSourceRoles.isEmpty {
+                reasons.append("role-keyed recheck cannot disambiguate roles with multiple artifact digests: "
+                    + ambiguousSourceRoles.sorted().joined(separator: ", "))
+            }
+            statusReason = "Source digest recheck is incomplete; " + reasons.joined(separator: "; ") + "."
         } else {
             status = .verified
             statusReason = nil
