@@ -97,6 +97,8 @@ current source bytes:
    (integrity.evidence = false and/or files_unchanged = false).
 3. If current source digests are supplied, require one digest for every artifact role.
    A mismatch → `tampered` (files_unchanged = false); missing role digests → `incomplete`.
+   If multiple artifacts share a role but have different digests, the role-keyed input cannot
+   identify which artifact is being rechecked; that recheck is `incomplete`, not tampered.
    If no current source digests are supplied, the receipt validates the bytes embedded in
    the proof pack and makes no claim about the current external filesystem copy.
 4. Project ordered `steps` from the instrumented path. If `required_steps` /
