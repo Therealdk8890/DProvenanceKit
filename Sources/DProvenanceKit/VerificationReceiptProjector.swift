@@ -25,9 +25,9 @@ public enum VerificationReceiptProjector {
         /// Optional trusted-key pin forwarded to `ProofPackDocument.verify`.
         public var trustedKeyIDs: Set<String>?
         /// Optional recomputed source digests keyed by artifact `role`. If supplied,
-        /// every artifact role must be present for the source recheck to be complete.
-        /// A digest mismatch marks `files_unchanged` and `evidence` false; omitted roles
-        /// make the receipt incomplete rather than implying the source was unchanged.
+        /// every artifact role must be present and uniquely identify its bound digest.
+        /// A digest mismatch marks `files_unchanged` and `evidence` false; omitted or
+        /// ambiguous roles make the receipt incomplete rather than implying tampering.
         public var currentSourceDigestsByRole: [String: String]?
         /// Optional display-name overrides keyed by artifact role (fixtures use filenames).
         public var sourceDisplayNamesByRole: [String: String]?
@@ -78,9 +78,10 @@ public enum VerificationReceiptProjector {
         // A role-keyed source-digest map cannot disambiguate two artifacts that share a
         // role but bind different bytes. Do not misclassify that missing identity as tampering.
         let digestsByRole = Dictionary(grouping: input.pack.artifacts, by: \.role)
-        let ambiguousSourceRoles = Set(digestsByRole.compactMap { role, artifacts in
-            Set(artifacts.map(\.sha256)).count > 1 ? role : nil
-        })
+        let ambiguousSourceRoles = input.currentSourceDigestsByRole == nil ? Set<String>() :
+            Set(digestsByRole.compactMap { role, artifacts in
+                Set(artifacts.map(\.sha256)).count > 1 ? role : nil
+            })
         let effectiveSourceDigests = input.currentSourceDigestsByRole.map { current in
             current.filter { !ambiguousSourceRoles.contains($0.key) }
         }
