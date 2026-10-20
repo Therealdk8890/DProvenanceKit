@@ -81,7 +81,7 @@ public enum VerificationReceiptProjector {
         let invariantResult = input.invariant.evaluate(steps: input.steps)
 
         let missingSourceRoles: [String] = input.currentSourceDigestsByRole.map { current in
-            Array(Set(input.pack.artifacts.map(\\.role).filter { current[$0] == nil })).sorted()
+            Array(Set(input.pack.artifacts.map(\.role).filter { current[$0] == nil })).sorted()
         } ?? []
 
         let status: VerificationReceipt.Status
