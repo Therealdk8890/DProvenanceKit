@@ -125,7 +125,7 @@
         },
         "files_unchanged": {
           "type": "boolean",
-          "description": "True when recomputed source content hashes match the hashes bound in the signed trace / proof pack."
+          "description": "True when the proof-pack embedded artifact bytes pass their bound-digest checks and any supplied current-source digest comparisons match. A requested source recheck with missing artifact-role digests yields status=incomplete; when no current-source digests are supplied, this field does not claim the external filesystem copy was rechecked."
         }
       }
     },
