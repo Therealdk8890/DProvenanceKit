@@ -172,6 +172,47 @@ final class VerificationReceiptProjectorTests: XCTestCase {
         XCTAssertTrue(receipt.statusReason?.contains(pack.artifacts[0].role) == true)
     }
 
+    func testProjectorIncompleteWhenRoleCannotDisambiguateDuplicateArtifactDigests() throws {
+        let firstBytes = Data(#"{\"claims\":[{\"id\":\"c1\",\"verdict\":\"supported\"}]}"#.utf8)
+        let secondBytes = Data(#"{\"claims\":[{\"id\":\"c2\",\"verdict\":\"refuted\"}]}"#.utf8)
+        let firstDigest = hex(firstBytes)
+        let secondDigest = hex(secondBytes)
+        XCTAssertNotEqual(firstDigest, secondDigest)
+
+        let signed = try TraceAttestationDocument.signed(
+            run: makeRun(boundDigests: [firstDigest, secondDigest]),
+            using: SoftwareTraceAttestationKey(),
+            issuedAt: Date(timeIntervalSince1970: 1_700_000_200)
+        )
+        let role = "claim-proof-report"
+        let pack = ProofPackDocument(
+            attestation: signed,
+            artifacts: [
+                ProofPackArtifact(
+                    role: role, mediaType: "application/json", encoding: .utf8,
+                    content: String(decoding: firstBytes, as: UTF8.self), sha256: firstDigest
+                ),
+                ProofPackArtifact(
+                    role: role, mediaType: "application/json", encoding: .utf8,
+                    content: String(decoding: secondBytes, as: UTF8.self), sha256: secondDigest
+                )
+            ]
+        )
+        XCTAssertTrue(pack.verify().isValid, "duplicate roles are not inherently invalid proof packs")
+
+        let receipt = VerificationReceiptProjector.project(
+            pack: pack,
+            claimText: claimText,
+            steps: VerificationReceiptProjector.claimPathSteps(includeVerify: true),
+            currentSourceDigestsByRole: [role: firstDigest]
+        )
+
+        XCTAssertEqual(receipt.status, .incomplete)
+        XCTAssertTrue(receipt.integrity.allPassed, "a role-keyed input ambiguity is not proof of tampering")
+        XCTAssertTrue(receipt.statusReason?.contains("cannot disambiguate") == true)
+        XCTAssertTrue(receipt.statusReason?.contains(role) == true)
+    }
+
     func testProjectorVerifiedWhenProvidedSourceDigestMatches() throws {
         let (pack, digest) = try makeValidPack()
         let receipt = VerificationReceiptProjector.project(
