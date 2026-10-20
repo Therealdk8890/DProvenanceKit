@@ -91,7 +91,9 @@ public enum VerificationReceiptProjector {
             currentSourceDigestsByRole: effectiveSourceDigests
         )
         let missingSourceRoles: [String] = effectiveSourceDigests.map { current in
-            Array(Set(input.pack.artifacts.map(\.role).filter { current[$0] == nil })).sorted()
+            Array(Set(input.pack.artifacts.map(\.role).filter {
+                current[$0] == nil && !ambiguousSourceRoles.contains($0)
+            })).sorted()
         } ?? []
 
         let status: VerificationReceipt.Status
