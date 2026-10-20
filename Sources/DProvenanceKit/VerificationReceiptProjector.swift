@@ -24,9 +24,10 @@ public enum VerificationReceiptProjector {
         public var steps: [VerificationReceipt.Step]
         /// Optional trusted-key pin forwarded to `ProofPackDocument.verify`.
         public var trustedKeyIDs: Set<String>?
-        /// Optional recomputed source digests keyed by artifact `role`. When a role's
-        /// current digest differs from the pack's bound `sha256`, `files_unchanged` and
-        /// `evidence` are marked false.
+        /// Optional recomputed source digests keyed by artifact `role`. If supplied,
+        /// every artifact role must be present for the source recheck to be complete.
+        /// A digest mismatch marks `files_unchanged` and `evidence` false; omitted roles
+        /// make the receipt incomplete rather than implying the source was unchanged.
         public var currentSourceDigestsByRole: [String: String]?
         /// Optional display-name overrides keyed by artifact role (fixtures use filenames).
         public var sourceDisplayNamesByRole: [String: String]?
@@ -79,6 +80,10 @@ public enum VerificationReceiptProjector {
         )
         let invariantResult = input.invariant.evaluate(steps: input.steps)
 
+        let missingSourceRoles: [String] = input.currentSourceDigestsByRole.map { current in
+            Array(Set(input.pack.artifacts.map(\\.role).filter { current[$0] == nil })).sorted()
+        } ?? []
+
         let status: VerificationReceipt.Status
         let statusReason: String?
         if !integrity.allPassed {
@@ -90,6 +95,10 @@ public enum VerificationReceiptProjector {
         } else if !invariantResult.satisfied {
             status = .incomplete
             statusReason = invariantResult.reason
+        } else if !missingSourceRoles.isEmpty {
+            status = .incomplete
+            statusReason = "Source digest recheck is incomplete; missing digests for artifact roles: "
+                + missingSourceRoles.joined(separator: ", ") + "."
         } else {
             status = .verified
             statusReason = nil
