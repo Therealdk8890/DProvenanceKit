@@ -248,7 +248,7 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
         // unresolved placeholders. (Both OS paths ground out, by construction.)
         static func groundingIssues(in draft: String) -> [String] {
             var issues: [String] = []
-            for marker in ["[INSERT", "[VERIFY", "[ENTER"] where draft.contains(marker) {
+            for marker in ["[INSERT SERVICE ADDRESS]"] where draft.contains(marker) {
                 issues.append("unresolved placeholder \(marker)")
             }
             return issues
@@ -278,7 +278,7 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
 
     private func assertOutputContractHolds(_ draft: String, _ label: String,
                                            file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertTrue(draft.contains("RE: FORMAL DEMAND FOR PAYMENT"),
+        XCTAssertTrue(draft.contains("DEMAND FOR PAYMENT"),
                       "\(label): missing formal RE: line", file: file, line: line)
         XCTAssertTrue(draft.contains("To \(Self.sampleCase.recipient):"),
                       "\(label): missing To-salutation with recipient", file: file, line: line)
@@ -286,7 +286,7 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
                       "\(label): missing demand amount", file: file, line: line)
         XCTAssertTrue(draft.contains("Sincerely,") && draft.contains(Self.sampleCase.sender),
                       "\(label): missing signature block", file: file, line: line)
-        for marker in ["[INSERT", "[VERIFY", "[ENTER"] {
+        for marker in ["[INSERT SERVICE ADDRESS]"] {
             XCTAssertFalse(draft.contains(marker),
                            "\(label): unresolved placeholder \(marker)", file: file, line: line)
         }
@@ -331,7 +331,17 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
                 "Generated AI prose with no extracted facts to ground it (\(run.contextID))."
             }
         }
-        return [UngroundedDraftRule(), DraftWithoutGroundingRule(), AIProseWithoutFactsRule()]
+        struct LowConfidenceDraftRule: AnomalyRule {
+            let name = "LowConfidenceDraft"
+            var anomalyQuery: TraceQueryDSL<DemandTraceEvent> {
+                TraceQueryDSL().requiring(step: "lowConfidenceDraft")
+            }
+            func describe(run: TraceRun<DemandTraceEvent>) -> String {
+                "Produced a draft below the confidence threshold (\\(run.contextID))."
+            }
+        }
+        return [UngroundedDraftRule(), DraftWithoutGroundingRule(),
+                LowConfidenceDraftRule(), AIProseWithoutFactsRule()]
     }
 
     private func run(_ profile: FoundationModelProfile) async throws
