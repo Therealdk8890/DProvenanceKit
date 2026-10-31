@@ -64,7 +64,8 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
    - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
-   - Offline verification with no network dependency\n   - Optional RFC 3161 external timestamp over the exact signed attestation envelope; the TSA receives only a SHA-256 imprint
+   - Offline verification with no network dependency
+   - Optional RFC 3161 timestamp over the attestation's canonical signing payload; the TSA receives only a SHA-256 imprint
 
 Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
 
