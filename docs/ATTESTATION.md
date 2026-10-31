@@ -275,9 +275,15 @@ precondition(result.isValid)
 
 The verifier checks the CMS signature, the TSA signer certificate fingerprint, the SHA-256 message imprint, the request nonce, and the TSA `genTime`. RFC 3161 requires a TSA to use a dedicated timestamping certificate and the `id-kp-timeStamping` extended key usage. The TSA certificate fingerprint is therefore a deployment trust anchor and should be distributed through a channel separate from the timestamped artifact.
 
+**Verifier boundary:** On macOS, DPK verifies the CMS signer signature and requires an exact SHA-256 pin for the TSA signing certificate. This is explicit certificate pinning, not general public-PKI chain validation; certificate rotation requires an independently reviewed pin update. The current implementation does not perform revocation checking or a general certificate-policy evaluation. On iOS, the timestamp client checks the response structure, message imprint, nonce, and generation time, but does **not** validate the CMS signature or TSA certificate. Use a macOS DPK verifier or another independent RFC 3161/CMS verifier before treating an iOS-produced token as trusted.
+
+`verifyExternalTimestamp(trustedTSA:)` first checks the DPK signature using the public key embedded in the document. That establishes signature integrity, not the identity of the DPK signer. Separately call `document.verify(trustedKeyIDs: [expectedKeyID])` using a key ID provisioned through a trusted channel when signer identity matters.
+
+DPK does not currently publish to or verify against a transparency log. [`EXTERNAL_ANCHOR_CONTRACT.md`](EXTERNAL_ANCHOR_CONTRACT.md) defines a composable digest-anchor interface and adversarial requirements; it is an interoperability contract, not an implemented log client or service.
+
 This changes the evidence boundary from **"the signer says it was issued at time T"** to **"a separately trusted timestamp authority attested that this exact signed envelope existed at time T."** It still does not prove that the trace is truthful or complete.
 
-The timestamp token is stored verbatim in the JSON document, so an auditor can hand the token to an independent RFC 3161/CMS verifier. DPK does not operate a timestamping service and does not control the TSA's clock.
+The timestamp token is stored verbatim in the JSON document, so an auditor can hand the token to an independent RFC 3161/CMS verifier. DPK does not operate a timestamping service and does not control the TSA's clock. The current automated `RFC3161TimestampTests` cover document serialization and backward-compatible decoding; they do not constitute live TSA interoperability, CMS signature, certificate-pin, or adversarial token-validation coverage. Treat those as release-validation requirements before making a production assurance claim.
 
 ## Threat model
 
