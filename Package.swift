@@ -87,7 +87,7 @@ let package = Package(
         .executableTarget(
             name: "GenerateSample",
             dependencies: ["DProvenanceKit", "DProvenanceUI"],
-            path: "scratch",
+            path: "Sources/GenerateSample",
             sources: ["GenerateSample.swift"]
         ),
         .executableTarget(
