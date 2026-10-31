@@ -193,6 +193,86 @@ final class TraceAttestationTests: XCTestCase {
         XCTAssertTrue(document.verify().isValid)
     }
 
+    func testUppercaseDigestIsRejectedAsNonCanonical() throws {
+        let document = try makeDocument()
+        let original = document.attestation
+        let uppercase = TraceAttestation(
+            version: original.version,
+            algorithm: original.algorithm,
+            canonicalization: original.canonicalization,
+            runID: original.runID,
+            contextID: original.contextID,
+            eventCount: original.eventCount,
+            edgeCount: original.edgeCount,
+            traceDigest: original.traceDigest.uppercased(),
+            issuedAtUnixMicroseconds: original.issuedAtUnixMicroseconds,
+            keyID: original.keyID,
+            publicKeyBase64: original.publicKeyBase64,
+            signatureBase64: original.signatureBase64
+        )
+
+        let result = TraceAttestationVerifier.verify(uppercase, for: document.trace)
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.failure, .malformedDigest)
+    }
+
+    func testPayloadJSONRejectsNonStandardNumericConstants() throws {
+        let document = try makeDocument()
+        for constant in ["NaN", "Infinity", "-Infinity"] {
+            var events = document.trace.events
+            events[0] = copy(events[0], payloadJSON: "{\"value\":\\(constant)}")
+            let malformed = AttestableTrace(
+                runID: document.trace.runID,
+                contextID: document.trace.contextID,
+                events: events,
+                edges: document.trace.edges
+            )
+
+            let result = TraceAttestationVerifier.verify(document.attestation, for: malformed)
+            XCTAssertFalse(result.isValid, constant)
+            XCTAssertEqual(result.failure, .invalidPayloadJSON, constant)
+        }
+    }
+
+    func testDocumentDecoderRequiresEdgesArray() throws {
+        let document = try makeDocument()
+        for replacement in [NSNull(), "not-an-array"] as [Any] {
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: document.jsonData()) as? [String: Any]
+            )
+            var trace = try XCTUnwrap(object["trace"] as? [String: Any])
+            trace["edges"] = replacement
+            object["trace"] = trace
+            let data = try JSONSerialization.data(withJSONObject: object)
+            XCTAssertThrowsError(try TraceAttestationDocument.decodeJSON(data))
+        }
+
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: document.jsonData()) as? [String: Any]
+        )
+        var trace = try XCTUnwrap(object["trace"] as? [String: Any])
+        trace.removeValue(forKey: "edges")
+        object["trace"] = trace
+        let data = try JSONSerialization.data(withJSONObject: object)
+        XCTAssertThrowsError(try TraceAttestationDocument.decodeJSON(data))
+    }
+
+    func testDocumentDecoderRejectsBooleanAndStringIntegerFields() throws {
+        let document = try makeDocument()
+        for invalidValue in [true as Any, "1" as Any] {
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: document.jsonData()) as? [String: Any]
+            )
+            var trace = try XCTUnwrap(object["trace"] as? [String: Any])
+            var events = try XCTUnwrap(trace["events"] as? [[String: Any]])
+            events[0]["sequence"] = invalidValue
+            trace["events"] = events
+            object["trace"] = trace
+            let data = try JSONSerialization.data(withJSONObject: object)
+            XCTAssertThrowsError(try TraceAttestationDocument.decodeJSON(data))
+        }
+    }
+
     private func makeDocument() throws -> TraceAttestationDocument {
         let run = makeRun()
         return try TraceAttestationDocument.signed(
