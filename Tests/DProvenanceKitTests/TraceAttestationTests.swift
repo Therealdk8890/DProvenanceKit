@@ -220,7 +220,7 @@ final class TraceAttestationTests: XCTestCase {
         let document = try makeDocument()
         for constant in ["NaN", "Infinity", "-Infinity"] {
             var events = document.trace.events
-            events[0] = copy(events[0], payloadJSON: "{\"value\":\\(constant)}")
+            events[0] = copy(events[0], payloadJSON: "{\"value\":\(constant)}")
             let malformed = AttestableTrace(
                 runID: document.trace.runID,
                 contextID: document.trace.contextID,
