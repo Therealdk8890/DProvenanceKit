@@ -281,7 +281,7 @@ The verifier checks the CMS signature, the TSA signer certificate fingerprint, t
 
 DPK does not currently publish to or verify against a transparency log. [`EXTERNAL_ANCHOR_CONTRACT.md`](EXTERNAL_ANCHOR_CONTRACT.md) defines a composable digest-anchor interface and adversarial requirements; it is an interoperability contract, not an implemented log client or service.
 
-This changes the evidence boundary from **"the signer says it was issued at time T"** to **"a separately trusted timestamp authority attested that this exact signed envelope existed at time T."** It still does not prove that the trace is truthful or complete.
+This changes the evidence boundary from **"the signer says it was issued at time T"** to **"a separately trusted timestamp authority attested that this exact canonical attestation signing payload existed at time T."** It still does not prove that the trace is truthful or complete.
 
 The timestamp token is stored verbatim in the JSON document, so an auditor can hand the token to an independent RFC 3161/CMS verifier. DPK does not operate a timestamping service and does not control the TSA's clock. The current automated `RFC3161TimestampTests` cover document serialization and backward-compatible decoding; they do not constitute live TSA interoperability, CMS signature, certificate-pin, or adversarial token-validation coverage. Treat those as release-validation requirements before making a production assurance claim.
 
