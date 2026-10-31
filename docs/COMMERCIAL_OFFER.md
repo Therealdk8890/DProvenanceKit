@@ -152,5 +152,4 @@ Use the output to show:
 - **Accepted scope and kickoff timing:** pay for the $4,500 pilot through
   an invoice issued after the scope is agreed in writing.
 - **Need an invoice or different scoped engagement:** open a
-  [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-  or use the public commercial inquiry form.
+  [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml).
