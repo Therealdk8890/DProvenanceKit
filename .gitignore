@@ -1,4 +1,7 @@
 .DS_Store
+
+# Local editor / agent launch configuration
+/.claude/
 /.build
 /build/
 /Packages
