@@ -60,7 +60,7 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Fail CI when the path regresses beyond policy
    - Keep using your existing eval and observability stack
 
-4. **Attest and anchor (Swift).**
+4. **Attest (Swift; optional external timestamp).**
    - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
    - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
