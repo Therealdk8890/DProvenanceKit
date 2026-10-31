@@ -40,9 +40,7 @@ known failure mode, and one decision the resulting evidence will support.
 
 After the workflow, scope, and kickoff timing are accepted in writing, an invoice is issued —
 50% on signature, 50% on delivery of the assurance report, net 15. For procurement questions,
-open a
-[commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml)
-.
+open a [commercial inquiry](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=commercial&template=commercial.yml).
 
 ## Pilot deliverables
 
