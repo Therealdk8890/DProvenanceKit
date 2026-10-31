@@ -229,9 +229,9 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
             return """
             VIA CERTIFIED MAIL AND EMAIL
 
-            RE: FORMAL DEMAND FOR PAYMENT — \(amount)
+            DEMAND FOR PAYMENT — \(amount)
 
-            To \(recipient):
+            Dear \(recipient):
 
             \(body)
 
@@ -279,9 +279,9 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
     private func assertOutputContractHolds(_ draft: String, _ label: String,
                                            file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(draft.contains("DEMAND FOR PAYMENT"),
-                      "\(label): missing formal RE: line", file: file, line: line)
-        XCTAssertTrue(draft.contains("To \(Self.sampleCase.recipient):"),
-                      "\(label): missing To-salutation with recipient", file: file, line: line)
+                      "\(label): missing demand-letter heading", file: file, line: line)
+        XCTAssertTrue(draft.contains("Dear \(Self.sampleCase.recipient):"),
+                      "\(label): missing Dear-salutation with recipient", file: file, line: line)
         XCTAssertTrue(draft.contains(Self.sampleCase.amount),
                       "\(label): missing demand amount", file: file, line: line)
         XCTAssertTrue(draft.contains("Sincerely,") && draft.contains(Self.sampleCase.sender),
@@ -337,7 +337,7 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
                 TraceQueryDSL().requiring(step: "lowConfidenceDraft")
             }
             func describe(run: TraceRun<DemandTraceEvent>) -> String {
-                "Produced a draft below the confidence threshold (\\(run.contextID))."
+                "Produced a draft below the confidence threshold (\(run.contextID))."
             }
         }
         return [UngroundedDraftRule(), DraftWithoutGroundingRule(),
