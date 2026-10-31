@@ -5,10 +5,11 @@ import Foundation
 /// `ProofPackDocument.verify` (and optional recomputed source digests); status comes from
 /// that integrity summary plus invariant evaluation.
 ///
-/// Status rules (locked, Phase 0 / 1C):
+/// Status rules:
 /// 1. Integrity failure → `tampered` (takes precedence over incomplete)
 /// 2. Else invariant failure → `incomplete`
-/// 3. Else → `verified`
+/// 3. Else an incomplete or ambiguous requested source recheck → `incomplete`
+/// 4. Else → `verified`
 ///
 /// **Verified ≠ claim objectively true.** It means integrity-protected provenance
 /// satisfied the declared invariant.
@@ -24,9 +25,10 @@ public enum VerificationReceiptProjector {
         public var steps: [VerificationReceipt.Step]
         /// Optional trusted-key pin forwarded to `ProofPackDocument.verify`.
         public var trustedKeyIDs: Set<String>?
-        /// Optional recomputed source digests keyed by artifact `role`. When a role's
-        /// current digest differs from the pack's bound `sha256`, `files_unchanged` and
-        /// `evidence` are marked false.
+        /// Optional recomputed source digests keyed by artifact `role`. If supplied,
+        /// every artifact role must be present and uniquely identify its bound digest.
+        /// A digest mismatch marks `files_unchanged` and `evidence` false; omitted or
+        /// ambiguous roles make the receipt incomplete rather than implying tampering.
         public var currentSourceDigestsByRole: [String: String]?
         /// Optional display-name overrides keyed by artifact role (fixtures use filenames).
         public var sourceDisplayNamesByRole: [String: String]?
@@ -72,12 +74,28 @@ public enum VerificationReceiptProjector {
 
     public static func project(_ input: Input) -> VerificationReceipt {
         let packVerification = input.pack.verify(trustedKeyIDs: input.trustedKeyIDs)
+        let invariantResult = input.invariant.evaluate(steps: input.steps)
+
+        // A role-keyed source-digest map cannot disambiguate two artifacts that share a
+        // role but bind different bytes. Do not misclassify that missing identity as tampering.
+        let digestsByRole = Dictionary(grouping: input.pack.artifacts, by: \.role)
+        let ambiguousSourceRoles = input.currentSourceDigestsByRole == nil ? Set<String>() :
+            Set(digestsByRole.compactMap { role, artifacts in
+                Set(artifacts.map(\.sha256)).count > 1 ? role : nil
+            })
+        let effectiveSourceDigests = input.currentSourceDigestsByRole.map { current in
+            current.filter { !ambiguousSourceRoles.contains($0.key) }
+        }
         let integrity = deriveIntegrity(
             pack: input.pack,
             verification: packVerification,
-            currentSourceDigestsByRole: input.currentSourceDigestsByRole
+            currentSourceDigestsByRole: effectiveSourceDigests
         )
-        let invariantResult = input.invariant.evaluate(steps: input.steps)
+        let missingSourceRoles: [String] = effectiveSourceDigests.map { current in
+            Array(Set(input.pack.artifacts.map(\.role).filter {
+                current[$0] == nil && !ambiguousSourceRoles.contains($0)
+            })).sorted()
+        } ?? []
 
         let status: VerificationReceipt.Status
         let statusReason: String?
@@ -90,6 +108,17 @@ public enum VerificationReceiptProjector {
         } else if !invariantResult.satisfied {
             status = .incomplete
             statusReason = invariantResult.reason
+        } else if !missingSourceRoles.isEmpty || !ambiguousSourceRoles.isEmpty {
+            status = .incomplete
+            var reasons: [String] = []
+            if !missingSourceRoles.isEmpty {
+                reasons.append("missing digests for artifact roles: " + missingSourceRoles.joined(separator: ", "))
+            }
+            if !ambiguousSourceRoles.isEmpty {
+                reasons.append("role-keyed recheck cannot disambiguate roles with multiple artifact digests: "
+                    + ambiguousSourceRoles.sorted().joined(separator: ", "))
+            }
+            statusReason = "Source digest recheck is incomplete; " + reasons.joined(separator: "; ") + "."
         } else {
             status = .verified
             statusReason = nil
