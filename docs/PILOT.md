@@ -80,9 +80,7 @@ prove facts or decisions that were never captured.
 
 ## Purchase and delivery flow
 
-1. Submit the
-   [pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
-   or use the public intake for a synthetic or redacted description. Do not include confidential details.
+1. Submit the [public pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) with a synthetic or redacted description. Do not include confidential details.
 2. Confirm the single workflow, review emphasis, written scope, and kickoff timing.
 3. Mutually accept that scope and timing.
 4. Pay through an invoice issued after the scope is agreed in writing, or request an
