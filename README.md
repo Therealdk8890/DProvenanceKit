@@ -326,3 +326,7 @@ DProvenanceKit is built for teams that care about:
 - **Honest scope:** Attestation supports audit workflows; it is not by itself certification or proof that a decision was “sound”
 
 If your AI makes healthcare, financial, legal, or insurance decisions, start with one workflow and a golden baseline.
+
+---
+
+Copyright 2026 Daniel Paul Kissel
