@@ -140,6 +140,14 @@ The SDK remains free under Apache 2.0. For a fixed-scope review of one AI workfl
 
 ### For Open-Source Users
 
+Add the released Swift package to your project's dependencies:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
+]
+```
+
 1. **Define your AI's critical decisions**
    - Which instrumented steps must appear in an audit trail?
    - What evidence matters?
