@@ -80,9 +80,7 @@ prove facts or decisions that were never captured.
 
 ## Purchase and delivery flow
 
-1. Submit the
-   [pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
-   or email **danielpaulkissel@gmail.com** with a synthetic or redacted description.
+1. Submit the [public pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml) with a synthetic or redacted description. Do not include confidential details.
 2. Confirm the single workflow, review emphasis, written scope, and kickoff timing.
 3. Mutually accept that scope and timing.
 4. Pay through an invoice issued after the scope is agreed in writing, or request an
@@ -110,6 +108,4 @@ automatic subscription conversion.
 
 Use the
 [public pilot intake](https://github.com/Therealdk8890/DProvenanceKit/issues/new?labels=pilot&template=pilot.yml)
-only for synthetic or redacted information. For anything sensitive, email
-[danielpaulkissel@gmail.com](mailto:danielpaulkissel@gmail.com?subject=DProvenanceKit%20paid%20pilot%20inquiry)
-and keep confidential details out of GitHub.
+only for synthetic or redacted information. If the review appears to fit, a private contact channel can be agreed before any sensitive information is exchanged. Keep confidential details out of GitHub.

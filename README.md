@@ -1,8 +1,8 @@
-# 🚀 DProvenanceKit
+# DProvenanceKit
 
-## Tamper-evident records of instrumented AI decision paths — offline-verifiable, CI-gated
+## Offline-verifiable provenance for instrumented AI decision paths
 
-For teams in healthcare, finance, and legal building AI systems that need a local-first record of *which instrumented steps ran*, a regression gate when that path drifts, and (on Swift) a signed attestation they can verify without calling home.
+DProvenanceKit is an Apache-2.0 SDK for recording, querying, diffing, and regression-gating instrumented AI decision paths. Keep traces local, compare runs against known-good baselines, and verify signed Swift attestations offline. It complements request-level observability; it does not replace it.
 
 > Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install "dprovenancekit[crypto]"` (attestation MVP on main / **0.7.0+**; older PyPI wheels lack it). Same recording, diff, CI gate, and `DPK-BINARY-V1` software attestation; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Proof packs and Secure Enclave remain Swift-only (see matrix below).
 
@@ -19,9 +19,9 @@ Your AI makes a decision that impacts a customer. The decision is challenged.
 
 Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, give you a **queryable, diffable, locally retained record of the instrumented decision path** — or a CI check that refuses merge when that path regresses. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
 
-DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation — optionally anchored to an external RFC 3161 timestamp.**
+DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation. Swift attestations can optionally carry an RFC 3161 timestamp token, verified with a separately pinned TSA certificate.**
 
-It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. For the signed-artifact threat model, read [docs/ATTESTATION.md — What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
+It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. A valid signature alone does not establish signer identity or trusted time. RFC 3161 timestamping is an optional external time assertion; DPK does not currently operate or integrate a transparency log. See [the attestation threat model](docs/ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](docs/EXTERNAL_ANCHOR_CONTRACT.md).
 
 ---
 
@@ -60,11 +60,12 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
    - Fail CI when the path regresses beyond policy
    - Keep using your existing eval and observability stack
 
-4. **Attest and anchor (Swift).**
+4. **Attest (Swift; optional external timestamp).**
    - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
    - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
    - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
-   - Offline verification with no network dependency\n   - Optional RFC 3161 external timestamp over the exact signed attestation envelope; the TSA receives only a SHA-256 imprint
+   - Offline verification with no network dependency
+   - Optional RFC 3161 timestamp over the attestation's canonical signing payload; the TSA receives only a SHA-256 imprint
 
 Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
 
@@ -129,61 +130,23 @@ Attestation establishes integrity of what was recorded — not truthfulness of c
 
 ---
 
-## Open Source + Paid Governance Support
+## Governance and assurance services
 
-### Option 1: Self-Directed (Open Source)
-
-Product layers (OSS evidence engine vs commercial AI Assurance Platform): see [docs/PRODUCT_LAYERS.md](docs/PRODUCT_LAYERS.md).
-
-DProvenanceKit is Apache 2.0 licensed. You can use it free:
-
-```bash
-# Python
-pip install dprovenancekit
-
-# Swift
-dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
-]
-```
-
-You instrument your AI workflow. You establish baselines. You manage the governance policy.
-
-**Best for:** Teams with internal compliance/audit expertise.
-
-### Option 2: Governed AI Deployment Pilot ($4,500 one-time)
-
-For organizations that want governance guidance and a structured review of one AI workflow:
-
-**Includes:**
-- **Instrumentation review:** Is this the right tracing for your compliance needs?
-- **Baseline establishment:** What's the "golden" reasoning path your AI should follow?
-- **Governance policy definition:** What counts as a regression? When do we alert? What's audit-worthy?
-- **Compliance-oriented audit report:** A written summary of your reasoning architecture and how DPK artifacts support review — not certification, indemnity, or a guarantee of regulatory acceptance.
-
-**Does not include:**
-- Recurring SaaS or managed service
-- Code in your repository
-- Ongoing support (scope separately as needed)
-- Certification under any legal or industry framework
-
-**Who this is for:** Chief Risk Officer, Compliance Officer, Audit Manager at an organization in a regulated industry deploying one specific AI workflow.
-
-**Example scope:**
-- Healthcare: Diagnostic-recommendation AI
-- Finance: Lending decision AI
-- Legal: Brief-generation AI
-- Insurance: Claims-approval AI
-
-**Timeline:** 30 days, delivered as a report.
-
-**Next step:** [Request a pilot](mailto:danielpaulkissel@gmail.com?subject=Governed%20AI%20Deployment%20Pilot).
+The SDK remains free under Apache 2.0. For a fixed-scope review of one AI workflow, see the [DProvenanceKit Decision-Path Assurance Pilot](https://dprovenance.dev/pilot/). The pilot is a professional service, not a paid license, hosted platform, compliance certification, or guarantee of regulatory acceptance.
 
 ---
 
 ## Getting Started
 
 ### For Open-Source Users
+
+Add the released Swift package to your project's dependencies:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
+]
+```
 
 1. **Define your AI's critical decisions**
    - Which instrumented steps must appear in an audit trail?
@@ -302,7 +265,7 @@ Apache 2.0. Free for commercial use.
 ## Contact
 
 **For pilot inquiry:**
-[Request Governed AI Deployment Pilot](mailto:danielpaulkissel@gmail.com?subject=Governed%20AI%20Deployment%20Pilot)
+[Decision-Path Assurance Pilot](https://dprovenance.dev/pilot/)
 
 **For open-source questions:**
 GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit

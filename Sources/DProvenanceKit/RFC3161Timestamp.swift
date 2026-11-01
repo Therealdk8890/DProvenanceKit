@@ -134,7 +134,7 @@ public enum RFC3161TimestampClient {
 
 /// A timestamped document is still the original DPK-signed artifact. Adding the
 /// RFC 3161 token does not alter the DPK signature; the external token separately
-/// commits to the exact signed envelope.
+/// commits to the canonical attestation signing payload (the signed fields, excluding signature bytes).
 public extension TraceAttestationDocument {
     func addingExternalTimestamp(_ timestamp: RFC3161Timestamp) -> TraceAttestationDocument {
         TraceAttestationDocument(
