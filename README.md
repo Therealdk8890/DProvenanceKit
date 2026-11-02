@@ -1,4 +1,4 @@
-# 🚀 DProvenanceKit
+# DProvenanceKit
 
 ## Tamper-evident records of instrumented AI decision paths — offline-verifiable, CI-gated
 
