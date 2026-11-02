@@ -439,7 +439,16 @@ public enum TraceAttestationVerifier {
         guard attestation.eventCount == trace.events.count else { return failure(.eventCountMismatch) }
         guard attestation.edgeCount == trace.edges.count else { return failure(.edgeCountMismatch) }
 
-        guard let expectedDigest = Data(hex: attestation.traceDigest), expectedDigest.count == 32 else {
+        // DPK-BINARY-V1 defines digest text as 64 lowercase hexadecimal characters.
+        // Do not let Data(hex:) silently accept uppercase as an alternate wire spelling:
+        // Python and Swift must reject the same non-canonical input.
+        let digestBytes = attestation.traceDigest.utf8
+        let isCanonicalDigest = digestBytes.count == 64 && digestBytes.allSatisfy {
+            (48...57).contains($0) || (97...102).contains($0)
+        }
+        guard isCanonicalDigest,
+              let expectedDigest = Data(hex: attestation.traceDigest),
+              expectedDigest.count == 32 else {
             return failure(.malformedDigest)
         }
         let actualDigest = Data(TraceAttestationCanonicalizer.digest(trace))
