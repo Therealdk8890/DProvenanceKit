@@ -51,8 +51,8 @@ jobs:
       # Non-gating visibility only: prints the library's line-coverage summary to the
       # build log so the number is measured on every PR. It never fails the build —
       # a runner-specific path hiccup must not turn a green test run red — and there is
-      # no coverage floor. Tests, .build artifacts, and scratch/ are excluded so the
-      # figure reflects the shipped Sources/.
+      # no coverage floor. Tests, .build artifacts, and the standalone GenerateSample app are excluded so the
+      # figure reflects the core shipped library Sources/.
       - name: Coverage summary (library line coverage, non-gating)
         continue-on-error: true
         run: |
@@ -73,7 +73,7 @@ jobs:
           echo "coverage inputs: bundle=$XCTEST profdata=$PROF"
           xcrun llvm-cov report "$MACHO" \
             -instr-profile "$PROF" \
-            -ignore-filename-regex='(/Tests/|/\.build/|/scratch/)' \
+            -ignore-filename-regex='(/Tests/|/\.build/|/Sources/GenerateSample/|/scratch/)' \
             | tee "$RUNNER_TEMP/coverage.txt"
           echo "==== TOTAL (last line above) ===="
           tail -n 1 "$RUNNER_TEMP/coverage.txt"
