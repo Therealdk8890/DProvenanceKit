@@ -4,7 +4,7 @@
 
 DProvenanceKit is an Apache-2.0 SDK for recording, querying, diffing, and regression-gating instrumented AI decision paths. Keep traces local, compare runs against known-good baselines, and verify signed Swift attestations offline. It complements request-level observability; it does not replace it.
 
-> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install "dprovenancekit[crypto]"` (attestation MVP on main / **0.7.0+**; older PyPI wheels lack it). Same recording, diff, CI gate, and `DPK-BINARY-V1` software attestation; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Proof packs and Secure Enclave remain Swift-only (see matrix below).
+> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install "dprovenancekit[crypto]"` (attestation MVP on main / **0.7.0+**; older PyPI wheels lack it). Same recording, diff, CI gate, and `DPK-BINARY-V1` software attestation; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. The OpenAI Agents adapter is [listed in the official OpenAI Agents SDK tracing documentation](https://github.com/openai/openai-agents-python/blob/main/docs/tracing.md#external-tracing-processors-list); see the [Python integration guide](https://dprovenance.dev/openai-agents/). Proof packs and Secure Enclave remain Swift-only (see matrix below).
 
 ---
 
