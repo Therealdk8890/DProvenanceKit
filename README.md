@@ -1,146 +1,46 @@
 # DProvenanceKit
 
-## Offline-verifiable provenance for instrumented AI decision paths
+**Record, regression-test, and independently verify AI decision paths — locally.**
 
-DProvenanceKit is an Apache-2.0 SDK for recording, querying, diffing, and regression-gating instrumented AI decision paths. Keep traces local, compare runs against known-good baselines, and verify signed Swift attestations offline. It complements request-level observability; it does not replace it.
+DProvenanceKit is an open-source Swift SDK for teams building privacy-sensitive AI features with Apple's on-device [Foundation Models](https://developer.apple.com/documentation/foundationmodels). It records the model interactions and tool steps your application chooses to instrument, compares runs against a known-good baseline, and can produce attestations that are verifiable offline.
 
-> Working in Python? **[DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython)** — `pip install "dprovenancekit[crypto]"` (attestation MVP on main / **0.7.0+**; older PyPI wheels lack it). Same recording, diff, CI gate, and `DPK-BINARY-V1` software attestation; adapters for LangChain, OpenAI Agents, LlamaIndex, and CrewAI. Proof packs and Secure Enclave remain Swift-only (see matrix below).
+It is designed to sit beside your app's existing observability and evaluation stack — not replace it.
 
----
+> **The short version:** when an OS, model, prompt, or tool change alters an important workflow, DPK helps make that change visible before it ships.
 
-## The gap request-level observability leaves open
+## Try it in five minutes
 
-Your AI makes a decision that impacts a customer. The decision is challenged.
+You need Swift 6 and an Apple development environment. The live Foundation Models example requires an OS and device that support Apple's Foundation Models framework (iOS 26, macOS 26, or visionOS 26); model availability also depends on the device and system.
 
-**Lender:** "Why did you reject this applicant?"
-**Doctor:** "Why did you recommend that treatment?"
-**Lawyer:** "What's the basis for this legal argument?"
-**Auditor:** "Has this recorded decision path been altered since it was written?"
+Clone and run the live example:
 
-Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remains essential for what happened in production. It does not, by itself, give you a **queryable, diffable, locally retained record of the instrumented decision path** — or a CI check that refuses merge when that path regresses. For regulated workflows, that gap matters: sensitive reasoning often cannot leave your infrastructure.
-
-DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation. Swift attestations can optionally carry an RFC 3161 timestamp token; the current pinned-TSA CMS verifier is macOS-only.**
-
-It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. A valid signature alone does not establish signer identity or trusted time. RFC 3161 timestamping is an optional external time assertion; DPK does not currently operate or integrate a transparency log. See [the attestation threat model](docs/ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](docs/EXTERNAL_ANCHOR_CONTRACT.md).
-
----
-
-## Built for teams in regulated industries
-
-### Healthcare
-Diagnostic-support and clinical decision tools need a durable record of which checks ran and what evidence was attached — retained locally, comparable across releases, and (when attested) integrity-checked offline.
-
-### Financial Services
-Lending and underwriting workflows need an auditable trail of the instrumented factors that entered a decision, plus a CI gate when that trail changes after a model or prompt update.
-
-### Legal
-Brief-generation and citation workflows need a retained chain of verification steps your team instrumented — not a promise that citations are correct, but a record you can review, diff, and (Swift) attest.
-
-### Insurance
-Claims workflows need a consistent, queryable decision path for appeals and internal audit — and a regression signal when automation drifts.
-
-### Government
-Eligibility and records workflows often cannot ship raw reasoning to a hosted SaaS. Local-first recording keeps data where policy requires; attestation (Swift) adds integrity for exports you choose to share.
-
----
-
-## How It Works
-
-**DProvenanceKit is not a SaaS platform. It's a local-first SDK.**
-
-1. **Your AI system runs normally.** Everything stays on your infrastructure.
-
-2. **Each instrumented decision path is recorded locally.**
-   - Reasoning steps you wrap or emit
-   - Evidence and tool calls you record
-   - Intermediate results you choose to capture
-
-3. **Compare and gate.**
-   - Diff a candidate run against a golden baseline
-   - Fail CI when the path regresses beyond policy
-   - Keep using your existing eval and observability stack
-
-4. **Attest (Swift; optional external timestamp).**
-   - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
-   - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
-   - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
-   - Offline verification with no network dependency
-   - Optional RFC 3161 timestamp over the attestation's canonical signing payload; the TSA receives only a SHA-256 imprint
-
-Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
-
----
-
-## Swift vs Python capability matrix
-
-| Capability | Swift (`DProvenanceKit`) | Python (`dprovenancekit`) |
-|---|---|---|
-| Record / store / query instrumented paths | Yes | Yes |
-| Semantic diff + golden baselines | Yes | Yes |
-| CI regression gate | Yes (`dpk` / package tools) | Yes (`dprovenancekit gate`, pytest `golden_trace`, [GitHub Action](https://github.com/marketplace/actions/dprovenancekit-regression-gate)) |
-| Framework adapters (LangChain, Agents, …) | Foundation Models (+ OTel bridge) | LangChain, OpenAI Agents, LlamaIndex, CrewAI, OTel ingest |
-| Trace attestation (`DPK-BINARY-V1` + P-256 DER) | **Yes** | **MVP yes** (`dprovenancekit[crypto]`; software keys; **0.7.0+** / on main) |
-| Proof packs | **Yes** | **Not yet** |
-| Secure Enclave–backed keys | **Yes** (Apple platforms) | N/A |
-
-> **CI Action pin:** the Marketplace Action defaults to `install-spec: dprovenancekit==0.7.1`. Prefer pinning the Action itself to a commit SHA (see [dprovenancekit-action](https://github.com/Therealdk8890/dprovenancekit-action)).
-
-Cross-language conformance covers fingerprints, query semantics, profile hash, and alignment verdicts per [TRACE_SPEC_v1](https://github.com/Therealdk8890/DProvenanceKitPython/blob/main/conformance/TRACE_SPEC_v1.md). Payload encodings need **not** be byte-identical across SDKs; equivalence is on decoded payloads and structural fingerprints.
-
----
-
-## Works with your observability stack
-
-DProvenanceKit aims to be the local-first layer for **AI decision-path observability** — record, diff, attest (Swift), and CI-gate the instrumented path. It is built to sit **beside** OpenTelemetry, LangSmith, Langfuse, and Arize, not to replace them.
-
-| | Platform / request observability (LangSmith, Langfuse, OTel, …) | DProvenanceKit |
-|---|---|---|
-| **Job** | Spans, dashboards, evals, production monitoring | Decision path, golden baselines, CI gate, signed attestation (Swift) |
-| **Question** | What happened? | Did the instrumented decision path regress — and (Swift) can we verify the record wasn’t altered after signing? |
-| **Where data lives** | Collector or hosted platform (by design) | Local-first; optional OTel export when you choose |
-| **How they fit** | Keep using them | Add DPK next to them |
-
-**Bottom line:** Use LangSmith, Langfuse, and OpenTelemetry for platform observability. Use DProvenanceKit when you need the decision path to be queryable, diffable, refused in CI when it drifts, and — on Swift — attestable offline.
-
----
-
-## Real Example: Legal Document Provenance
-
-A law firm uses an AI to draft legal briefs.
-
-**The problem:** Every citation must be verifiable. If the AI cites a case that doesn't exist, that's malpractice.
-
-**How DProvenanceKit helps:**
-
-```
-1. Legal AI generates brief
-2. Before export, instrumented verification steps are recorded:
-   - Case existence check against a legal database
-   - Statute currency check
-   - Quote accuracy check against source
-3. (Swift) The recorded chain is attested (DPK-BINARY-V1 + P-256 DER)
-4. Brief is exported with an optional proof pack binding report digests
-5. If disputed, the firm can show:
-   - The instrumented reasoning chain that was recorded
-   - (Swift) The signature, and — when configured — an independent RFC 3161 timestamp and offline verification result
-   - That the attested record has not been tampered with since signing
+```bash
+git clone https://github.com/Therealdk8890/DProvenanceKit.git
+cd DProvenanceKit
+swift run FoundationModelsLiveQuickstart
 ```
 
-Attestation establishes integrity of what was recorded — not truthfulness of citations or legal sufficiency. See [What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
+The example calls the on-device model when available, records the run, flushes the trace to SQLite, and prints the captured event timeline and database path. Pass a prompt after `--`:
 
----
+```bash
+swift run FoundationModelsLiveQuickstart -- "Summarize this note in one sentence."
+```
 
-## Governance and assurance services
+Want to see why the trace matters? Run the regression scenario:
 
-The SDK remains free under Apache 2.0. For a fixed-scope review of one AI workflow, see the [DProvenanceKit Decision-Path Assurance Pilot](https://dprovenance.dev/pilot/). The pilot is a professional service, not a paid license, hosted platform, compliance certification, or guarantee of regulatory acceptance.
+```bash
+swift run FoundationModelsRegressionDemo --gate
+```
 
----
+This compares a baseline weather-assistant transcript that calls a live-data tool with a candidate that silently skips the tool. DPK detects the missing step and the gate exits non-zero — a concrete example of a behavioral regression that can otherwise look like a successful response.
 
-## Getting Started
+- [Live Foundation Models quickstart source](Sources/FoundationModelsLiveQuickstart/FoundationModelsLiveQuickstart.swift)
+- [Foundation Models regression demo source](Sources/FoundationModelsRegressionDemo/FoundationModelsRegressionDemo.swift)
+- [End-to-end instrument → gate → attest → verify demo](Examples/E2EDecisionPath/README.md)
 
-### For Open-Source Users
+## Add DPK to a Swift package
 
-Add the released Swift package to your project's dependencies:
+Add the package dependency:
 
 ```swift
 dependencies: [
@@ -148,152 +48,81 @@ dependencies: [
 ]
 ```
 
-1. **Define your AI's critical decisions**
-   - Which instrumented steps must appear in an audit trail?
-   - What evidence matters?
-   - Where is liability highest?
+Then add the products your app uses to its target dependencies:
 
-2. **Instrument one workflow** (Python or Swift)
-
-```python
-from dprovenancekit import record_event, traced, traced_run
-
-# Avoid capturing raw inputs/results until you have reviewed data handling.
-@traced(name="lending_decision", capture_args=False, capture_result=False)
-def approve_or_reject(applicant_data):
-    record_event("credit_score_checked", {"present": "credit" in applicant_data})
-    record_event("income_verified", {"present": "income" in applicant_data})
-    decision = (
-        "approved"
-        if applicant_data["credit"] >= 650 and applicant_data["income"] >= 30000
-        else "manual_review"
-    )
-    record_event("decision_made", {"decision": decision})
-    return decision
-
-data = {"credit": 720, "income": 80000}
-with traced_run(context_id="applicant_12345"):
-    decision = approve_or_reject(data)
+```swift
+.target(
+    name: "YourApp",
+    dependencies: [
+        "DProvenanceKit",
+        "DProvenanceFoundationModels"
+    ]
+)
 ```
 
-3. **Establish a baseline**
-   - Run your workflow multiple times
-   - Pin a known-good run
-   - Store the baseline with the repo
+Import the Foundation Models adapter alongside Apple's framework:
 
-4. **Gate future changes**
-   - When you update the model, re-run
-   - Compare new reasoning to baseline
-   - Diff shows exactly what changed
-   - Decide: Is this safe to deploy?
-
-5. **Attest and verify (Swift)**
-   - Sign with `TraceAttestationDocument` / `dpk attest`
-   - Hand auditors the attestation or proof pack
-   - They verify offline — no internet, no vendor involvement
-   - Integrity of the recorded path, within the [documented limits](docs/ATTESTATION.md#what-it-does-not-establish)
-
-### For Pilot Participants
-
-1. Schedule a kickoff call
-2. Define the scope (one AI workflow)
-3. Provide your reasoning trace format
-4. Receive governance policy + audit report
-5. Keep the open-source tool, informed by compliance-oriented review
-
----
-
-## Technical Foundation
-
-- **Recording:** Non-blocking writes with priority-aware backpressure
-- **Storage:** WAL-mode SQLite (crash-safe, auditable)
-- **Query language:** Temporal and structural reasoning patterns
-- **Diffing:** Semantic alignment engine that detects regressions
-- **Attestation (Swift):** `DPK-BINARY-V1` canonicalization + ECDSA P-256 (SHA-256, ASN.1 DER); optional Secure Enclave keys
-- **Verification (Swift):** Deterministic, offline, open-source — see [docs/ATTESTATION.md](docs/ATTESTATION.md)
-- **Proof packs (Swift):** Signed attestation + embedded artifact digests — [docs/PROOF_PACK.md](docs/PROOF_PACK.md)
-
-**Cross-language:** Swift and Python stay aligned via a formal Trace Spec and shared conformance vectors (fingerprint, query, profile hash, alignment). Payload bytes need not match across languages; see TRACE_SPEC §2.
-
-**Quality bar:** Conformance suite and benchmark corpus exercise edge cases. Built for teams in regulated industries; not a claim of production certification or regulator endorsement.
-
----
-
-## No Third-Party Dependencies
-
-**Core (Python):**
-```
-sqlite3, contextvars, threading, json, hashlib, uuid, urllib
+```swift
+import FoundationModels
+import DProvenanceFoundationModels
 ```
 
-No pip dependencies. Just Python's standard library. Requires Python 3.9+.
+For an existing session, the adapter supports post-hoc transcript capture. For new integrations, use the traced session API to capture prompts, responses, and tool activity as the session runs. The complete runnable integration is in [FoundationModelsLiveQuickstart.swift](Sources/FoundationModelsLiveQuickstart/FoundationModelsLiveQuickstart.swift); API and configuration details are in the [Foundation Models adapter source](Sources/DProvenanceFoundationModels/DProvenanceFoundationModels.swift).
 
-**Core (Swift):**
-```
-Foundation, CryptoKit, SQLite
-```
+## What it gives your team
 
-No external packages. Native to macOS/iOS. Requires Swift 6.0.
+| Workflow | What DPK does |
+|---|---|
+| Instrument | Records the prompts, responses, tool calls, and other events your integration captures |
+| Baseline | Stores a known-good decision path for comparison |
+| Regression gate | Diffs candidate runs and can fail CI when configured critical steps disappear or change |
+| Attest | Signs a recorded trace using the Swift attestation API |
+| Verify | Checks the attestation offline, without sending the trace to a hosted service |
 
-**Why this matters for compliance:** Fewer dependencies = smaller attack surface = easier for auditors to review.
+DPK is local-first. Your application controls what it records and exports. Review the [attestation threat model](docs/ATTESTATION.md) and configure redaction deliberately before capturing sensitive data.
 
----
+## Trust boundaries — what DPK does and does not prove
 
-## Adoption Path
+DPK can establish that a particular recorded artifact matches its signed integrity data and can detect changes in the instrumented path that your policies classify as regressions.
 
-### Week 1
-Integrate DProvenanceKit into one AI workflow. Record a baseline.
+It does **not** establish that model reasoning is correct, that evidence or citations are true, that an omitted uninstrumented step never happened, or that a workflow is compliant or regulator-approved. A valid signature alone does not establish signer identity or trusted time. Optional RFC 3161 timestamping is an external time assertion; DPK does not operate a transparency log.
 
-### Week 2-4
-Establish governance policy. Define what counts as a regression.
+These boundaries are deliberate. See [attestation limitations](docs/ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](docs/EXTERNAL_ANCHOR_CONTRACT.md).
 
-### Month 1-3
-Gate releases on instrumented-path changes. Export attestations or proof packs where needed (Python: software keys via `[crypto]`; Swift: software or Secure Enclave; proof packs Swift-only).
+## Platform and language support
 
-### Ongoing
-Every release: baseline vs. candidate. A clear record of whether the instrumented path stayed consistent.
+| Capability | Swift | Python |
+|---|---|---|
+| Record, query, and diff instrumented paths | Yes | Yes |
+| Golden-baseline CI regression gate | Yes | Yes |
+| Apple Foundation Models adapter | Yes | — |
+| Secure Enclave-backed signing keys | Yes, on supported Apple hardware | — |
+| Software-key trace attestation | Yes | MVP |
+| Proof packs | Yes | Not yet |
 
----
+Python SDK: [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — `pip install "dprovenancekit[crypto]"` for the attestation extra (0.7.0+).
 
-## Status
+## Works with your existing stack
 
-**Public beta — [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0) is released; APIs may continue to evolve before 1.0.**
+Keep OpenTelemetry and your existing observability, tracing, and evaluation tools. DPK focuses on a different question: **did the instrumented decision path change in a way our team has decided should block release?**
 
----
+It is a local SDK, not a hosted control plane or a replacement for production monitoring.
 
-## License
+## Adoption and contribution
 
-Apache 2.0. Free for commercial use.
+We're looking for Swift teams building privacy-sensitive on-device AI features — especially in health, finance, and legal applications — to try DPK on one real workflow.
 
----
+**We will help with an initial integration at no charge.** In return, we'd like candid engineering feedback and, only with your permission, a short public case study describing what worked and what did not. No endorsement or public listing is required.
 
-## Contact
+- [Open an integration discussion](https://github.com/Therealdk8890/DProvenanceKit/issues)
+- [Read the documentation](https://dprovenance.dev)
+- [Decision-Path Assurance Pilot](https://dprovenance.dev/pilot/) — optional professional services; the SDK remains Apache-2.0
 
-**For pilot inquiry:**
-[Decision-Path Assurance Pilot](https://dprovenance.dev/pilot/)
+## Status and license
 
-**For open-source questions:**
-GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
+**Public beta — 0.9.0.** APIs may continue to evolve before 1.0. See [releases](https://github.com/Therealdk8890/DProvenanceKit/releases).
 
-**For technical details:**
-- Swift: https://github.com/Therealdk8890/DProvenanceKit
-- Python: https://github.com/Therealdk8890/DProvenanceKitPython
-- Docs: https://dprovenance.dev
-- Attestation limits: [docs/ATTESTATION.md](docs/ATTESTATION.md)
-
----
-
-## Why This Exists
-
-AI systems make decisions that affect real people. Teams in regulated industries need a durable, local record of instrumented decision paths — and a way to catch regressions before release. Cloud-based observability platforms aren't designed for that job alone.
-
-DProvenanceKit is built for teams that care about:
-- **Privacy:** Data stays local unless you explicitly export
-- **Auditability:** Paths are queryable, diffable, and (Swift) integrity-checkable offline
-- **Change control:** CI can refuse merges when the golden path drifts
-- **Honest scope:** Attestation supports audit workflows; it is not by itself certification or proof that a decision was “sound”
-
-If your AI makes healthcare, financial, legal, or insurance decisions, start with one workflow and a golden baseline.
+Apache License 2.0. Free for commercial use.
 
 ---
 
