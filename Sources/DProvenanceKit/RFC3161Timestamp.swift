@@ -38,7 +38,10 @@ public struct RFC3161Timestamp: Codable, Sendable, Equatable {
     }
 
     public var tokenData: Data? {
-        Data(base64Encoded: tokenBase64)
+        guard tokenBase64.utf8.count <= RFC3161DER.maximumBase64Size else {
+            return nil
+        }
+        return Data(base64Encoded: tokenBase64)
     }
 }
 
@@ -133,9 +136,8 @@ public enum RFC3161TimestampClient {
 }
 
 /// A timestamped document is still the original DPK-signed artifact. Adding the
-/// RFC 3161 token does not alter the DPK signature; the external token separately
-/// commits to the canonical attestation signing payload: the signed fields, excluding
-/// the signature bytes themselves.
+/// RFC 3161 token does not alter the DPK signature; the external token commits to
+/// the canonical attestation signing payload, excluding the signature bytes.
 public extension TraceAttestationDocument {
     func addingExternalTimestamp(_ timestamp: RFC3161Timestamp) -> TraceAttestationDocument {
         TraceAttestationDocument(
@@ -173,6 +175,7 @@ public struct RFC3161TSATrust: Sendable, Equatable {
 
 public enum RFC3161TimestampVerificationFailure: String, Sendable, Equatable {
     case noTimestamp
+    case unsupportedVersion
     case attestationInvalid
     case malformedToken
     case unsupportedHashAlgorithm
@@ -225,7 +228,16 @@ public enum RFC3161TimestampVerifier {
             )
         }
 
-        guard let token = timestamp.tokenData else {
+        guard timestamp.version == RFC3161Timestamp.schemaVersion else {
+            return RFC3161TimestampVerification(
+                isValid: false,
+                generationTimeUnixMicroseconds: nil,
+                tsaCertificateSHA256: nil,
+                failure: .unsupportedVersion
+            )
+        }
+
+        guard let token = timestamp.tokenData, token.count <= RFC3161DER.maximumTokenSize else {
             return RFC3161TimestampVerification(
                 isValid: false,
                 generationTimeUnixMicroseconds: nil,
@@ -324,7 +336,27 @@ public enum RFC3161TimestampVerifier {
     }
 }
 
-private enum RFC3161CMS {
+enum RFC3161CMS {
+    enum CMSDecodeError: Error, CustomStringConvertible {
+        case update(OSStatus)
+        case finalize(OSStatus)
+        case detachedContent(OSStatus)
+        case signerStatus(OSStatus, UInt32, Bool)
+
+        var description: String {
+            switch self {
+            case .update(let status):
+                return "CMSDecoderUpdateMessage failed with OSStatus \(status)"
+            case .finalize(let status):
+                return "CMSDecoderFinalizeMessage failed with OSStatus \(status)"
+            case .detachedContent(let status):
+                return "CMSDecoderSetDetachedContent failed with OSStatus \(status)"
+            case .signerStatus(let status, let signerStatus, let hasTrust):
+                return "CMSDecoderCopySignerStatus failed: OSStatus \(status), signer status \(signerStatus), trust returned \(hasTrust)"
+            }
+        }
+    }
+
     struct Info {
         let genTimeUnixMicroseconds: Int64
         let certificateSHA256: String
@@ -335,6 +367,11 @@ private enum RFC3161CMS {
         expectedMessageImprint: Data,
         expectedNonce: UInt64
     ) throws -> Info {
+        // Apple’s CMSDecoder can report needsDetachedContent for RFC 3161’s
+        // id-ct-TSTInfo content type. Extract the embedded DER payload first;
+        // if the decoder requests detached content, supply these exact bytes
+        // from the token so the CMS signature is still checked over its payload.
+        let encapsulatedContent = try RFC3161DER.encapsulatedTSTInfo(token: token)
         var decoder: CMSDecoder?
         guard CMSDecoderCreate(&decoder) == errSecSuccess, let decoder else {
             throw RFC3161DER.ParseError.malformed
@@ -349,9 +386,12 @@ private enum RFC3161CMS {
                 rawBuffer.count
             )
         }
-        guard updateStatus == errSecSuccess,
-              CMSDecoderFinalizeMessage(decoder) == errSecSuccess else {
-            throw RFC3161DER.ParseError.malformed
+        guard updateStatus == errSecSuccess else {
+            throw CMSDecodeError.update(updateStatus)
+        }
+        let finalizeStatus = CMSDecoderFinalizeMessage(decoder)
+        guard finalizeStatus == errSecSuccess else {
+            throw CMSDecodeError.finalize(finalizeStatus)
         }
 
         var signerCount = 0
@@ -361,18 +401,36 @@ private enum RFC3161CMS {
         }
 
         var signerStatus = CMSSignerStatus.unsigned
+        var signerTrust: SecTrust?
         let policy = SecPolicyCreateBasicX509()
-        let status = CMSDecoderCopySignerStatus(
+        var status = CMSDecoderCopySignerStatus(
             decoder,
             0,
             policy,
             false,
             &signerStatus,
-            nil,
+            &signerTrust,
             nil
         )
-        guard status == errSecSuccess, signerStatus == .valid else {
-            throw RFC3161DER.ParseError.malformed
+        if status == errSecSuccess, signerStatus == .needsDetachedContent {
+            let detachedStatus = CMSDecoderSetDetachedContent(decoder, encapsulatedContent as CFData)
+            guard detachedStatus == errSecSuccess else {
+                throw CMSDecodeError.detachedContent(detachedStatus)
+            }
+            signerStatus = .unsigned
+            signerTrust = nil
+            status = CMSDecoderCopySignerStatus(
+                decoder,
+                0,
+                policy,
+                false,
+                &signerStatus,
+                &signerTrust,
+                nil
+            )
+        }
+        guard status == errSecSuccess, signerStatus == .valid, signerTrust != nil else {
+            throw CMSDecodeError.signerStatus(status, signerStatus.rawValue, signerTrust != nil)
         }
 
         var certificate: SecCertificate?
@@ -385,14 +443,8 @@ private enum RFC3161CMS {
             SHA256.hash(data: certificateData)
         )
 
-        var content: CFData?
-        guard CMSDecoderCopyContent(decoder, &content) == errSecSuccess,
-              let content else {
-            throw RFC3161DER.ParseError.malformed
-        }
-
         let info = try RFC3161DER.inspectTSTInfo(
-            token: content as Data,
+            token: encapsulatedContent,
             expectedMessageImprint: expectedMessageImprint,
             expectedNonce: expectedNonce
         )
@@ -405,7 +457,12 @@ private enum RFC3161CMS {
 
 #endif
 
-private enum RFC3161DER {
+enum RFC3161DER {
+    static let maximumTokenSize = 1_048_576
+    static let maximumBase64Size = ((maximumTokenSize + 2) / 3) * 4
+    static let maximumNestingDepth = 32
+    static let maximumNodeCount = 10_000
+
     enum ParseError: Swift.Error {
         case malformed
         case unsupportedHashAlgorithm
@@ -423,11 +480,16 @@ private enum RFC3161DER {
         var isConstructed: Bool { (tag & 0x20) != 0 }
 
         var integer: UInt64? {
-            guard tag == 0x02, !value.isEmpty else { return nil }
+            guard tag == 0x02, !value.isEmpty,
+                  value[0] & 0x80 == 0 else { return nil }
+            if value.count > 1, value[0] == 0, value[1] & 0x80 == 0 {
+                return nil
+            }
             var result: UInt64 = 0
             for byte in value {
-                guard result <= (UInt64.max >> 8) else { return nil }
-                result = (result << 8) | UInt64(byte)
+                let digit = UInt64(byte)
+                guard result <= (UInt64.max - digit) / 256 else { return nil }
+                result = result * 256 + digit
             }
             return result
         }
@@ -465,14 +527,17 @@ private enum RFC3161DER {
 
     static func parseResponse(_ data: Data) throws -> ParsedResponse {
         let root = try parse(data)
-        guard root.tag == 0x30, root.children.count >= 1,
+        guard root.tag == 0x30,
+              (1...2).contains(root.children.count),
+              root.children[0].tag == 0x30,
               let statusValue = root.children[0].children.first?.integer,
-              let status = Int(exactly: statusValue) else {
+              let status = Int(exactly: statusValue),
+              (0...5).contains(status) else {
             throw ParseError.malformed
         }
 
         let token: Data?
-        if root.children.count >= 2 {
+        if root.children.count == 2 {
             let tokenNode = root.children[1]
             guard tokenNode.tag == 0x30 else { throw ParseError.malformed }
             token = try encodeNode(tokenNode)
@@ -480,6 +545,37 @@ private enum RFC3161DER {
             token = nil
         }
         return ParsedResponse(status: status, token: token)
+    }
+
+    static func encapsulatedTSTInfo(token: Data) throws -> Data {
+        let root = try parse(token)
+        guard root.tag == 0x30,
+              root.children.count == 2,
+              root.children[0].tag == 0x06,
+              try decodeOID(root.children[0].value) == [1, 2, 840, 113549, 1, 7, 2],
+              root.children[1].tag == 0xA0,
+              root.children[1].children.count == 1 else {
+            throw ParseError.malformed
+        }
+
+        let signedData = root.children[1].children[0]
+        guard signedData.tag == 0x30,
+              signedData.children.count >= 4,
+              signedData.children[2].tag == 0x30 else {
+            throw ParseError.malformed
+        }
+
+        let encapContentInfo = signedData.children[2]
+        guard encapContentInfo.children.count == 2,
+              encapContentInfo.children[0].tag == 0x06,
+              try decodeOID(encapContentInfo.children[0].value) == [1, 2, 840, 113549, 1, 9, 16, 1, 4],
+              encapContentInfo.children[1].tag == 0xA0,
+              encapContentInfo.children[1].children.count == 1,
+              encapContentInfo.children[1].children[0].tag == 0x04 else {
+            throw ParseError.malformed
+        }
+
+        return encapContentInfo.children[1].children[0].value
     }
 
     static func inspectTSTInfo(
@@ -518,20 +614,49 @@ private enum RFC3161DER {
         #endif
 
         let root = try parse(content)
-        guard root.tag == 0x30, root.children.count >= 5 else {
+        guard root.tag == 0x30,
+              root.children.count >= 5,
+              root.children.count <= 10,
+              root.children[0].tag == 0x02,
+              root.children[0].integer == 1,
+              root.children[1].tag == 0x06,
+              root.children[2].tag == 0x30,
+              root.children[3].tag == 0x02,
+              let serialNumber = root.children[3].integer,
+              serialNumber > 0,
+              root.children[4].tag == 0x18 else {
             throw ParseError.malformed
+        }
+
+        // RFC 3161 TSTInfo optional fields have a fixed order and may occur
+        // at most once: accuracy, ordering, nonce, TSA name, extensions.
+        let optionalTags: [UInt8] = [0x30, 0x01, 0x02, 0xA0, 0xA1]
+        var previousOptionalIndex = -1
+        for child in root.children.dropFirst(5) {
+            guard let index = optionalTags.firstIndex(of: child.tag),
+                  index > previousOptionalIndex else {
+                throw ParseError.malformed
+            }
+            previousOptionalIndex = index
         }
 
         let messageImprint = root.children[2]
         guard messageImprint.tag == 0x30,
-              messageImprint.children.count >= 2,
+              messageImprint.children.count == 2,
               messageImprint.children[0].tag == 0x30,
+              (1...2).contains(messageImprint.children[0].children.count),
               messageImprint.children[0].children.first?.tag == 0x06 else {
             throw ParseError.malformed
         }
+        if messageImprint.children[0].children.count == 2 {
+            let parameters = messageImprint.children[0].children[1]
+            guard parameters.tag == 0x05, parameters.value.isEmpty else {
+                throw ParseError.malformed
+            }
+        }
 
         let sha256OID = [2, 16, 840, 1, 101, 3, 4, 2, 1]
-        guard decodeOID(messageImprint.children[0].children[0].value) == sha256OID else {
+        guard try decodeOID(messageImprint.children[0].children[0].value) == sha256OID else {
             throw ParseError.unsupportedHashAlgorithm
         }
         guard messageImprint.children[1].tag == 0x04,
@@ -539,36 +664,52 @@ private enum RFC3161DER {
             throw ParseError.messageImprintMismatch
         }
 
-        var nonce: UInt64?
-        for child in root.children.dropFirst(5) where child.tag == 0x02 {
-            nonce = child.integer
-            break
-        }
+        let nonce = root.children.dropFirst(5).first(where: { $0.tag == 0x02 })?.integer
         guard let nonce else { throw ParseError.missingNonce }
         guard nonce == expectedNonce else { throw ParseError.nonceMismatch }
 
-        guard root.children[4].tag == 0x18,
-              let generalizedTime = root.children[4].stringValue,
-              let date = parseGeneralizedTime(generalizedTime) else {
+        guard let generalizedTime = root.children[4].stringValue,
+              let generationTime = parseGeneralizedTimeMicroseconds(generalizedTime) else {
             throw ParseError.invalidGenerationTime
         }
 
-        return TSTInfo(
-            genTimeUnixMicroseconds: Int64(date.timeIntervalSince1970 * 1_000_000)
-        )
+        return TSTInfo(genTimeUnixMicroseconds: generationTime)
     }
 
-    private static func parse(_ data: Data) throws -> Node {
+    static func parse(_ data: Data) throws -> Node {
+        guard !data.isEmpty, data.count <= maximumTokenSize else {
+            throw ParseError.malformed
+        }
         var offset = 0
-        let node = try parseNode(data, offset: &offset)
+        var nodeCount = 0
+        let node = try parseNode(
+            data,
+            offset: &offset,
+            depth: 0,
+            nodeCount: &nodeCount
+        )
         guard offset == data.count else { throw ParseError.malformed }
         return node
     }
 
-    private static func parseNode(_ data: Data, offset: inout Int) throws -> Node {
-        guard offset < data.count else { throw ParseError.malformed }
+    private static func parseNode(
+        _ data: Data,
+        offset: inout Int,
+        depth: Int,
+        nodeCount: inout Int
+    ) throws -> Node {
+        guard depth <= maximumNestingDepth,
+              nodeCount < maximumNodeCount,
+              offset < data.count else {
+            throw ParseError.malformed
+        }
+        nodeCount += 1
+
         let tag = data[offset]
         offset += 1
+        // High-tag-number form is not used by the RFC 3161/CMS structures
+        // accepted here. Reject it rather than misreading tag octets as length.
+        guard tag & 0x1F != 0x1F else { throw ParseError.malformed }
 
         guard offset < data.count else { throw ParseError.malformed }
         let firstLength = data[offset]
@@ -579,29 +720,43 @@ private enum RFC3161DER {
             length = Int(firstLength)
         } else {
             let count = Int(firstLength & 0x7F)
-            guard count > 0, count <= 8, offset + count <= data.count else {
+            guard count > 0,
+                  count <= MemoryLayout<Int>.size,
+                  count <= data.count - offset,
+                  data[offset] != 0 else {
                 throw ParseError.malformed
             }
             var value = 0
             for _ in 0..<count {
-                guard value <= (Int.max >> 8) else { throw ParseError.malformed }
-                value = (value << 8) | Int(data[offset])
+                let byte = Int(data[offset])
+                guard value <= (Int.max - byte) / 256 else {
+                    throw ParseError.malformed
+                }
+                value = value * 256 + byte
                 offset += 1
             }
+            // DER requires long-form lengths only for values >= 128.
+            guard value >= 128 else { throw ParseError.malformed }
             length = value
         }
 
-        guard length >= 0, offset + length <= data.count else {
+        guard length <= data.count - offset else {
             throw ParseError.malformed
         }
-        let value = data.subdata(in: offset..<(offset + length))
-        offset += length
+        let end = offset + length
+        let value = data.subdata(in: offset..<end)
+        offset = end
 
         if (tag & 0x20) != 0 {
             var childOffset = 0
             var children: [Node] = []
             while childOffset < value.count {
-                children.append(try parseNode(value, offset: &childOffset))
+                children.append(try parseNode(
+                    value,
+                    offset: &childOffset,
+                    depth: depth + 1,
+                    nodeCount: &nodeCount
+                ))
             }
             guard childOffset == value.count else { throw ParseError.malformed }
             return Node(tag: tag, value: value, children: children)
@@ -654,19 +809,40 @@ private enum RFC3161DER {
         return Data([0x06]) + encodeLength(bytes.count) + bytes
     }
 
-    private static func decodeOID(_ data: Data) -> [Int] {
-        guard let first = data.first else { return [] }
-        let firstValue = Int(first)
-        var components = [min(firstValue / 40, 2), firstValue % 40]
+    static func decodeOID(_ data: Data) throws -> [Int] {
+        guard !data.isEmpty, data.count <= 128 else {
+            throw ParseError.malformed
+        }
+
+        var subidentifiers: [Int] = []
         var value = 0
-        for byte in data.dropFirst() {
-            value = (value << 7) | Int(byte & 0x7F)
-            if byte & 0x80 == 0 {
-                components.append(value)
+        var hasContinuation = false
+        var atArcStart = true
+
+        for byte in data {
+            // A leading zero base-128 digit is a non-minimal DER OID arc.
+            if atArcStart, byte == 0x80 {
+                throw ParseError.malformed
+            }
+            let digit = Int(byte & 0x7F)
+            guard value <= (Int.max - digit) / 128 else {
+                throw ParseError.malformed
+            }
+            value = value * 128 + digit
+            hasContinuation = byte & 0x80 != 0
+            atArcStart = !hasContinuation
+            if !hasContinuation {
+                subidentifiers.append(value)
                 value = 0
             }
         }
-        return components
+        guard !hasContinuation, let firstValue = subidentifiers.first else {
+            throw ParseError.malformed
+        }
+
+        let firstArc = min(firstValue / 40, 2)
+        let secondArc = firstValue - (firstArc * 40)
+        return [firstArc, secondArc] + subidentifiers.dropFirst()
     }
 
     private static func sequence(_ values: Data...) -> Data {
@@ -686,26 +862,49 @@ private enum RFC3161DER {
         Data([0x01, 0x01, value ? 0xFF : 0x00])
     }
 
-    private static func parseGeneralizedTime(_ value: String) -> Date? {
+    static func parseGeneralizedTimeMicroseconds(_ value: String) -> Int64? {
         guard value.hasSuffix("Z") else { return nil }
         let raw = String(value.dropLast())
-        let components = raw.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
-        let base = String(components[0])
+        let components = raw.split(
+            separator: ".",
+            maxSplits: 1,
+            omittingEmptySubsequences: false
+        )
+        guard components[0].count == 14,
+              components[0].allSatisfy({ $0.isASCII && $0.isNumber }) else {
+            return nil
+        }
 
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = components.count == 1
-            ? "yyyyMMddHHmmss"
-            : "yyyyMMddHHmmss.SSS"
-
-        if components.count == 1 {
-            return formatter.date(from: base)
+        formatter.isLenient = false
+        formatter.dateFormat = "yyyyMMddHHmmss"
+        guard let date = formatter.date(from: String(components[0])) else {
+            return nil
         }
 
-        let fraction = String(components[1])
-        guard fraction.allSatisfy({ $0.isNumber }) else { return nil }
-        let millis = String((fraction + "000").prefix(3))
-        return formatter.date(from: base + "." + millis)
+        var fractionalMicroseconds: Int64 = 0
+        if components.count == 2 {
+            let fraction = String(components[1])
+            guard !fraction.isEmpty, fraction.allSatisfy({ $0.isASCII && $0.isNumber }) else {
+                return nil
+            }
+            let sixDigits = String((fraction + "000000").prefix(6))
+            guard let parsed = Int64(sixDigits) else { return nil }
+            fractionalMicroseconds = parsed
+        }
+
+        let seconds = date.timeIntervalSince1970
+        guard seconds.isFinite,
+              seconds >= Double(Int64.min / 1_000_000),
+              seconds <= Double(Int64.max / 1_000_000) else {
+            return nil
+        }
+        let wholeSeconds = Int64(seconds.rounded(.towardZero))
+        let (base, overflow) = wholeSeconds.multipliedReportingOverflow(by: 1_000_000)
+        guard !overflow else { return nil }
+        let (result, additionOverflow) = base.addingReportingOverflow(fractionalMicroseconds)
+        return additionOverflow ? nil : result
     }
 }

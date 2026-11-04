@@ -89,6 +89,10 @@ It does **not** establish that model reasoning is correct, that evidence or cita
 
 These boundaries are deliberate. See [attestation limitations](docs/ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](docs/EXTERNAL_ANCHOR_CONTRACT.md).
 
+## Further technical documentation
+
+The README is intentionally optimized for the Foundation Models developer entry point. The expanded reference retains the broader SDK architecture, Swift/Python comparison, observability positioning, Python onboarding example, attestation details, and adoption guidance: **[DProvenanceKit technical overview](docs/TECHNICAL_OVERVIEW.md)**.
+
 ## Platform and language support
 
 | Capability | Swift | Python |

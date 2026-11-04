@@ -6,6 +6,22 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Optional RFC 3161 external timestamps for Swift attestations.** Attestation documents can carry an external timestamp token bound to the canonical signing payload. The current platform boundary is explicit: the pinned-TSA CMS verification path is macOS-only; the iOS path performs structural checks and does not authenticate the CMS signer. This is an external time assertion, not proof that a trace is truthful or complete.
+- **External evidence-anchor interoperability contract.** Added a digest-anchor contract and portable Evidentia exchange fixtures/tests. This defines an integration boundary; it does not ship or operate a transparency-log client or service.
+- **WarrantKit runtime-evidence interoperability coverage.** Added a runtime-pinned evidence fixture and proof-pack verification tests for the exchange boundary. This demonstrates evidence-format interoperability, not an authorization decision or independent proof that the originating runtime behaved truthfully.
+
+### Changed
+- **Verification receipts now report source recheck outcomes more precisely.** Role-keyed source rechecks distinguish missing digests, matching digests, and ambiguous role matches; incomplete or ambiguous rechecks remain explicit rather than being collapsed into a verified result.
+- **Attestation input validation is stricter.** Canonical DPK-BINARY-V1 inputs are enforced at the wire boundary; malformed or non-canonical inputs fail closed.
+- **CI workflow actions are pinned to immutable commit references** to reduce supply-chain exposure.
+- **The Swift README now points Python users to the official OpenAI Agents SDK external tracing processor listing** and the Python integration guide. The adapter remains a Python capability.
+
+### Validation and scope notes
+- The RFC 3161 timestamp document tests cover serialization and backward-compatible decoding; they are not evidence of live TSA interoperability or complete CMS/certificate validation. The separately open hardening work in PR #138 must pass its adversarial and platform checks before a release claim is expanded.
+- External-anchor fixtures validate exchange contracts only. They do not establish a production transparency-log integration.
+- Python and Swift retain separate release/version tracks. The GitHub Action continues to use its Python package pin; no cross-SDK version substitution is implied.
+
 ## [0.9.0] - 2026-09-22
 
 ### Added
