@@ -3,8 +3,8 @@ import DProvenanceKit
 
 /// # Catching a Foundation Models regression that output tests miss
 ///
-/// This is a runnable reproduction of DProvenanceKit's central claim, dogfooded
-/// against CaseClarity's on-device drafting pipeline:
+/// This is a runnable reproduction of DProvenanceKit's central claim, modeled
+/// on a CaseClarity-style on-device drafting pipeline:
 ///
 /// > When Apple's on-device Foundation Models change across an OS update, an app's
 /// > *output-level* tests (draft content assertions, the grounding gate, the
@@ -23,13 +23,16 @@ import DProvenanceKit
 ///
 /// So the two OS versions are modeled as `FoundationModelProfile`s and run through
 /// the **real** DProvenanceKit (`run` / `withSpan` / `record`, `TraceDiffEngine`,
-/// `AnomalyDetector`). The trace events below are a verbatim copy of CaseClarity's
-/// `CaseClarityTraceEvent` drafting subset — identical `typeIdentifier`s and
-/// `priority` tiers — because the diff keys on the type-id signature and is gated
-/// by priority, so fidelity there is what makes the result transferable.
+/// `AnomalyDetector`). The trace events below are a test-local adaptation of the drafting subset of
+/// CaseClarity's `CaseClarityTraceEvent`. They preserve the intended event concepts,
+/// but are not an exact copy of the production event surface: this fixture buckets
+/// extraction counts into `.rich` / `.sparse` type identifiers and promotes the
+/// extraction event from `.diagnostic` to `.structural` so the modeled loss appears
+/// at the default diff floor. Those deliberate adaptations are part of the test
+/// mechanism, not evidence of exact production parity.
 final class FoundationModelUpdateRegressionTests: XCTestCase {
 
-    // MARK: - Trace event surface (verbatim from CaseClarity's CaseClarityTraceEvent)
+    // MARK: - Test-local trace event model (adapted from CaseClarity's drafting events)
 
     enum DemandTraceEvent: TraceableEvent {
         case extractedFactsViaAI(count: Int)
@@ -50,9 +53,8 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
             case .extractedFactsViaAI(let count):
                 return count >= 3 ? "extractedFactsViaAI.rich" : "extractedFactsViaAI.sparse"
             case .evaluatedDocumentCount: return "evaluatedDocumentCount"
-            // The boolean is bucketed into the type id — exactly as CaseClarity does
-            // it — so "did the AI actually drive the body" is queryable and shows up
-            // in a structural diff.
+            // The boolean is bucketed into the type id so "did the AI actually drive the
+            // body" is queryable and shows up in a structural diff.
             case .demandProseGenerated(let usedAI):
                 return usedAI ? "demandProseGenerated.ai" : "demandProseGenerated.template"
             case .groundingValidated(let passed, _):
@@ -157,14 +159,14 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
         )
     }
 
-    // MARK: - A faithful slice of CaseClarityProductionDraftService.generateDraftTraced
+    // MARK: - Test-local model of the CaseClarity drafting flow
 
     struct DemandDraftPipeline {
         let model: FoundationModelProfile
         static let lowConfidenceThreshold = 0.6
 
-        /// Returns the finished draft string. Emits the same trace events, in the
-        /// same order, as the real `generateDraftTraced`.
+        /// Returns a finished draft and emits the fixture's modeled trace events. This
+        /// simplified pipeline is not the production `generateDraftTraced` implementation.
         func generate(_ c: DemandCase, into store: any TraceStore<DemandTraceEvent>) async -> String {
             await Kit.run(contextID: c.contextID, store: store) {
                 await Kit.withSpan(named: "Draft Generation") {
@@ -229,9 +231,9 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
             return """
             VIA CERTIFIED MAIL AND EMAIL
 
-            RE: FORMAL DEMAND FOR PAYMENT — \(amount)
+            DEMAND FOR PAYMENT — \(amount)
 
-            To \(recipient):
+            Dear \(recipient):
 
             \(body)
 
@@ -244,11 +246,13 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
             """
         }
 
-        // Grounding gate, faithful in spirit to DraftGroundingValidator: flag
-        // unresolved placeholders. (Both OS paths ground out, by construction.)
+        // Narrow fixture-level placeholder check only. This checks one explicit token;
+        // it is not CaseClarity's production DraftGroundingValidator and does not
+        // establish general grounding or factual support. Both modeled drafts pass
+        // because the fixture's generated text does not contain this token.
         static func groundingIssues(in draft: String) -> [String] {
             var issues: [String] = []
-            for marker in ["[INSERT", "[VERIFY", "[ENTER"] where draft.contains(marker) {
+            for marker in ["[INSERT SERVICE ADDRESS]"] where draft.contains(marker) {
                 issues.append("unresolved placeholder \(marker)")
             }
             return issues
@@ -265,38 +269,34 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
 
     // MARK: - Output-level checks: a stand-in for CaseClarity's content tests
     //
-    // A *representative* demand-letter content contract — the layer a team relies
-    // on as its regression net. The amount check and the "Sincerely," + sender
-    // signature check correspond to real assertions in CaseClarity's
-    // DraftQualityScenariosTests / DocumentWorkspaceViewModelTests; the specific
-    // header phrase, the To-salutation, and the placeholder blocklist are
-    // representative of that surface, not line-for-line copies of it (CaseClarity's
-    // real header is "DEMAND FOR PAYMENT", its salutation is "Dear <recipient>:",
-    // and the [INSERT/[VERIFY blocklist lives in its grounding-validator tests).
-    // What carries the proof is that *any* such contract is satisfied by the
-    // template draft — see docs/PROOF_OF_WORK.md, "Fidelity".
+    // A representative, test-local demand-letter content contract. These assertions
+    // are not CaseClarity's full production content or grounding validation suite.
+    // The placeholder assertion below checks only `[INSERT SERVICE ADDRESS]`; it
+    // must not be interpreted as the production grounding validator or a general
+    // check that every factual claim is supported.
 
     private func assertOutputContractHolds(_ draft: String, _ label: String,
                                            file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertTrue(draft.contains("RE: FORMAL DEMAND FOR PAYMENT"),
-                      "\(label): missing formal RE: line", file: file, line: line)
-        XCTAssertTrue(draft.contains("To \(Self.sampleCase.recipient):"),
-                      "\(label): missing To-salutation with recipient", file: file, line: line)
+        XCTAssertTrue(draft.contains("DEMAND FOR PAYMENT"),
+                      "\(label): missing demand-letter heading", file: file, line: line)
+        XCTAssertTrue(draft.contains("Dear \(Self.sampleCase.recipient):"),
+                      "\(label): missing Dear-salutation with recipient", file: file, line: line)
         XCTAssertTrue(draft.contains(Self.sampleCase.amount),
                       "\(label): missing demand amount", file: file, line: line)
         XCTAssertTrue(draft.contains("Sincerely,") && draft.contains(Self.sampleCase.sender),
                       "\(label): missing signature block", file: file, line: line)
-        for marker in ["[INSERT", "[VERIFY", "[ENTER"] {
+        for marker in ["[INSERT SERVICE ADDRESS]"] {
             XCTAssertFalse(draft.contains(marker),
                            "\(label): unresolved placeholder \(marker)", file: file, line: line)
         }
     }
 
-    // A faithful subset (3 of 5) of the anomaly rules CaseClarity ships, over this
-    // event surface. The three below are byte-for-byte identical to CaseClarity's.
-    // Omitted: ConflictWithoutHeuristic (keys on detectedConflict/appliedHeuristic,
-    // which never occur on the demand surface) and LowConfidenceDraft (demand-
-    // relevant, but inert here — confidence never crosses the 0.6 threshold).
+    // A fixture-local subset of four production-inspired anomaly rules. The queries
+    // target this test's adapted event identifiers; they are not a verbatim copy
+    // of CaseClarity's production rule implementations.
+    // Omitted: ConflictWithoutHeuristic, which keys on detectedConflict/appliedHeuristic
+    // events that never occur on this demand-drafting surface. LowConfidenceDraft is
+    // included, but remains inert in these scenarios because confidence stays >= 0.6.
     private func standardRules() -> [any AnomalyRule<DemandTraceEvent>] {
         struct UngroundedDraftRule: AnomalyRule {
             let name = "UngroundedDraft"
@@ -331,7 +331,17 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
                 "Generated AI prose with no extracted facts to ground it (\(run.contextID))."
             }
         }
-        return [UngroundedDraftRule(), DraftWithoutGroundingRule(), AIProseWithoutFactsRule()]
+        struct LowConfidenceDraftRule: AnomalyRule {
+            let name = "LowConfidenceDraft"
+            var anomalyQuery: TraceQueryDSL<DemandTraceEvent> {
+                TraceQueryDSL().requiring(step: "lowConfidenceDraft")
+            }
+            func describe(run: TraceRun<DemandTraceEvent>) -> String {
+                "Produced a draft below the confidence threshold (\(run.contextID))."
+            }
+        }
+        return [UngroundedDraftRule(), DraftWithoutGroundingRule(),
+                LowConfidenceDraftRule(), AIProseWithoutFactsRule()]
     }
 
     private func run(_ profile: FoundationModelProfile) async throws
@@ -362,9 +372,9 @@ final class FoundationModelUpdateRegressionTests: XCTestCase {
         XCTAssertTrue(afterSteps.contains("groundingValidated.passed"))
         XCTAssertFalse(afterSteps.contains("groundingValidated.failed"))
 
-        // The confidence threshold is not tripped in EITHER world (it degrades —
-        // 0.7 vs 0.7 here — but never crosses the line), so lowConfidenceDraft,
-        // another output-side signal, also stays silent.
+        // The confidence threshold is not tripped in EITHER world. The modeled
+        // score drops from 0.8 (five merged fields) to 0.7 (three explicit fields),
+        // but remains above 0.6, so lowConfidenceDraft stays silent.
         XCTAssertFalse(beforeSteps.contains("lowConfidenceDraft"))
         XCTAssertFalse(afterSteps.contains("lowConfidenceDraft"))
 
