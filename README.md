@@ -120,7 +120,7 @@ We're looking for Swift teams building privacy-sensitive on-device AI features �
 
 ## Status and license
 
-**Public beta — 0.9.0.** APIs may continue to evolve before 1.0. See [releases](https://github.com/Therealdk8890/DProvenanceKit/releases).
+**Public beta — [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0) is released; APIs may continue to evolve before 1.0.**
 
 Apache License 2.0. Free for commercial use.
 
