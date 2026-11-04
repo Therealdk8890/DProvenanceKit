@@ -23,7 +23,7 @@ Request-level observability (OpenTelemetry, LangSmith, Langfuse, Datadog) remain
 
 DProvenanceKit is built to close that gap: **record the instrumented path, diff it against a golden baseline, gate CI when it drifts, and (Swift) attach an offline-verifiable attestation. Swift attestations can optionally carry an RFC 3161 timestamp token; the current pinned-TSA CMS verifier is macOS-only.**
 
-It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. A valid signature alone does not establish signer identity or trusted time. RFC 3161 timestamping is an optional external time assertion; DPK does not currently operate or integrate a transparency log. See [the attestation threat model](docs/ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](docs/EXTERNAL_ANCHOR_CONTRACT.md).
+It does **not** prove that model reasoning was “sound,” that every claim in a payload is true, or that a regulator will accept the artifact as sufficient evidence. A valid signature alone does not establish signer identity or trusted time. RFC 3161 timestamping is an optional external time assertion; DPK does not currently operate or integrate a transparency log. See [the attestation threat model](./ATTESTATION.md#what-it-does-not-establish) and the [external anchor contract](./EXTERNAL_ANCHOR_CONTRACT.md).
 
 ---
 
@@ -65,11 +65,11 @@ Eligibility and records workflows often cannot ship raw reasoning to a hosted Sa
 4. **Attest (Swift; optional external timestamp).**
    - Canonicalization: `DPK-BINARY-V1` (domain-separated binary encoding — **not** JCS/RFC 8785)
    - Signature: ECDSA P-256 over SHA-256, ASN.1 DER (CryptoKit; Secure Enclave keys optional on supported Apple hardware)
-   - Self-contained attestation JSON + optional [proof packs](docs/PROOF_PACK.md) binding artifact digests
+   - Self-contained attestation JSON + optional [proof packs](./PROOF_PACK.md) binding artifact digests
    - Offline verification with no network dependency
    - Optional RFC 3161 timestamp over the attestation's canonical signing payload; the TSA receives only a SHA-256 imprint
 
-Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
+Python shares recording, query, diff, the CI gate, and **MVP `DPK-BINARY-V1` software attestation** via `dprovenancekit[crypto]` (released in Python **0.7.0+**; proof packs remain Swift-only). End-to-end decision-path demo (gate + attest): `swift run E2EDecisionPathDemo` — see [Examples/E2EDecisionPath](../Examples/E2EDecisionPath/README.md); Python twin: [examples/e2e_decision_path](https://github.com/Therealdk8890/DProvenanceKitPython/tree/main/examples/e2e_decision_path).
 
 ---
 
@@ -128,7 +128,7 @@ A law firm uses an AI to draft legal briefs.
    - That the attested record has not been tampered with since signing
 ```
 
-Attestation establishes integrity of what was recorded — not truthfulness of citations or legal sufficiency. See [What it does not establish](docs/ATTESTATION.md#what-it-does-not-establish).
+Attestation establishes integrity of what was recorded — not truthfulness of citations or legal sufficiency. See [What it does not establish](./ATTESTATION.md#what-it-does-not-establish).
 
 ---
 
@@ -193,7 +193,7 @@ with traced_run(context_id="applicant_12345"):
    - Sign with `TraceAttestationDocument` / `dpk attest`
    - Hand auditors the attestation or proof pack
    - They verify offline — no internet, no vendor involvement
-   - Integrity of the recorded path, within the [documented limits](docs/ATTESTATION.md#what-it-does-not-establish)
+   - Integrity of the recorded path, within the [documented limits](./ATTESTATION.md#what-it-does-not-establish)
 
 ### For Pilot Participants
 
@@ -212,8 +212,8 @@ with traced_run(context_id="applicant_12345"):
 - **Query language:** Temporal and structural reasoning patterns
 - **Diffing:** Semantic alignment engine that detects regressions
 - **Attestation (Swift):** `DPK-BINARY-V1` canonicalization + ECDSA P-256 (SHA-256, ASN.1 DER); optional Secure Enclave keys
-- **Verification (Swift):** Deterministic, offline, open-source — see [docs/ATTESTATION.md](docs/ATTESTATION.md)
-- **Proof packs (Swift):** Signed attestation + embedded artifact digests — [docs/PROOF_PACK.md](docs/PROOF_PACK.md)
+- **Verification (Swift):** Deterministic, offline, open-source — see [docs/ATTESTATION.md](./ATTESTATION.md)
+- **Proof packs (Swift):** Signed attestation + embedded artifact digests — [docs/PROOF_PACK.md](./PROOF_PACK.md)
 
 **Cross-language:** Swift and Python stay aligned via a formal Trace Spec and shared conformance vectors (fingerprint, query, profile hash, alignment). Payload bytes need not match across languages; see TRACE_SPEC §2.
 
@@ -281,7 +281,7 @@ GitHub Issues: https://github.com/Therealdk8890/DProvenanceKit
 - Swift: https://github.com/Therealdk8890/DProvenanceKit
 - Python: https://github.com/Therealdk8890/DProvenanceKitPython
 - Docs: https://dprovenance.dev
-- Attestation limits: [docs/ATTESTATION.md](docs/ATTESTATION.md)
+- Attestation limits: [docs/ATTESTATION.md](./ATTESTATION.md)
 
 ---
 
