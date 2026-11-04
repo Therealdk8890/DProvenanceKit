@@ -156,19 +156,24 @@ dependencies: [
 2. **Instrument one workflow** (Python or Swift)
 
 ```python
-from dprovenancekit import traced, record_event, traced_run
+from dprovenancekit import record_event, traced, traced_run
 
-@traced("lending_decision")
+# Avoid capturing raw inputs/results until you have reviewed data handling.
+@traced(name="lending_decision", capture_args=False, capture_result=False)
 def approve_or_reject(applicant_data):
-    # Your AI logic here
-    record_event("credit_score_checked", applicant_data["credit"])
-    record_event("income_verified", applicant_data["income"])
-    decision = model.predict(applicant_data)
-    record_event("decision_made", decision)
+    record_event("credit_score_checked", {"present": "credit" in applicant_data})
+    record_event("income_verified", {"present": "income" in applicant_data})
+    decision = (
+        "approved"
+        if applicant_data["credit"] >= 650 and applicant_data["income"] >= 30000
+        else "manual_review"
+    )
+    record_event("decision_made", {"decision": decision})
     return decision
 
-# Run it
-traced_run(context_id="applicant_12345", store=store)(approve_or_reject)(data)
+data = {"credit": 720, "income": 80000}
+with traced_run(context_id="applicant_12345"):
+    decision = approve_or_reject(data)
 ```
 
 3. **Establish a baseline**
