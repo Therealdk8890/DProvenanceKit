@@ -18,7 +18,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **The Swift README now points Python users to the official OpenAI Agents SDK external tracing processor listing** and the Python integration guide. The adapter remains a Python capability.
 
 ### Validation and scope notes
-- The RFC 3161 timestamp document tests cover serialization and backward-compatible decoding; they are not evidence of live TSA interoperability or complete CMS/certificate validation. The separately open hardening work in PR #138 must pass its adversarial and platform checks before a release claim is expanded.
+- RFC 3161 coverage now includes bounded/adversarial DER parsing and a fixed signed-CMS fixture with signature, message-imprint, nonce, and signer-certificate checks. This is not evidence of live TSA interoperability or complete PKI validation; live TSA interoperability and end-to-end certificate-pin rejection through the public document verifier remain follow-up coverage.
 - External-anchor fixtures validate exchange contracts only. They do not establish a production transparency-log integration.
 - Python and Swift retain separate release/version tracks. The GitHub Action continues to use its Python package pin; no cross-SDK version substitution is implied.
 
