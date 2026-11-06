@@ -111,11 +111,55 @@ check_surfaces() {
     "README install version" \
     ".package(url: \"$package_url\", from:" \
     "from: \"$release_version\")"
-  check_surface \
-    README.md \
-    "README status version" \
-    "**Public beta — [" \
-    "[$release_version]($package_url/releases/tag/$release_version) is released"
+  check_readme_status() {
+    file=$root/README.md
+    if [ ! -f "$file" ]; then
+      echo "::error file=README.md::README status is missing."
+      failures=$((failures + 1))
+      return
+    fi
+
+    matches=$(grep -F "**Public beta — latest published Swift release: [" "$file" || true)
+    if [ -z "$matches" ]; then
+      echo "::error file=README.md::README must identify the latest published Swift release separately from the candidate."
+      failures=$((failures + 1))
+      return
+    fi
+
+    match_count=$(printf '%s\n' "$matches" | wc -l | tr -d ' ')
+    if [ "$match_count" -ne 1 ]; then
+      echo "::error file=README.md::README latest-published status must appear exactly once (found $match_count)."
+      failures=$((failures + 1))
+      return
+    fi
+
+    published_version=$(printf '%s\n' "$matches" | sed -n 's/.*latest published Swift release: \[\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\].*/\1/p')
+    if [ -z "$published_version" ]; then
+      echo "::error file=README.md::Could not parse the latest published Swift release version."
+      failures=$((failures + 1))
+      return
+    fi
+
+    case "$matches" in
+      *"[$published_version]($package_url/releases/tag/$published_version)"*)
+        ;;
+      *)
+        echo "::error file=README.md::Latest published Swift release link does not match $published_version."
+        failures=$((failures + 1))
+        return
+        ;;
+    esac
+
+    if ! grep -F "## [$published_version]" "$changelog" >/dev/null; then
+      echo "::error file=README.md::Published Swift version $published_version is not present in CHANGELOG.md."
+      failures=$((failures + 1))
+      return
+    fi
+
+    echo "OK: README identifies published Swift $published_version separately from candidate $release_version."
+  }
+
+  check_readme_status
   check_surface \
     COMMERCIAL.md \
     "COMMERCIAL install version" \
@@ -148,7 +192,7 @@ self_test() {
     '## [1.2.3] - 2020-01-01' > "$fixture/CHANGELOG.md"
   printf '%s\n' \
     'dependencies: [.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "9.8.7")]' \
-    '**Public beta — [9.8.7](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/9.8.7) is released; APIs may evolve.**' > "$fixture/README.md"
+    '**Public beta — latest published Swift release: [9.8.7](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/9.8.7).**' > "$fixture/README.md"
   printf '%s\n' \
     '.package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "9.8.7")' > "$fixture/COMMERCIAL.md"
   printf '%s\n' \

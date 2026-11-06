@@ -1,15 +1,20 @@
 # Version surface
 
-Single source of truth for public version claims. The CI script
-`scripts/check_version_surface.sh` fails if README install pins disagree with
-`Sources/DProvenanceKit/Version.swift`.
+Single source of truth for public version claims. CI checks the candidate package
+version against the library constant and active install guidance; the README separately
+identifies the latest published release so an unpublished candidate is never presented
+as shipped.
 
 | Surface | Value | Source of truth |
 |---------|-------|-----------------|
-| Swift package | `0.9.0` | `Sources/DProvenanceKit/Version.swift` (`DProvenanceKitVersion.current`) |
-| Python package | `0.7.0+` (attestation MVP) | [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) `pyproject.toml` |
+| Swift package release candidate | `0.9.2` | `Sources/DProvenanceKit/Version.swift` (`DProvenanceKitVersion.current`) |
+| Latest published Swift release | `0.9.0` | [GitHub Releases](https://github.com/Therealdk8890/DProvenanceKit/releases) |
+| Python package release candidate | `0.9.2` | [DProvenanceKitPython PR #93](https://github.com/Therealdk8890/DProvenanceKitPython/pull/93) |
+| Latest published Python release | `0.7.1` | [PyPI](https://pypi.org/project/dprovenancekit/) |
 | Trace Spec | v1 (frozen) | Python `conformance/TRACE_SPEC_v1.md` (oracle) + Swift `ConformanceHarness` |
 | Attestation encoding | `DPK-BINARY-V1` | `docs/ATTESTATION.md` / Python `dprovenancekit.attestation` |
 
-Capability matrix in `README.md` must match these rows. Python attestation is **MVP** via
-`dprovenancekit[crypto]` (software P-256) from Python **0.7.0**; proof packs remain Swift-only.
+Swift and Python share a product release version, not feature parity or interchangeable
+artifacts. The capability matrix in `README.md` is authoritative for language-specific
+support. Python attestation is **MVP** via `dprovenancekit[crypto]` (software P-256);
+proof packs remain Swift-only.
