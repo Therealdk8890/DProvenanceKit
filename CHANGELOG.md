@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-06
+
 ### Added
 - **Optional RFC 3161 external timestamps for Swift attestations.** Attestation documents can carry an external timestamp token bound to the canonical signing payload. The current platform boundary is explicit: the pinned-TSA CMS verification path is macOS-only; the iOS path performs structural checks and does not authenticate the CMS signer. This is an external time assertion, not proof that a trace is truthful or complete.
 - **External evidence-anchor interoperability contract.** Added a digest-anchor contract and portable Evidentia exchange fixtures/tests. This defines an integration boundary; it does not ship or operate a transparency-log client or service.
@@ -20,7 +22,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Validation and scope notes
 - RFC 3161 coverage now includes bounded/adversarial DER parsing and a fixed signed-CMS fixture with signature, message-imprint, nonce, and signer-certificate checks. This is not evidence of live TSA interoperability or complete PKI validation; live TSA interoperability and end-to-end certificate-pin rejection through the public document verifier remain follow-up coverage.
 - External-anchor fixtures validate exchange contracts only. They do not establish a production transparency-log integration.
-- Python and Swift retain separate release/version tracks. The GitHub Action continues to use its Python package pin; no cross-SDK version substitution is implied.
+- Swift and Python share the DProvenanceKit product release version. Matching version numbers do not imply feature parity or interchangeable package artifacts; the GitHub Action continues to pin and consume the Python package independently.
 
 ## [0.9.0] - 2026-09-22
 
@@ -518,7 +520,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.2...HEAD
+[0.9.2]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...0.9.2
 [0.9.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.1...0.9.0
 [0.8.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.7.0...0.8.0

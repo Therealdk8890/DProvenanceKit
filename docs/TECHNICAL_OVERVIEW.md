@@ -146,7 +146,7 @@ Add the released Swift package to your project's dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.2")
 ]
 ```
 
@@ -259,7 +259,7 @@ Every release: baseline vs. candidate. A clear record of whether the instrumente
 
 ## Status
 
-**Public beta — [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0) is released; APIs may continue to evolve before 1.0.**
+**Public beta — [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2) is prepared for release; the tag has not yet been published. APIs may continue to evolve before 1.0.**
 
 ---
 

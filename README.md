@@ -44,7 +44,7 @@ Add the package dependency:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.2")
 ]
 ```
 
@@ -95,6 +95,8 @@ The README is intentionally optimized for the Foundation Models developer entry 
 
 ## Platform and language support
 
+Swift and Python use a **shared DProvenanceKit product release version**. Matching version numbers identify a coordinated product release, not identical feature sets or interchangeable package artifacts. Use the capability matrix below and each SDK’s API documentation to determine what is available in that language. See the [cross-language release policy](docs/RELEASE_POLICY.md).
+
 | Capability | Swift | Python |
 |---|---|---|
 | Record, query, and diff instrumented paths | Yes | Yes |
@@ -124,7 +126,7 @@ We're looking for Swift teams building privacy-sensitive on-device AI features �
 
 ## Status and license
 
-**Public beta — [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0) is released; APIs may continue to evolve before 1.0.**
+**Public beta — latest published Swift release: [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0).** Swift 0.9.2 is a coordinated release candidate in [PR #142](https://github.com/Therealdk8890/DProvenanceKit/pull/142); its tag has not been published. The Python SDK's latest published release remains [0.7.1 on PyPI](https://pypi.org/project/dprovenancekit/); its 0.9.2 candidate is tracked in [Python PR #93](https://github.com/Therealdk8890/DProvenanceKitPython/pull/93). Matching 0.9.2 versions are intended to identify a coordinated product release, not feature parity. APIs may continue to evolve before 1.0.
 
 Apache License 2.0. Free for commercial use.
 
