@@ -1,0 +1,379 @@
+{
+  "spec_version": "structural-alignment-v1",
+  "status": "experimental_contract",
+  "metric": {
+    "name": "micro_f1",
+    "definition": "2*TP/(2*TP+FP+FN)",
+    "zero_denominator": 0
+  },
+  "default_configuration": {
+    "weights": {
+      "type": 0.5,
+      "hierarchy": 0.3,
+      "payload": 0.2
+    },
+    "min_node_conformance": 0.8,
+    "min_global_f1_floor": 0.95,
+    "threshold_comparison": "inclusive",
+    "assignment": "one_to_one; ties by candidate sequence then candidate id"
+  },
+  "cases": [
+    {
+      "id": "missing_required_event",
+      "description": "Required authorization event is absent; later database event remains present.",
+      "target": [
+        {
+          "id": "step_001",
+          "parent_id": null,
+          "type": "USER_INTENT_PARSE",
+          "payload_signature": "p1"
+        },
+        {
+          "id": "step_002",
+          "parent_id": null,
+          "type": "AUTHORIZE_USER_SESSION",
+          "payload_signature": "p2"
+        },
+        {
+          "id": "step_003",
+          "parent_id": null,
+          "type": "DATABASE_QUERY",
+          "payload_signature": "p3"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "cand_001",
+          "parent_id": null,
+          "type": "USER_INTENT_PARSE",
+          "payload_signature": "p1"
+        },
+        {
+          "id": "cand_003",
+          "parent_id": null,
+          "type": "DATABASE_QUERY",
+          "payload_signature": "p3"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 1,
+        "global_f1": 0.8,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "step_001",
+            "candidate_id": "cand_001",
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "step_002",
+            "candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT"
+          },
+          {
+            "target_id": "step_003",
+            "candidate_id": "cand_003",
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "reordered_required_events",
+      "description": "All events exist and match, but the candidate reverses two required steps.",
+      "target": [
+        {
+          "id": "a",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "b",
+          "parent_id": null,
+          "type": "QUERY",
+          "payload_signature": "b"
+        },
+        {
+          "id": "c",
+          "parent_id": null,
+          "type": "COMMIT",
+          "payload_signature": "c"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "ca",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "cc",
+          "parent_id": null,
+          "type": "COMMIT",
+          "payload_signature": "c"
+        },
+        {
+          "id": "cb",
+          "parent_id": null,
+          "type": "QUERY",
+          "payload_signature": "b"
+        }
+      ],
+      "expected": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "a",
+            "candidate_id": "ca",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "b",
+            "candidate_id": "cb",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS"
+          },
+          {
+            "target_id": "c",
+            "candidate_id": "cc",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS"
+          }
+        ]
+      }
+    },
+    {
+      "id": "parent_hierarchy_shift",
+      "description": "Event type and payload match, but the candidate attaches the event to a different parent.",
+      "target": [
+        {
+          "id": "root_step",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "plan"
+        },
+        {
+          "id": "child",
+          "parent_id": "root_step",
+          "type": "AUTHORIZE",
+          "payload_signature": "auth"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "root_step_c",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "plan"
+        },
+        {
+          "id": "child_c",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "auth"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 1,
+        "global_f1": 0.5,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "root_step",
+            "candidate_id": "root_step_c",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "child",
+            "candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing_and_hierarchy_drift",
+      "description": "One required event is missing and another candidate event has the wrong parent.",
+      "target": [
+        {
+          "id": "a",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "b",
+          "parent_id": "a",
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "c",
+          "parent_id": "b",
+          "type": "QUERY",
+          "payload_signature": "q"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "ca",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "cb",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 2,
+        "global_f1": 0.4,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "a",
+            "candidate_id": "ca",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "b",
+            "candidate_id": null,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          },
+          {
+            "target_id": "c",
+            "candidate_id": null,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "inclusive_threshold_boundary",
+      "description": "A pair scoring exactly 0.70 is eligible when the configured node threshold is 0.70.",
+      "configuration": {
+        "weights": {
+          "type": 0.5,
+          "hierarchy": 0.3,
+          "payload": 0.2
+        },
+        "min_node_conformance": 0.7,
+        "min_global_f1_floor": 0.95
+      },
+      "target": [
+        {
+          "id": "parent",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "child",
+          "parent_id": "parent",
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "parent_c",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "child_c",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "conforming": true,
+        "verdicts": [
+          {
+            "target_id": "parent",
+            "candidate_id": "parent_c",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "child",
+            "candidate_id": "child_c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          }
+        ]
+      }
+    }
+  ]
+}
