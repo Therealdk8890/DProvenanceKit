@@ -126,7 +126,7 @@ We're looking for Swift teams building privacy-sensitive on-device AI features �
 
 ## Status and license
 
-**Public beta — latest published Swift release: [0.9.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.0).** Swift 0.9.2 is a coordinated release candidate in [PR #142](https://github.com/Therealdk8890/DProvenanceKit/pull/142); its tag has not been published. The Python SDK's latest published release remains [0.7.1 on PyPI](https://pypi.org/project/dprovenancekit/); its 0.9.2 candidate is tracked in [Python PR #93](https://github.com/Therealdk8890/DProvenanceKitPython/pull/93). Matching 0.9.2 versions are intended to identify a coordinated product release, not feature parity. APIs may continue to evolve before 1.0.
+**Public beta — latest published Swift release: [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2).** The coordinated Python SDK release [0.9.2](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.9.2) is also published; its release workflow completed successfully, including the PyPI publish step ([workflow run](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/42661357851)). Matching versions identify a coordinated product release, not feature parity or interchangeable packages. APIs may continue to evolve before 1.0.
 
 Apache License 2.0. Free for commercial use.
 

@@ -21,4 +21,4 @@ If one language's validation or publication fails, report the other SDK's status
 
 ## 0.9.2 status
 
-The Swift 0.9.2 release is being prepared to align with the Python 0.9.2 corrective release candidate. This document and the version surfaces do not mean either release has been published. The Swift tag and PyPI publication remain pending their respective CI and release gates.
+The coordinated 0.9.2 release has been published for both SDKs: Swift GitHub Release [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2) and Python GitHub Release [v0.9.2](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.9.2). The Python release workflow completed successfully, including the PyPI publish step ([run 42661357851](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/42661357851)).
