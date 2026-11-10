@@ -29,10 +29,14 @@ no machine-specific paths. It drives the real SDK for each category:
 ## Vectors
 
 [`vectors/`](vectors) is a **vendored copy** of `conformance/vectors/*.json` from the Python
-repo, which is the canonical source. Keeping a copy (rather than a submodule or a cross-repo
-CI step) makes this harness self-contained — it builds and runs with only this repo checked
-out. When the spec is regenerated there (`python conformance/generate_vectors.py`), re-sync
-with one command (shows what changed):
+repo, which is the canonical source. The Swift repository currently vendors all six shared
+Trace Specification v1 vector files, including `attestation-v1.json`. Keeping this copy
+makes the harness self-contained — it builds and runs with only this repo checked out.
+The vector-sync workflow compares the vendored files against the Python canonical source
+and fails when they drift.
+
+When the spec is regenerated in Python (`python conformance/generate_vectors.py`), re-sync
+with one command:
 
 ```bash
 ./sync-vectors.sh                         # defaults to ~/DProvenanceKitPython/conformance/vectors
@@ -45,9 +49,10 @@ with those ids because the canonical alignment ordering tiebreaks on `(sequence,
 
 ## Swift-only surfaces (not in this harness)
 
-Crypto attestation / proof-pack vectors under `docs/test-vectors/` are **Swift-only**.
-They are intentionally *not* vendored here and have no Python oracle yet. See the
-Python repo's `conformance/CROSS_LANGUAGE_GAPS.md` for the tracked gap list.
-This harness covers Trace Spec v1 golden vectors only and fails closed on drift
-via `.github/workflows/vector-sync.yml`.
+Crypto attestation / proof-pack vectors under `docs/test-vectors/` are Swift-specific
+surfaces and are not part of the shared Trace Specification v1 corpus. They do not yet
+have a Python oracle. See the Python repo's `conformance/CROSS_LANGUAGE_GAPS.md` for the
+tracked gap list.
 
+This harness covers Trace Spec v1 golden vectors and fails closed on vector drift via
+`.github/workflows/vector-sync.yml`.

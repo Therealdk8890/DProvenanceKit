@@ -14,13 +14,15 @@ public struct AlignmentSnapshot: Codable, Sendable, Equatable {
 }
 
 public enum DriftToleranceMode: Sendable, Equatable {
-    /// Fails immediately if the hashes do not match perfectly
+    /// Fails immediately if the snapshot metadata or rendered output differs.
     case strict
-    /// Logs a warning or returns a soft failure result if they diverge
+    /// Logs a warning and returns a soft failure result if any snapshot field diverges.
     case reportOnly
 }
 
 public enum SnapshotValidationError: Error {
+    case profileHashMismatch(expected: String, actual: String)
+    case engineVersionMismatch(expected: String, actual: String)
     case hashMismatch(expected: String, actual: String)
 }
 
@@ -31,9 +33,8 @@ public struct AlignmentSnapshotValidator: Sendable {
         self.toleranceMode = toleranceMode
     }
     
-    /// Computes the canonical Merkle-style hash of the final render model.
+    /// Computes the canonical hash of the final render model.
     public static func computeAlignmentsHash(from renderNodes: [AlignmentRenderNode]) -> String {
-        // Canonical serialization list joined by newlines
         let fullSerialization = renderNodes.map { $0.canonicalSerialization }.joined(separator: "\n")
         let hash = SHA256.hash(data: Data(fullSerialization.utf8))
         return hash.compactMap { String(format: "%02x", $0) }.joined()
@@ -42,29 +43,51 @@ public struct AlignmentSnapshotValidator: Sendable {
     /// Creates a snapshot from an alignment result.
     public static func createSnapshot(from result: TraceAlignmentResult<some TraceableEvent>) -> AlignmentSnapshot {
         let renderNodes = result.renderModels()
-        let alignmentsHash = computeAlignmentsHash(from: renderNodes)
         return AlignmentSnapshot(
             profileHash: result.profileHash,
             engineVersion: result.engineVersion,
-            outputAlignmentsHash: alignmentsHash
+            outputAlignmentsHash: computeAlignmentsHash(from: renderNodes)
         )
     }
     
-    /// Asserts that an alignment result matches the exact output defined in the snapshot.
+    /// Validates provenance metadata before comparing the canonical rendered output.
     public func validate(result: TraceAlignmentResult<some TraceableEvent>, against snapshot: AlignmentSnapshot) throws -> Bool {
-        let renderNodes = result.renderModels()
-        let actualHash = AlignmentSnapshotValidator.computeAlignmentsHash(from: renderNodes)
-        
-        if actualHash != snapshot.outputAlignmentsHash {
+        if result.profileHash != snapshot.profileHash {
             switch toleranceMode {
             case .strict:
-                throw SnapshotValidationError.hashMismatch(expected: snapshot.outputAlignmentsHash, actual: actualHash)
+                throw SnapshotValidationError.profileHashMismatch(
+                    expected: snapshot.profileHash, actual: result.profileHash
+                )
             case .reportOnly:
-                // Hashes identify content without containing it, so they can be public.
-                DPKLog.alignment.warning("Snapshot drift detected. Expected \(snapshot.outputAlignmentsHash, privacy: .public), got \(actualHash, privacy: .public)")
+                DPKLog.alignment.warning("Snapshot profile hash mismatch. Expected \(snapshot.profileHash, privacy: .public), got \(result.profileHash, privacy: .public)")
                 return false
             }
         }
-        return true
+
+        if result.engineVersion != snapshot.engineVersion {
+            switch toleranceMode {
+            case .strict:
+                throw SnapshotValidationError.engineVersionMismatch(
+                    expected: snapshot.engineVersion, actual: result.engineVersion
+                )
+            case .reportOnly:
+                DPKLog.alignment.warning("Snapshot engine version mismatch. Expected \(snapshot.engineVersion, privacy: .public), got \(result.engineVersion, privacy: .public)")
+                return false
+            }
+        }
+
+        let renderNodes = result.renderModels()
+        let actualHash = Self.computeAlignmentsHash(from: renderNodes)
+        guard actualHash != snapshot.outputAlignmentsHash else { return true }
+
+        switch toleranceMode {
+        case .strict:
+            throw SnapshotValidationError.hashMismatch(
+                expected: snapshot.outputAlignmentsHash, actual: actualHash
+            )
+        case .reportOnly:
+            DPKLog.alignment.warning("Snapshot output hash mismatch. Expected \(snapshot.outputAlignmentsHash, privacy: .public), got \(actualHash, privacy: .public)")
+            return false
+        }
     }
 }
