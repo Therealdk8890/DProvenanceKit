@@ -35,7 +35,8 @@
         "candidate_sequence_asc",
         "candidate_id_lexical"
       ],
-      "suggestions_count_as_mappings": false
+      "suggestions_count_as_mappings": false,
+      "minimum_node_score_exclusive": 0
     }
   },
   "cases": [
