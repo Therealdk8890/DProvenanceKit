@@ -546,12 +546,12 @@
       "description": "The highest-scoring pair is selected first; the resulting greedy assignment has one mapping although an alternative assignment could map both targets.",
       "configuration": {
         "weights": {
-          "type": 50000000,
+          "type": 5000,
           "hierarchy": 0,
-          "payload": 50000000
+          "payload": 5000
         },
-        "min_node_conformance": 50000000,
-        "min_global_f1_floor": 95000000
+        "min_node_conformance": 5000,
+        "min_global_f1_floor": 9500
       },
       "target": [
         {
@@ -625,12 +625,12 @@
       "description": "Type and parent agree but payload differs; the below-threshold pair is diagnostic only and counts as FP plus FN.",
       "configuration": {
         "weights": {
-          "type": 50000000,
-          "hierarchy": 30000000,
-          "payload": 20000000
+          "type": 5000,
+          "hierarchy": 3000,
+          "payload": 2000
         },
-        "min_node_conformance": 81000000,
-        "min_global_f1_floor": 95000000
+        "min_node_conformance": 8100,
+        "min_global_f1_floor": 9500
       },
       "target": [
         {
