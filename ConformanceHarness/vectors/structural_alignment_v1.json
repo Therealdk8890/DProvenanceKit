@@ -1,0 +1,973 @@
+{
+  "spec_version": "structural-alignment-v1",
+  "status": "experimental_contract",
+  "metric": {
+    "name": "micro_f1",
+    "definition": "2*TP/(2*TP+FP+FN)",
+    "zero_denominator": 1,
+    "zero_denominator_policy": "both_traces_empty_f1_1_empty_input_true_strict_conformance_false",
+    "aggregation_unit": "one_target_candidate_trace_comparison",
+    "below_threshold_accounting": "target_fn_candidate_fp_no_tp"
+  },
+  "default_configuration": {
+    "weights": {
+      "type": 5000,
+      "hierarchy": 3000,
+      "payload": 2000
+    },
+    "min_node_conformance": 8000,
+    "min_global_f1_floor": 9500,
+    "threshold_comparison": "inclusive_integer_comparison",
+    "assignment": {
+      "strategy": "parent_first_greedy",
+      "target_order": "depth_ascending_then_input_sequence_then_target_id",
+      "candidate_pair_priority": [
+        "node_score_desc",
+        "candidate_sequence_asc",
+        "candidate_id_lexical",
+        "target_sequence_asc",
+        "target_id_lexical"
+      ],
+      "candidate_pool": "all_unassigned_candidates",
+      "greedy_is_not_global_optimum": true
+    },
+    "diagnostic_suggestions": {
+      "enabled": true,
+      "selected_after_eligible_assignment": true,
+      "priority": [
+        "node_score_desc",
+        "candidate_sequence_asc",
+        "candidate_id_lexical"
+      ],
+      "suggestions_count_as_mappings": false,
+      "minimum_node_score_exclusive": 0
+    },
+    "numeric_representation": "integer_basis_points",
+    "basis_points_per_unit": 10000
+  },
+  "cases": [
+    {
+      "id": "missing_required_event",
+      "description": "Required authorization event is absent; later database event remains present.",
+      "target": [
+        {
+          "id": "step_001",
+          "parent_id": null,
+          "type": "USER_INTENT_PARSE",
+          "payload_signature": "p1"
+        },
+        {
+          "id": "step_002",
+          "parent_id": null,
+          "type": "AUTHORIZE_USER_SESSION",
+          "payload_signature": "p2"
+        },
+        {
+          "id": "step_003",
+          "parent_id": null,
+          "type": "DATABASE_QUERY",
+          "payload_signature": "p3"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "cand_001",
+          "parent_id": null,
+          "type": "USER_INTENT_PARSE",
+          "payload_signature": "p1"
+        },
+        {
+          "id": "cand_003",
+          "parent_id": null,
+          "type": "DATABASE_QUERY",
+          "payload_signature": "p3"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 1,
+        "global_f1": 0.8,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "step_001",
+            "candidate_id": "cand_001",
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
+          },
+          {
+            "target_id": "step_002",
+            "candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT",
+            "suggested_candidate_id": null
+          },
+          {
+            "target_id": "step_003",
+            "candidate_id": "cand_003",
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
+          }
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
+      }
+    },
+    {
+      "id": "reordered_required_events",
+      "description": "All events exist and match, but the candidate reverses two required steps.",
+      "target": [
+        {
+          "id": "a",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "b",
+          "parent_id": null,
+          "type": "QUERY",
+          "payload_signature": "b"
+        },
+        {
+          "id": "c",
+          "parent_id": null,
+          "type": "COMMIT",
+          "payload_signature": "c"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "ca",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "cc",
+          "parent_id": null,
+          "type": "COMMIT",
+          "payload_signature": "c"
+        },
+        {
+          "id": "cb",
+          "parent_id": null,
+          "type": "QUERY",
+          "payload_signature": "b"
+        }
+      ],
+      "expected": {
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "a",
+            "candidate_id": "ca",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          },
+          {
+            "target_id": "b",
+            "candidate_id": "cb",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          },
+          {
+            "target_id": "c",
+            "candidate_id": "cc",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          }
+        ],
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": false,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false
+      }
+    },
+    {
+      "id": "parent_hierarchy_shift",
+      "description": "Event type and payload match, but the candidate attaches the event to a different parent.",
+      "target": [
+        {
+          "id": "root_step",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "plan"
+        },
+        {
+          "id": "child",
+          "parent_id": "root_step",
+          "type": "AUTHORIZE",
+          "payload_signature": "auth"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "root_step_c",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "plan"
+        },
+        {
+          "id": "child_c",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "auth"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 1,
+        "global_f1": 0.5,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "root_step",
+            "candidate_id": "root_step_c",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          },
+          {
+            "target_id": "child",
+            "candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": "child_c"
+          }
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
+      }
+    },
+    {
+      "id": "missing_and_hierarchy_drift",
+      "description": "One required event is missing and another candidate event has the wrong parent.",
+      "target": [
+        {
+          "id": "a",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "b",
+          "parent_id": "a",
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        },
+        {
+          "id": "c",
+          "parent_id": "b",
+          "type": "QUERY",
+          "payload_signature": "q"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "ca",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "cb",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 2,
+        "global_f1": 0.4,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "a",
+            "candidate_id": "ca",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          },
+          {
+            "target_id": "b",
+            "candidate_id": null,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": "cb",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1
+          },
+          {
+            "target_id": "c",
+            "candidate_id": null,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT",
+            "suggested_candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0
+          }
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
+      }
+    },
+    {
+      "id": "inclusive_threshold_boundary",
+      "description": "A pair scoring exactly 0.70 is eligible at the inclusive threshold, but its parent mismatch independently fails the strict hierarchy gate.",
+      "configuration": {
+        "weights": {
+          "type": 5000,
+          "hierarchy": 3000,
+          "payload": 2000
+        },
+        "min_node_conformance": 7000,
+        "min_global_f1_floor": 9500
+      },
+      "target": [
+        {
+          "id": "parent",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "child",
+          "parent_id": "parent",
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "parent_c",
+          "parent_id": null,
+          "type": "PLAN",
+          "payload_signature": "p"
+        },
+        {
+          "id": "child_c",
+          "parent_id": null,
+          "type": "AUTHORIZE",
+          "payload_signature": "a"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "parent",
+            "candidate_id": "parent_c",
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
+          },
+          {
+            "target_id": "child",
+            "candidate_id": "child_c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": null
+          }
+        ],
+        "hierarchy_gate_passed": false,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "f1_gate_passed": true,
+        "empty_input": false
+      }
+    },
+    {
+      "id": "extra_candidate_step",
+      "description": "All required events map, but the candidate contains an additional event.",
+      "target": [
+        {
+          "id": "required",
+          "parent_id": null,
+          "type": "A",
+          "payload_signature": "a"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "required-c",
+          "parent_id": null,
+          "type": "A",
+          "payload_signature": "a"
+        },
+        {
+          "id": "extra",
+          "parent_id": null,
+          "type": "EXTRA",
+          "payload_signature": "x"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 0,
+        "global_f1": 0.6666666666666666,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "required",
+            "candidate_id": "required-c",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "duplicate_types_distinct_payloads",
+      "description": "Duplicate event types are disambiguated by exact payload signatures; candidate sequence is reversed.",
+      "target": [
+        {
+          "id": "first",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "one"
+        },
+        {
+          "id": "second",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "two"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "second-c",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "two"
+        },
+        {
+          "id": "first-c",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "one"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": false,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "first",
+            "candidate_id": "first-c",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS"
+          },
+          {
+            "target_id": "second",
+            "candidate_id": "second-c",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": false,
+            "reason": "REORDERED_REQUIRED_EVENTS"
+          }
+        ]
+      }
+    },
+    {
+      "id": "greedy_assignment_not_global_optimum",
+      "description": "The highest-scoring pair is selected first; the resulting greedy assignment has one mapping although an alternative assignment could map both targets.",
+      "configuration": {
+        "weights": {
+          "type": 5000,
+          "hierarchy": 0,
+          "payload": 5000
+        },
+        "min_node_conformance": 5000,
+        "min_global_f1_floor": 9500
+      },
+      "target": [
+        {
+          "id": "target-a",
+          "parent_id": null,
+          "type": "A",
+          "payload_signature": "shared"
+        },
+        {
+          "id": "target-b",
+          "parent_id": null,
+          "type": "B",
+          "payload_signature": "shared"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "candidate-x",
+          "parent_id": null,
+          "type": "A",
+          "payload_signature": "shared"
+        },
+        {
+          "id": "candidate-y",
+          "parent_id": null,
+          "type": "A",
+          "payload_signature": "different"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 1,
+        "global_f1": 0.5,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "target-a",
+            "candidate_id": "candidate-x",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "target-b",
+            "candidate_id": null,
+            "suggested_candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "below_threshold_hierarchy_preserved",
+      "description": "Type and parent agree but payload differs; the below-threshold pair is diagnostic only and counts as FP plus FN.",
+      "configuration": {
+        "weights": {
+          "type": 5000,
+          "hierarchy": 3000,
+          "payload": 2000
+        },
+        "min_node_conformance": 8100,
+        "min_global_f1_floor": 9500
+      },
+      "target": [
+        {
+          "id": "target",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "expected"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "candidate",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "different"
+        }
+      ],
+      "expected": {
+        "tp": 0,
+        "fp": 1,
+        "fn": 1,
+        "global_f1": 0,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "target",
+            "candidate_id": null,
+            "suggested_candidate_id": "candidate",
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 0,
+            "node_score": 0.8,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "NODE_SCORE_BELOW_THRESHOLD"
+          }
+        ]
+      }
+    },
+    {
+      "id": "empty_both_traces",
+      "description": "Both traces are empty: metric F1 is defined as 1.0, but empty input is explicit and strict conformance remains false.",
+      "target": [],
+      "candidate": [],
+      "expected": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": true,
+        "conforming": false,
+        "verdicts": []
+      }
+    },
+    {
+      "id": "empty_target_nonempty_candidate",
+      "description": "No required target events but one candidate event exists; this is not an empty/empty comparison.",
+      "target": [],
+      "candidate": [
+        {
+          "id": "extra",
+          "parent_id": null,
+          "type": "EXTRA",
+          "payload_signature": "x"
+        }
+      ],
+      "expected": {
+        "tp": 0,
+        "fp": 1,
+        "fn": 0,
+        "global_f1": 0,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": []
+      }
+    },
+    {
+      "id": "nonempty_target_empty_candidate",
+      "description": "Required target event exists but candidate trace is empty.",
+      "target": [
+        {
+          "id": "required",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "x"
+        }
+      ],
+      "candidate": [],
+      "expected": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 1,
+        "global_f1": 0,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "required",
+            "candidate_id": null,
+            "suggested_candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0,
+            "node_score": 0,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "MISSING_REQUIRED_EVENT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "equal_score_tie_break",
+      "description": "All four pairs have equal scores; candidate sequence then target sequence determines the one-to-one mapping.",
+      "target": [
+        {
+          "id": "target-1",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        },
+        {
+          "id": "target-2",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "candidate-1",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        },
+        {
+          "id": "candidate-2",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false,
+        "conforming": true,
+        "verdicts": [
+          {
+            "target_id": "target-1",
+            "candidate_id": "candidate-1",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "target-2",
+            "candidate_id": "candidate-2",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "multi_level_hierarchy_drift",
+      "description": "A parent mismatch prevents the child from mapping; the unmapped parent then prevents its grandchild from satisfying the hierarchy component.",
+      "target": [
+        {
+          "id": "root",
+          "parent_id": null,
+          "type": "ROOT",
+          "payload_signature": "r"
+        },
+        {
+          "id": "child",
+          "parent_id": "root",
+          "type": "CHILD",
+          "payload_signature": "c"
+        },
+        {
+          "id": "grandchild",
+          "parent_id": "child",
+          "type": "GRANDCHILD",
+          "payload_signature": "g"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "root-c",
+          "parent_id": null,
+          "type": "ROOT",
+          "payload_signature": "r"
+        },
+        {
+          "id": "child-c",
+          "parent_id": null,
+          "type": "CHILD",
+          "payload_signature": "c"
+        },
+        {
+          "id": "grandchild-c",
+          "parent_id": "child-c",
+          "type": "GRANDCHILD",
+          "payload_signature": "g"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 2,
+        "fn": 2,
+        "global_f1": 0.3333333333333333,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "root",
+            "candidate_id": "root-c",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "child",
+            "candidate_id": null,
+            "suggested_candidate_id": "child-c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          },
+          {
+            "target_id": "grandchild",
+            "candidate_id": null,
+            "suggested_candidate_id": "grandchild-c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -38,7 +38,30 @@ jobs:
           persist-credentials: false
 
       - name: Fetch canonical vectors (DProvenanceKitPython)
-        run: git clone --depth 1 https://github.com/Therealdk8890/DProvenanceKitPython.git /tmp/dpk-python
+        run: |
+          # The Phase 2 SDK PRs are paired with unmerged Python source PRs. Use
+          # the matching canonical head until its vectors reach Python main.
+          case "${GITHUB_HEAD_REF:-}" in
+            phase2/structural-alignment-v1)
+              python_ref="phase2/structural-alignment-v1"
+              ;;
+            phase2/swift-config-authorization-v1)
+              python_ref="phase2/python-config-authorization-v1"
+              ;;
+            *)
+              python_ref="main"
+              ;;
+          esac
+          git clone --depth 1 --branch "$python_ref" \
+            https://github.com/Therealdk8890/DProvenanceKitPython.git /tmp/dpk-python
+
+          for vector in ConformanceHarness/vectors/*.json; do
+            name="$(basename "$vector")"
+            if [ ! -f "/tmp/dpk-python/conformance/vectors/$name" ]; then
+              echo "::error::Canonical Python vector is missing: $name (ref: $python_ref)."
+              exit 1
+            fi
+          done
 
       - name: Compare vendored vectors against canonical source
         run: |
