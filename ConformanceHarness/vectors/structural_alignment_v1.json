@@ -308,7 +308,7 @@
     },
     {
       "id": "inclusive_threshold_boundary",
-      "description": "A pair scoring exactly 0.70 is eligible when the configured node threshold is 0.70.",
+      "description": "A pair scoring exactly 0.70 is eligible at the inclusive threshold, but its parent mismatch independently fails the strict hierarchy gate.",
       "configuration": {
         "weights": {
           "type": 0.5,
@@ -351,7 +351,7 @@
         "fp": 0,
         "fn": 0,
         "global_f1": 1,
-        "conforming": true,
+        "conforming": false,
         "verdicts": [
           {
             "target_id": "parent",
@@ -369,10 +369,13 @@
             "payload_score": 1,
             "node_score": 0.7,
             "matched": true,
-            "gate_passed": true,
-            "reason": "CONFORMANT"
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
           }
-        ]
+        ],
+        "hierarchy_gate_passed": false,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true
       }
     }
   ]
