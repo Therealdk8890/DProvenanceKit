@@ -126,7 +126,12 @@
             "reason": "CONFORMANT",
             "suggested_candidate_id": null
           }
-        ]
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
       }
     },
     {
@@ -206,7 +211,12 @@
             "reason": "REORDERED_REQUIRED_EVENTS",
             "suggested_candidate_id": null
           }
-        ]
+        ],
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": false,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false
       }
     },
     {
@@ -268,7 +278,12 @@
             "reason": "PARENT_HIERARCHY_MISMATCH",
             "suggested_candidate_id": "child_c"
           }
-        ]
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
       }
     },
     {
@@ -342,7 +357,12 @@
             "reason": "MISSING_REQUIRED_EVENT",
             "suggested_candidate_id": null
           }
-        ]
+        ],
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false
       }
     },
     {
@@ -416,7 +436,9 @@
         ],
         "hierarchy_gate_passed": false,
         "order_gate_passed": true,
-        "all_required_nodes_meet_score_threshold": true
+        "all_required_nodes_meet_score_threshold": true,
+        "f1_gate_passed": true,
+        "empty_input": false
       }
     },
     {
