@@ -16,6 +16,11 @@ public struct StructuralAlignmentConfigurationV1: Sendable, Equatable {
     public let payloadWeight: Double
     public let minNodeConformance: Double
     public let minGlobalF1Floor: Double
+    fileprivate let typeWeightBPS: Int
+    fileprivate let hierarchyWeightBPS: Int
+    fileprivate let payloadWeightBPS: Int
+    fileprivate let minNodeConformanceBPS: Int
+    fileprivate let minGlobalF1FloorBPS: Int
 
     public init(
         typeWeight: Double = 0.5,
@@ -24,28 +29,33 @@ public struct StructuralAlignmentConfigurationV1: Sendable, Equatable {
         minNodeConformance: Double = 0.8,
         minGlobalF1Floor: Double = 0.95
     ) throws {
-        let weights = [typeWeight, hierarchyWeight, payloadWeight]
-        guard weights.allSatisfy({ $0.isFinite && (0.0...1.0).contains($0) }) else {
-            throw StructuralAlignmentErrorV1.invalidConfiguration(
-                "component weights must be finite and in [0, 1]"
-            )
+        func basisPoints(_ value: Double, name: String) throws -> Int {
+            guard value.isFinite, (0.0...1.0).contains(value),
+                  let decimal = Decimal(string: String(value), locale: Locale(identifier: "en_US_POSIX")) else {
+                throw StructuralAlignmentErrorV1.invalidConfiguration(
+                    "\(name) must be finite and in [0, 1]"
+                )
+            }
+            let scaled = decimal * Decimal(10_000)
+            var rounded = Decimal()
+            var copy = scaled
+            NSDecimalRound(&rounded, &copy, 0, .plain)
+            guard scaled == rounded else {
+                throw StructuralAlignmentErrorV1.invalidConfiguration(
+                    "\(name) must be exactly representable in basis points"
+                )
+            }
+            return NSDecimalNumber(decimal: rounded).intValue
         }
-        let decimalSum = weights.reduce(Decimal.zero) {
-            $0 + (Decimal(string: String($1), locale: Locale(identifier: "en_US_POSIX")) ?? .zero)
-        }
-        guard decimalSum == Decimal(1) else {
+
+        let typeBPS = try basisPoints(typeWeight, name: "typeWeight")
+        let hierarchyBPS = try basisPoints(hierarchyWeight, name: "hierarchyWeight")
+        let payloadBPS = try basisPoints(payloadWeight, name: "payloadWeight")
+        let nodeThresholdBPS = try basisPoints(minNodeConformance, name: "minNodeConformance")
+        let globalFloorBPS = try basisPoints(minGlobalF1Floor, name: "minGlobalF1Floor")
+        guard typeBPS + hierarchyBPS + payloadBPS == 10_000 else {
             throw StructuralAlignmentErrorV1.invalidConfiguration(
-                "component weights must sum to 1"
-            )
-        }
-        guard minNodeConformance.isFinite && (0.0...1.0).contains(minNodeConformance) else {
-            throw StructuralAlignmentErrorV1.invalidConfiguration(
-                "minNodeConformance must be finite and in [0, 1]"
-            )
-        }
-        guard minGlobalF1Floor.isFinite && (0.0...1.0).contains(minGlobalF1Floor) else {
-            throw StructuralAlignmentErrorV1.invalidConfiguration(
-                "minGlobalF1Floor must be finite and in [0, 1]"
+                "component weights must sum to 10000 basis points"
             )
         }
         self.typeWeight = typeWeight
@@ -53,19 +63,11 @@ public struct StructuralAlignmentConfigurationV1: Sendable, Equatable {
         self.payloadWeight = payloadWeight
         self.minNodeConformance = minNodeConformance
         self.minGlobalF1Floor = minGlobalF1Floor
-    }
-
-    fileprivate var decimalTypeWeight: Decimal {
-        Decimal(string: String(typeWeight), locale: Locale(identifier: "en_US_POSIX"))!
-    }
-    fileprivate var decimalHierarchyWeight: Decimal {
-        Decimal(string: String(hierarchyWeight), locale: Locale(identifier: "en_US_POSIX"))!
-    }
-    fileprivate var decimalPayloadWeight: Decimal {
-        Decimal(string: String(payloadWeight), locale: Locale(identifier: "en_US_POSIX"))!
-    }
-    fileprivate var decimalNodeThreshold: Decimal {
-        Decimal(string: String(minNodeConformance), locale: Locale(identifier: "en_US_POSIX"))!
+        self.typeWeightBPS = typeBPS
+        self.hierarchyWeightBPS = hierarchyBPS
+        self.payloadWeightBPS = payloadBPS
+        self.minNodeConformanceBPS = nodeThresholdBPS
+        self.minGlobalF1FloorBPS = globalFloorBPS
     }
 }
 
@@ -114,6 +116,8 @@ public struct StructuralAlignmentResultV1: Sendable, Equatable {
     public let hierarchyGatePassed: Bool
     public let orderGatePassed: Bool
     public let allRequiredNodesMeetScoreThreshold: Bool
+    public let f1GatePassed: Bool
+    public let emptyInput: Bool
     public let conforming: Bool
     public let verdicts: [StructuralNodeVerdictV1]
 }
@@ -124,7 +128,7 @@ private struct StructuralScoredPairV1 {
     let typeScore: Int
     let hierarchyScore: Int
     let payloadScore: Int
-    let score: Decimal
+    let score: Int
 }
 
 /// Parent-first deterministic greedy structural matcher.
@@ -191,7 +195,7 @@ public struct StructuralAlignmentEngineV1: Sendable {
         target: StructuralAlignmentNodeV1,
         candidate: StructuralAlignmentNodeV1,
         mappedParents: [String: String]
-    ) -> (type: Int, hierarchy: Int, payload: Int, score: Decimal) {
+    ) -> (type: Int, hierarchy: Int, payload: Int, score: Int) {
         let typeScore = target.type == candidate.type ? 1 : 0
         let payloadScore = target.payloadSignature == candidate.payloadSignature ? 1 : 0
         let hierarchyScore: Int
@@ -204,9 +208,9 @@ public struct StructuralAlignmentEngineV1: Sendable {
         } else {
             hierarchyScore = candidate.parentID == nil ? 1 : 0
         }
-        let weighted = configuration.decimalTypeWeight * Decimal(typeScore)
-            + configuration.decimalHierarchyWeight * Decimal(hierarchyScore)
-            + configuration.decimalPayloadWeight * Decimal(payloadScore)
+        let weighted = configuration.typeWeightBPS * typeScore
+            + configuration.hierarchyWeightBPS * hierarchyScore
+            + configuration.payloadWeightBPS * payloadScore
         return (typeScore, hierarchyScore, payloadScore, weighted)
     }
 
@@ -234,7 +238,7 @@ public struct StructuralAlignmentEngineV1: Sendable {
                         candidate: candidate[candidateIndex],
                         mappedParents: mappedTargetToCandidate
                     )
-                    if components.score >= configuration.decimalNodeThreshold {
+                    if components.score >= configuration.minNodeConformanceBPS {
                         eligible.append(
                             StructuralScoredPairV1(
                                 targetIndex: targetIndex,
@@ -338,7 +342,7 @@ public struct StructuralAlignmentEngineV1: Sendable {
                     typeScore: Double(pair.typeScore),
                     hierarchyScore: Double(pair.hierarchyScore),
                     payloadScore: Double(pair.payloadScore),
-                    nodeScore: NSDecimalNumber(decimal: pair.score).doubleValue,
+                    nodeScore: Double(pair.score) / 10_000,
                     matched: true,
                     gatePassed: hierarchyPass && orderPass,
                     reason: reason
@@ -355,7 +359,7 @@ public struct StructuralAlignmentEngineV1: Sendable {
                     typeScore: Double(suggestion.typeScore),
                     hierarchyScore: Double(suggestion.hierarchyScore),
                     payloadScore: Double(suggestion.payloadScore),
-                    nodeScore: NSDecimalNumber(decimal: suggestion.score).doubleValue,
+                    nodeScore: Double(suggestion.score) / 10_000,
                     matched: false,
                     gatePassed: false,
                     reason: reason
@@ -379,12 +383,16 @@ public struct StructuralAlignmentEngineV1: Sendable {
         let fn = target.count - tp
         let fp = candidate.count - assignedCandidates.count
         let denominator = 2 * tp + fp + fn
-        let f1 = denominator == 0 ? 0.0 : Double(2 * tp) / Double(denominator)
+        let emptyInput = target.isEmpty && candidate.isEmpty
+        let f1 = denominator == 0 ? 1.0 : Double(2 * tp) / Double(denominator)
+        let f1GatePassed = denominator == 0
+            || 2 * tp * 10_000 >= configuration.minGlobalF1FloorBPS * denominator
         let hierarchyGate = mappedPairs.values.allSatisfy { $0.hierarchyScore == 1 }
         let orderGate = reordered.isEmpty
         let allNodesMapped = tp == target.count
-        let conforming = allNodesMapped
-            && f1 >= configuration.minGlobalF1Floor
+        let conforming = !emptyInput
+            && allNodesMapped
+            && f1GatePassed
             && hierarchyGate
             && orderGate
 
@@ -396,6 +404,8 @@ public struct StructuralAlignmentEngineV1: Sendable {
             hierarchyGatePassed: hierarchyGate,
             orderGatePassed: orderGate,
             allRequiredNodesMeetScoreThreshold: allNodesMapped,
+            f1GatePassed: f1GatePassed,
+            emptyInput: emptyInput,
             conforming: conforming,
             verdicts: verdicts
         )
