@@ -363,6 +363,26 @@ func checkStructuralAlignmentContract() {
         check("case \(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
               "expected \(expectedF1) got \(computedF1)")
         
+        if (raw["id"] as? String) == "parent_hierarchy_shift" {
+            let verdicts = expected["verdicts"] as! [[String: Any]]
+            let child = verdicts.first { ($0["target_id"] as? String) == "child" }!
+            check("below-threshold hierarchy suggestion is not a mapping",
+                  (child["candidate_id"] is NSNull)
+                    && (child["suggested_candidate_id"] as? String) == "child_c"
+                    && (child["matched"] as? Bool) == false
+                    && (child["reason"] as? String) == "PARENT_HIERARCHY_MISMATCH")
+        }
+
+        if (raw["id"] as? String) == "missing_and_hierarchy_drift" {
+            let verdicts = expected["verdicts"] as! [[String: Any]]
+            let child = verdicts.first { ($0["target_id"] as? String) == "b" }!
+            check("combined drift preserves rejected candidate as suggestion",
+                  (child["candidate_id"] is NSNull)
+                    && (child["suggested_candidate_id"] as? String) == "cb"
+                    && (child["matched"] as? Bool) == false
+                    && (child["reason"] as? String) == "PARENT_HIERARCHY_MISMATCH")
+        }
+
         if (raw["id"] as? String) == "inclusive_threshold_boundary" {
             let verdicts = expected["verdicts"] as! [[String: Any]]
             let child = verdicts.first { ($0["target_id"] as? String) == "child" }!
