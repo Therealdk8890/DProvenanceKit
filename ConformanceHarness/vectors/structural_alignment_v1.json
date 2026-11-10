@@ -361,7 +361,10 @@
             "matched": false,
             "gate_passed": false,
             "reason": "PARENT_HIERARCHY_MISMATCH",
-            "suggested_candidate_id": "cb"
+            "suggested_candidate_id": "cb",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1
           },
           {
             "target_id": "c",
