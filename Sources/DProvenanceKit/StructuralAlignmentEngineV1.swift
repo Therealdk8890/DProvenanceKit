@@ -148,14 +148,6 @@ public struct StructuralAlignmentEngineV1: Sendable {
             guard !node.id.isEmpty else {
                 throw StructuralAlignmentErrorV1.invalidNode("\(side)[\(index)] has an empty id")
             }
-            guard !node.type.isEmpty else {
-                throw StructuralAlignmentErrorV1.invalidNode("\(side)[\(index)] has an empty type")
-            }
-            guard !node.payloadSignature.isEmpty else {
-                throw StructuralAlignmentErrorV1.invalidNode(
-                    "\(side)[\(index)] has an empty payload signature"
-                )
-            }
             guard indexByID[node.id] == nil else {
                 throw StructuralAlignmentErrorV1.duplicateID("\(side) node id \(node.id)")
             }
