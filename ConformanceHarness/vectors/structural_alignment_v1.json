@@ -15,7 +15,28 @@
     "min_node_conformance": 0.8,
     "min_global_f1_floor": 0.95,
     "threshold_comparison": "inclusive",
-    "assignment": "one_to_one; ties by candidate sequence then candidate id"
+    "assignment": {
+      "strategy": "parent_first_greedy",
+      "target_order": "depth_ascending_then_input_sequence_then_target_id",
+      "candidate_pair_priority": [
+        "node_score_desc",
+        "candidate_sequence_asc",
+        "candidate_id_lexical",
+        "target_sequence_asc",
+        "target_id_lexical"
+      ],
+      "candidate_pool": "all_unassigned_candidates"
+    },
+    "diagnostic_suggestions": {
+      "enabled": true,
+      "selected_after_eligible_assignment": true,
+      "priority": [
+        "node_score_desc",
+        "candidate_sequence_asc",
+        "candidate_id_lexical"
+      ],
+      "suggestions_count_as_mappings": false
+    }
   },
   "cases": [
     {
@@ -71,7 +92,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "step_002",
@@ -82,7 +104,8 @@
             "node_score": 0,
             "matched": false,
             "gate_passed": false,
-            "reason": "MISSING_REQUIRED_EVENT"
+            "reason": "MISSING_REQUIRED_EVENT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "step_003",
@@ -93,7 +116,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           }
         ]
       }
@@ -154,7 +178,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "b",
@@ -162,7 +187,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": false,
-            "reason": "REORDERED_REQUIRED_EVENTS"
+            "reason": "REORDERED_REQUIRED_EVENTS",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "c",
@@ -170,7 +196,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": false,
-            "reason": "REORDERED_REQUIRED_EVENTS"
+            "reason": "REORDERED_REQUIRED_EVENTS",
+            "suggested_candidate_id": null
           }
         ]
       }
@@ -219,7 +246,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "child",
@@ -230,7 +258,8 @@
             "node_score": 0.7,
             "matched": false,
             "gate_passed": false,
-            "reason": "PARENT_HIERARCHY_MISMATCH"
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": "child_c"
           }
         ]
       }
@@ -285,7 +314,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "b",
@@ -293,7 +323,8 @@
             "node_score": 0.7,
             "matched": false,
             "gate_passed": false,
-            "reason": "PARENT_HIERARCHY_MISMATCH"
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": "cb"
           },
           {
             "target_id": "c",
@@ -301,7 +332,8 @@
             "node_score": 0,
             "matched": false,
             "gate_passed": false,
-            "reason": "MISSING_REQUIRED_EVENT"
+            "reason": "MISSING_REQUIRED_EVENT",
+            "suggested_candidate_id": null
           }
         ]
       }
@@ -359,7 +391,8 @@
             "node_score": 1,
             "matched": true,
             "gate_passed": true,
-            "reason": "CONFORMANT"
+            "reason": "CONFORMANT",
+            "suggested_candidate_id": null
           },
           {
             "target_id": "child",
@@ -370,7 +403,8 @@
             "node_score": 0.7,
             "matched": true,
             "gate_passed": false,
-            "reason": "PARENT_HIERARCHY_MISMATCH"
+            "reason": "PARENT_HIERARCHY_MISMATCH",
+            "suggested_candidate_id": null
           }
         ],
         "hierarchy_gate_passed": false,
