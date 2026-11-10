@@ -191,7 +191,10 @@
             "matched": true,
             "gate_passed": true,
             "reason": "CONFORMANT",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           },
           {
             "target_id": "b",
@@ -200,7 +203,10 @@
             "matched": true,
             "gate_passed": false,
             "reason": "REORDERED_REQUIRED_EVENTS",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           },
           {
             "target_id": "c",
@@ -209,7 +215,10 @@
             "matched": true,
             "gate_passed": false,
             "reason": "REORDERED_REQUIRED_EVENTS",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           }
         ],
         "f1_gate_passed": true,
@@ -264,7 +273,10 @@
             "matched": true,
             "gate_passed": true,
             "reason": "CONFORMANT",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           },
           {
             "target_id": "child",
@@ -337,7 +349,10 @@
             "matched": true,
             "gate_passed": true,
             "reason": "CONFORMANT",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           },
           {
             "target_id": "b",
@@ -355,7 +370,10 @@
             "matched": false,
             "gate_passed": false,
             "reason": "MISSING_REQUIRED_EVENT",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 0,
+            "hierarchy_score": 0,
+            "payload_score": 0
           }
         ],
         "f1_gate_passed": false,
@@ -419,7 +437,10 @@
             "matched": true,
             "gate_passed": true,
             "reason": "CONFORMANT",
-            "suggested_candidate_id": null
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1
           },
           {
             "target_id": "child",
