@@ -340,6 +340,44 @@ func checkAlignmentVerdict() {
             && kinds == (expected["alignment_state_kinds"] as! [String])
         check("case \(i): \(raw["description"] as? String ?? "")", ok,
               "level \(level) strength \(strength) kinds \(kinds)")
+
+        // Snapshot validation binds rendered output to the profile and engine metadata.
+        let snapshot = AlignmentSnapshotValidator.createSnapshot(from: result)
+        let validator = AlignmentSnapshotValidator()
+        do {
+            let valid = try validator.validate(result: result, against: snapshot)
+            check("case \(i): snapshot accepts matching metadata", valid)
+        } catch {
+            check("case \(i): snapshot accepts matching metadata", false, "\\(error)")
+        }
+
+        let staleProfile = AlignmentSnapshot(
+            profileHash: "stale-profile",
+            engineVersion: snapshot.engineVersion,
+            outputAlignmentsHash: snapshot.outputAlignmentsHash
+        )
+        do {
+            _ = try validator.validate(result: result, against: staleProfile)
+            check("case \(i): snapshot rejects profile mismatch", false)
+        } catch SnapshotValidationError.profileHashMismatch {
+            check("case \(i): snapshot rejects profile mismatch", true)
+        } catch {
+            check("case \(i): snapshot rejects profile mismatch", false, "\\(error)")
+        }
+
+        let staleEngine = AlignmentSnapshot(
+            profileHash: snapshot.profileHash,
+            engineVersion: "stale-engine",
+            outputAlignmentsHash: snapshot.outputAlignmentsHash
+        )
+        do {
+            _ = try validator.validate(result: result, against: staleEngine)
+            check("case \(i): snapshot rejects engine mismatch", false)
+        } catch SnapshotValidationError.engineVersionMismatch {
+            check("case \(i): snapshot rejects engine mismatch", true)
+        } catch {
+            check("case \(i): snapshot rejects engine mismatch", false, "\\(error)")
+        }
     }
 }
 
@@ -362,7 +400,7 @@ func checkStructuralAlignmentContract() {
         let expectedF1 = (expected["global_f1"] as! NSNumber).doubleValue
         check("case \(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
               "expected \(expectedF1) got \(computedF1)")
-        
+
         if (raw["id"] as? String) == "parent_hierarchy_shift" {
             let verdicts = expected["verdicts"] as! [[String: Any]]
             let child = verdicts.first { ($0["target_id"] as? String) == "child" }!
