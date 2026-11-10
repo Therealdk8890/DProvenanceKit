@@ -37,12 +37,12 @@ All comparisons use unrounded component and weighted scores. The inputs are bina
 
 ## Diagnostic suggestions and mapping status
 
-A diagnostic suggestion is not a mapping and never contributes to TP. For each target left unmatched after eligible assignment, inspect candidate events that remain unassigned. If any exist, select the best suggestion by node score descending, candidate input sequence ascending, then candidate ID lexicographically ascending.
+A diagnostic suggestion is not a mapping and never contributes to TP. For each target left unmatched after eligible assignment, inspect candidate events that remain unassigned. If any remain with a strictly positive node score, select the best suggestion by node score descending, candidate input sequence ascending, then candidate ID lexicographically ascending.
 
 - `candidate_id`: the actual eligible mapping; null when no mapping exists.
 - `suggested_candidate_id`: best rejected diagnostic candidate, or null when none remains.
 - Component scores and `node_score` describe the actual mapping when `candidate_id` is non-null; otherwise they describe the suggestion, or are all zero when neither exists.
-- An unmatched target with a suggestion whose hierarchy score is 0 receives `PARENT_HIERARCHY_MISMATCH`; otherwise a suggestion below threshold receives `NODE_SCORE_BELOW_THRESHOLD`; with no suggestion it receives `MISSING_REQUIRED_EVENT`.
+- An unmatched target with a suggestion whose hierarchy score is 0 receives `PARENT_HIERARCHY_MISMATCH`; otherwise a suggestion below threshold receives `NODE_SCORE_BELOW_THRESHOLD`; with no positive-score suggestion it receives `MISSING_REQUIRED_EVENT`.
 - Suggestions are selected only after eligible assignment and cannot reuse a candidate consumed by another mapping.
 
 For a mapped pair, strict node-gate reason precedence is `PARENT_HIERARCHY_MISMATCH`, then `REORDERED_REQUIRED_EVENTS`, then `CONFORMANT`. Mapping eligibility and strict conformance are distinct: an eligible pair can count as TP while failing an independent hierarchy or order gate.
