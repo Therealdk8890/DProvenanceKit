@@ -198,6 +198,12 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
         )
     }
 
+    func testConfigurationRejectsSubBasisPointPrecision() {
+        XCTAssertThrowsError(
+            try StructuralAlignmentConfigurationV1(minNodeConformance: 0.80001)
+        )
+    }
+
     func testEngineRemainsSeparateFromLegacyMatcher() {
         XCTAssertEqual(StructuralAlignmentEngineV1.version, "structural-alignment-v1")
     }
