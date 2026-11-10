@@ -38,11 +38,11 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
         let fn: Int
         let globalF1: Double
         let conforming: Bool
-        let hierarchyGatePassed: Bool?
-        let orderGatePassed: Bool?
-        let f1GatePassed: Bool?
-        let emptyInput: Bool?
-        let allRequiredNodesMeetScoreThreshold: Bool?
+        let hierarchyGatePassed: Bool
+        let orderGatePassed: Bool
+        let f1GatePassed: Bool
+        let emptyInput: Bool
+        let allRequiredNodesMeetScoreThreshold: Bool
         let verdicts: [ExpectedVerdict]
 
         enum CodingKeys: String, CodingKey {
@@ -60,10 +60,10 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
         let targetID: String
         let candidateID: String?
         let suggestedCandidateID: String?
-        let typeScore: Double?
-        let hierarchyScore: Double?
-        let payloadScore: Double?
-        let nodeScore: Double?
+        let typeScore: Double
+        let hierarchyScore: Double
+        let payloadScore: Double
+        let nodeScore: Double
         let matched: Bool
         let gatePassed: Bool
         let reason: String
@@ -120,28 +120,24 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
             XCTAssertEqual(result.fn, expected.fn, testCase.id)
             XCTAssertEqual(result.globalF1, expected.globalF1, accuracy: 1e-12, testCase.id)
             XCTAssertEqual(result.conforming, expected.conforming, testCase.id)
-            if let value = expected.hierarchyGatePassed {
-                XCTAssertEqual(result.hierarchyGatePassed, value, testCase.id)
-            }
-            if let value = expected.orderGatePassed {
-                XCTAssertEqual(result.orderGatePassed, value, testCase.id)
-            }
-            if let value = expected.f1GatePassed {
-                XCTAssertEqual(result.f1GatePassed, value, testCase.id)
-            }
-            if let value = expected.emptyInput {
-                XCTAssertEqual(result.emptyInput, value, testCase.id)
-            }
-            if let value = expected.allRequiredNodesMeetScoreThreshold {
-                XCTAssertEqual(
-                    result.allRequiredNodesMeetScoreThreshold,
-                    value,
-                    testCase.id
-                )
-            }
+            XCTAssertEqual(result.hierarchyGatePassed, expected.hierarchyGatePassed, testCase.id)
+            XCTAssertEqual(result.orderGatePassed, expected.orderGatePassed, testCase.id)
+            XCTAssertEqual(result.f1GatePassed, expected.f1GatePassed, testCase.id)
+            XCTAssertEqual(result.emptyInput, expected.emptyInput, testCase.id)
+            XCTAssertEqual(
+                result.allRequiredNodesMeetScoreThreshold,
+                expected.allRequiredNodesMeetScoreThreshold,
+                testCase.id
+            )
 
             let actualByTarget = Dictionary(
                 uniqueKeysWithValues: result.verdicts.map { ($0.targetID, $0) }
+            )
+            XCTAssertEqual(actualByTarget.count, expected.verdicts.count, testCase.id)
+            XCTAssertEqual(
+                Set(actualByTarget.keys),
+                Set(expected.verdicts.map(\.targetID)),
+                testCase.id
             )
             for expectedVerdict in expected.verdicts {
                 guard let actual = actualByTarget[expectedVerdict.targetID] else {
@@ -157,18 +153,10 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
                 XCTAssertEqual(actual.matched, expectedVerdict.matched, testCase.id)
                 XCTAssertEqual(actual.gatePassed, expectedVerdict.gatePassed, testCase.id)
                 XCTAssertEqual(actual.reason, expectedVerdict.reason, testCase.id)
-                if let value = expectedVerdict.typeScore {
-                    XCTAssertEqual(actual.typeScore, value, accuracy: 1e-12, testCase.id)
-                }
-                if let value = expectedVerdict.hierarchyScore {
-                    XCTAssertEqual(actual.hierarchyScore, value, accuracy: 1e-12, testCase.id)
-                }
-                if let value = expectedVerdict.payloadScore {
-                    XCTAssertEqual(actual.payloadScore, value, accuracy: 1e-12, testCase.id)
-                }
-                if let value = expectedVerdict.nodeScore {
-                    XCTAssertEqual(actual.nodeScore, value, accuracy: 1e-12, testCase.id)
-                }
+                XCTAssertEqual(actual.typeScore, expectedVerdict.typeScore, accuracy: 1e-12, testCase.id)
+                XCTAssertEqual(actual.hierarchyScore, expectedVerdict.hierarchyScore, accuracy: 1e-12, testCase.id)
+                XCTAssertEqual(actual.payloadScore, expectedVerdict.payloadScore, accuracy: 1e-12, testCase.id)
+                XCTAssertEqual(actual.nodeScore, expectedVerdict.nodeScore, accuracy: 1e-12, testCase.id)
             }
         }
     }
