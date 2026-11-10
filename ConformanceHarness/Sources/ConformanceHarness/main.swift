@@ -349,7 +349,7 @@ func checkAlignmentVerdict() {
 // It intentionally does NOT execute or claim conformance of the production alignment engine.
 
 func checkStructuralAlignmentContract() {
-    print("\\n[6] experimental structural alignment contract")
+    print("\n[6] experimental structural alignment contract")
     let doc = loadVector("structural_alignment_v1.json")
     let cases = doc["cases"] as! [[String: Any]]
     for (i, raw) in cases.enumerated() {
@@ -360,8 +360,8 @@ func checkStructuralAlignmentContract() {
         let denominator = 2 * tp + fp + fn
         let computedF1 = denominator == 0 ? 0.0 : (2 * tp / denominator)
         let expectedF1 = (expected["global_f1"] as! NSNumber).doubleValue
-        check("case \\(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
-              "expected \\(expectedF1) got \\(computedF1)")
+        check("case \(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
+              "expected \(expectedF1) got \(computedF1)")
         
         if (raw["id"] as? String) == "inclusive_threshold_boundary" {
             let verdicts = expected["verdicts"] as! [[String: Any]]
