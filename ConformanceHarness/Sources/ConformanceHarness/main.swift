@@ -383,6 +383,16 @@ func checkStructuralAlignmentContract() {
                     && (child["reason"] as? String) == "PARENT_HIERARCHY_MISMATCH")
         }
 
+        if (raw["id"] as? String) == "missing_and_hierarchy_drift" {
+            let verdicts = expected["verdicts"] as! [[String: Any]]
+            let missing = verdicts.first { ($0["target_id"] as? String) == "c" }!
+            check("zero-score candidate is not emitted as a suggestion",
+                  (missing["candidate_id"] is NSNull)
+                    && (missing["suggested_candidate_id"] is NSNull)
+                    && (missing["matched"] as? Bool) == false
+                    && (missing["reason"] as? String) == "MISSING_REQUIRED_EVENT")
+        }
+
         if (raw["id"] as? String) == "inclusive_threshold_boundary" {
             let verdicts = expected["verdicts"] as! [[String: Any]]
             let child = verdicts.first { ($0["target_id"] as? String) == "child" }!
