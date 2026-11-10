@@ -40,6 +40,8 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
         let conforming: Bool
         let hierarchyGatePassed: Bool?
         let orderGatePassed: Bool?
+        let f1GatePassed: Bool?
+        let emptyInput: Bool?
         let allRequiredNodesMeetScoreThreshold: Bool?
         let verdicts: [ExpectedVerdict]
 
@@ -48,6 +50,8 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
             case globalF1 = "global_f1"
             case hierarchyGatePassed = "hierarchy_gate_passed"
             case orderGatePassed = "order_gate_passed"
+            case f1GatePassed = "f1_gate_passed"
+            case emptyInput = "empty_input"
             case allRequiredNodesMeetScoreThreshold = "all_required_nodes_meet_score_threshold"
         }
     }
@@ -94,11 +98,11 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
     private func engine(for testCase: VectorCase) throws -> StructuralAlignmentEngineV1 {
         let weights = testCase.configuration?.weights
         let configuration = try StructuralAlignmentConfigurationV1(
-            typeWeight: weights?.type ?? 0.5,
-            hierarchyWeight: weights?.hierarchy ?? 0.3,
-            payloadWeight: weights?.payload ?? 0.2,
-            minNodeConformance: testCase.configuration?.minNodeConformance ?? 0.8,
-            minGlobalF1Floor: testCase.configuration?.minGlobalF1Floor ?? 0.95
+            typeWeight: (weights?.type ?? 5000) / 10_000,
+            hierarchyWeight: (weights?.hierarchy ?? 3000) / 10_000,
+            payloadWeight: (weights?.payload ?? 2000) / 10_000,
+            minNodeConformance: (testCase.configuration?.minNodeConformance ?? 8000) / 10_000,
+            minGlobalF1Floor: (testCase.configuration?.minGlobalF1Floor ?? 9500) / 10_000
         )
         return StructuralAlignmentEngineV1(configuration: configuration)
     }
@@ -121,6 +125,12 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
             }
             if let value = expected.orderGatePassed {
                 XCTAssertEqual(result.orderGatePassed, value, testCase.id)
+            }
+            if let value = expected.f1GatePassed {
+                XCTAssertEqual(result.f1GatePassed, value, testCase.id)
+            }
+            if let value = expected.emptyInput {
+                XCTAssertEqual(result.emptyInput, value, testCase.id)
             }
             if let value = expected.allRequiredNodesMeetScoreThreshold {
                 XCTAssertEqual(
