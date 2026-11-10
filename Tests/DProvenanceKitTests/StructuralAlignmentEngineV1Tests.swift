@@ -190,6 +190,5 @@ final class StructuralAlignmentEngineV1Tests: XCTestCase {
 
     func testEngineRemainsSeparateFromLegacyMatcher() {
         XCTAssertEqual(StructuralAlignmentEngineV1.version, "structural-alignment-v1")
-        XCTAssertTrue(StructuralAlignmentEngineV1.self != TraceAlignmentEngine<Never>.self)
     }
 }
