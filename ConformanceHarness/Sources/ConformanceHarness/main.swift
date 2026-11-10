@@ -358,7 +358,7 @@ func checkStructuralAlignmentContract() {
         let fp = (expected["fp"] as! NSNumber).doubleValue
         let fn = (expected["fn"] as! NSNumber).doubleValue
         let denominator = 2 * tp + fp + fn
-        let computedF1 = denominator == 0 ? 0.0 : (2 * tp / denominator)
+        let computedF1 = denominator == 0 ? 1.0 : (2 * tp / denominator)
         let expectedF1 = (expected["global_f1"] as! NSNumber).doubleValue
         check("case \(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
               "expected \(expectedF1) got \(computedF1)")
@@ -391,6 +391,13 @@ func checkStructuralAlignmentContract() {
                     && (missing["suggested_candidate_id"] is NSNull)
                     && (missing["matched"] as? Bool) == false
                     && (missing["reason"] as? String) == "MISSING_REQUIRED_EVENT")
+        }
+
+        if (raw["id"] as? String) == "empty_both_traces" {
+            check("empty/empty F1 is defined as 1.0 but is not strict conformance",
+                  expectedF1 == 1.0
+                    && (expected["empty_input"] as? Bool) == true
+                    && (expected["conforming"] as? Bool) == false)
         }
 
         if (raw["id"] as? String) == "inclusive_threshold_boundary" {
