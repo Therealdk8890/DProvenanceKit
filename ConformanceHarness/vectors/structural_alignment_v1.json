@@ -758,6 +758,170 @@
           }
         ]
       }
+    },
+    {
+      "id": "equal_score_tie_break",
+      "description": "All four pairs have equal scores; candidate sequence then target sequence determines the one-to-one mapping.",
+      "target": [
+        {
+          "id": "target-1",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        },
+        {
+          "id": "target-2",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "candidate-1",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        },
+        {
+          "id": "candidate-2",
+          "parent_id": null,
+          "type": "STEP",
+          "payload_signature": "same"
+        }
+      ],
+      "expected": {
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "global_f1": 1,
+        "f1_gate_passed": true,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": true,
+        "empty_input": false,
+        "conforming": true,
+        "verdicts": [
+          {
+            "target_id": "target-1",
+            "candidate_id": "candidate-1",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "target-2",
+            "candidate_id": "candidate-2",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          }
+        ]
+      }
+    },
+    {
+      "id": "multi_level_hierarchy_drift",
+      "description": "A parent mismatch prevents the child from mapping; the unmapped parent then prevents its grandchild from satisfying the hierarchy component.",
+      "target": [
+        {
+          "id": "root",
+          "parent_id": null,
+          "type": "ROOT",
+          "payload_signature": "r"
+        },
+        {
+          "id": "child",
+          "parent_id": "root",
+          "type": "CHILD",
+          "payload_signature": "c"
+        },
+        {
+          "id": "grandchild",
+          "parent_id": "child",
+          "type": "GRANDCHILD",
+          "payload_signature": "g"
+        }
+      ],
+      "candidate": [
+        {
+          "id": "root-c",
+          "parent_id": null,
+          "type": "ROOT",
+          "payload_signature": "r"
+        },
+        {
+          "id": "child-c",
+          "parent_id": null,
+          "type": "CHILD",
+          "payload_signature": "c"
+        },
+        {
+          "id": "grandchild-c",
+          "parent_id": "child-c",
+          "type": "GRANDCHILD",
+          "payload_signature": "g"
+        }
+      ],
+      "expected": {
+        "tp": 1,
+        "fp": 2,
+        "fn": 2,
+        "global_f1": 0.3333333333333333,
+        "f1_gate_passed": false,
+        "hierarchy_gate_passed": true,
+        "order_gate_passed": true,
+        "all_required_nodes_meet_score_threshold": false,
+        "empty_input": false,
+        "conforming": false,
+        "verdicts": [
+          {
+            "target_id": "root",
+            "candidate_id": "root-c",
+            "suggested_candidate_id": null,
+            "type_score": 1,
+            "hierarchy_score": 1,
+            "payload_score": 1,
+            "node_score": 1,
+            "matched": true,
+            "gate_passed": true,
+            "reason": "CONFORMANT"
+          },
+          {
+            "target_id": "child",
+            "candidate_id": null,
+            "suggested_candidate_id": "child-c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          },
+          {
+            "target_id": "grandchild",
+            "candidate_id": null,
+            "suggested_candidate_id": "grandchild-c",
+            "type_score": 1,
+            "hierarchy_score": 0,
+            "payload_score": 1,
+            "node_score": 0.7,
+            "matched": false,
+            "gate_passed": false,
+            "reason": "PARENT_HIERARCHY_MISMATCH"
+          }
+        ]
+      }
     }
   ]
 }
