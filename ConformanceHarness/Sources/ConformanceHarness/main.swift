@@ -343,6 +343,45 @@ func checkAlignmentVerdict() {
     }
 }
 
+// MARK: - 6. Experimental Structural Alignment v1 contract fixture checks
+//
+// This validates the shared contract fixture's arithmetic and independent strict gates.
+// It intentionally does NOT execute or claim conformance of the production alignment engine.
+
+func checkStructuralAlignmentContract() {
+    print("\\n[6] experimental structural alignment contract")
+    let doc = loadVector("structural_alignment_v1.json")
+    let cases = doc["cases"] as! [[String: Any]]
+    for (i, raw) in cases.enumerated() {
+        let expected = raw["expected"] as! [String: Any]
+        let tp = (expected["tp"] as! NSNumber).doubleValue
+        let fp = (expected["fp"] as! NSNumber).doubleValue
+        let fn = (expected["fn"] as! NSNumber).doubleValue
+        let denominator = 2 * tp + fp + fn
+        let computedF1 = denominator == 0 ? 0.0 : (2 * tp / denominator)
+        let expectedF1 = (expected["global_f1"] as! NSNumber).doubleValue
+        check("case \\(i): metric arithmetic", abs(computedF1 - expectedF1) < 1e-12,
+              "expected \\(expectedF1) got \\(computedF1)")
+        
+        if (raw["id"] as? String) == "inclusive_threshold_boundary" {
+            let verdicts = expected["verdicts"] as! [[String: Any]]
+            let child = verdicts.first { ($0["target_id"] as? String) == "child" }!
+            let matched = child["matched"] as! Bool
+            let gatePassed = child["gate_passed"] as! Bool
+            let reason = child["reason"] as! String
+            let independentGates = (expected["all_required_nodes_meet_score_threshold"] as? Bool) == true
+                && (expected["order_gate_passed"] as? Bool) == true
+                && (expected["hierarchy_gate_passed"] as? Bool) == false
+                && (expected["conforming"] as? Bool) == false
+            check("inclusive boundary: eligible mapping retained", matched && !gatePassed
+                  && reason == "PARENT_HIERARCHY_MISMATCH")
+            check("inclusive boundary: hierarchy remains a hard gate", independentGates)
+            check("inclusive boundary: TP/FP/FN remain 2/0/0",
+                  tp == 2 && fp == 0 && fn == 0 && abs(computedF1 - 1.0) < 1e-12)
+        }
+    }
+}
+
 // MARK: - Run all
 
 print("Trace Specification v1 — Swift conformance")
@@ -352,6 +391,7 @@ await checkRunFingerprint()
 checkQuerySemantics()
 checkProfileHash()
 checkAlignmentVerdict()
+checkStructuralAlignmentContract()
 
 print("\n" + String(repeating: "=", count: 60))
 if failures.isEmpty {
