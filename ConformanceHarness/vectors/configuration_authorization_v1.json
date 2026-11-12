@@ -1,0 +1,174 @@
+{
+  "contract": "dpk-config-v1",
+  "status": "experimental",
+  "canonicalization": "sorted-key-compact-utf8-json-integer-basis-points",
+  "valid": [
+    {
+      "id": "structural_alignment_default",
+      "input": {
+        "algorithm": "structural-alignment-v1",
+        "min_global_f1_bps": 9500,
+        "min_node_conformance_bps": 8000,
+        "schema_version": "dpk-config-v1",
+        "weight_hierarchy_bps": 3000,
+        "weight_payload_bps": 2000,
+        "weight_type_bps": 5000
+      },
+      "canonical_utf8": "{\"algorithm\":\"structural-alignment-v1\",\"min_global_f1_bps\":9500,\"min_node_conformance_bps\":8000,\"schema_version\":\"dpk-config-v1\",\"weight_hierarchy_bps\":3000,\"weight_payload_bps\":2000,\"weight_type_bps\":5000}",
+      "sha256": "e654e1f71565cf0f9687160a59a4d329ed56d7e8f4934d8fb6ad95dbcba1e1ee"
+    },
+    {
+      "id": "reordered_input_keys_same_digest",
+      "input": {
+        "weight_type_bps": 5000,
+        "weight_payload_bps": 2000,
+        "weight_hierarchy_bps": 3000,
+        "schema_version": "dpk-config-v1",
+        "min_node_conformance_bps": 8000,
+        "min_global_f1_bps": 9500,
+        "algorithm": "structural-alignment-v1"
+      },
+      "canonical_utf8": "{\"algorithm\":\"structural-alignment-v1\",\"min_global_f1_bps\":9500,\"min_node_conformance_bps\":8000,\"schema_version\":\"dpk-config-v1\",\"weight_hierarchy_bps\":3000,\"weight_payload_bps\":2000,\"weight_type_bps\":5000}",
+      "sha256": "e654e1f71565cf0f9687160a59a4d329ed56d7e8f4934d8fb6ad95dbcba1e1ee"
+    }
+  ],
+  "invalid": [
+    {
+      "id": "negative_weight",
+      "mutation": {
+        "weight_type_bps": -1
+      },
+      "error": "WEIGHT_OUT_OF_RANGE"
+    },
+    {
+      "id": "weight_overflow",
+      "mutation": {
+        "weight_type_bps": 10001
+      },
+      "error": "WEIGHT_OUT_OF_RANGE"
+    },
+    {
+      "id": "non_finite_float",
+      "mutation": {
+        "weight_type_bps": "NaN"
+      },
+      "error": "NON_INTEGER_NUMERIC_VALUE"
+    },
+    {
+      "id": "floating_point_value",
+      "mutation": {
+        "weight_type_bps": 5000.0
+      },
+      "error": "NON_INTEGER_NUMERIC_VALUE"
+    },
+    {
+      "id": "missing_required_field",
+      "remove": "min_global_f1_bps",
+      "error": "MISSING_FIELD"
+    },
+    {
+      "id": "unknown_field",
+      "add": {
+        "unreviewed_override": true
+      },
+      "error": "UNKNOWN_FIELD"
+    },
+    {
+      "id": "weights_do_not_sum_to_10000",
+      "mutation": {
+        "weight_type_bps": 4999
+      },
+      "error": "WEIGHTS_SUM_INVALID"
+    },
+    {
+      "id": "threshold_out_of_range",
+      "mutation": {
+        "min_global_f1_bps": 10001
+      },
+      "error": "THRESHOLD_OUT_OF_RANGE"
+    }
+  ],
+  "changed_configuration": [
+    {
+      "id": "changed_threshold_changes_digest",
+      "base": "structural_alignment_default",
+      "mutation": {
+        "min_global_f1_bps": 9400
+      },
+      "expected": "VALID_DIFFERENT_DIGEST"
+    }
+  ],
+  "signature": {
+    "algorithm": "Ed25519",
+    "domain_separator_utf8": "DPK-CONFIG-MANIFEST-V1\n",
+    "signed_message": "domain_separator || canonical_utf8",
+    "manifest": {
+      "manifest_version": "dpk-config-manifest-v1",
+      "algorithm": "Ed25519",
+      "key_id": "dpk-test-key-1",
+      "configuration_fingerprint": "e654e1f71565cf0f9687160a59a4d329ed56d7e8f4934d8fb6ad95dbcba1e1ee",
+      "signature": "fca0fdace2f3acadd15f832cc391d194ef4df80d7fad26a9ea6fa79b9af9528db985223dd525205766211274605bd7f589c81383f59534c06d8100452e69b90e"
+    },
+    "trusted_key": {
+      "key_id": "dpk-test-key-1",
+      "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "revoked": false,
+      "not_before": null,
+      "expires_at": null
+    },
+    "invalid_cases": [
+      {
+        "id": "unknown_key",
+        "manifest_mutation": {
+          "key_id": "unknown-key"
+        },
+        "error": "UNTRUSTED_KEY"
+      },
+      {
+        "id": "revoked_key",
+        "trusted_key_mutation": {
+          "revoked": true
+        },
+        "error": "KEY_REVOKED"
+      },
+      {
+        "id": "expired_key",
+        "trusted_key_mutation": {
+          "expires_at": 1700000000
+        },
+        "verification_time": 1700000000,
+        "error": "KEY_EXPIRED"
+      },
+      {
+        "id": "not_yet_valid_key",
+        "trusted_key_mutation": {
+          "not_before": 1700000001
+        },
+        "verification_time": 1700000000,
+        "error": "KEY_NOT_YET_VALID"
+      },
+      {
+        "id": "missing_policy_time",
+        "trusted_key_mutation": {
+          "expires_at": 1800000000
+        },
+        "error": "KEY_POLICY_TIME_REQUIRED"
+      },
+      {
+        "id": "invalid_signature",
+        "manifest_mutation": {
+          "signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "error": "SIGNATURE_INVALID"
+      },
+      {
+        "id": "configuration_mismatch",
+        "manifest_mutation": {
+          "configuration_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "error": "CONFIGURATION_FINGERPRINT_MISMATCH"
+      }
+    ],
+    "note": "The fixture contains only a public test key and detached signature. The private signing seed is not included. Tests explicitly supply the public key through the trusted-key policy."
+  }
+}
