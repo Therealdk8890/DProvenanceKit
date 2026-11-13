@@ -155,8 +155,18 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
             }
         }
 
+        let completeness: TraceAlignmentInputCompleteness
+        if base.undecodedEventCount > 0 || comparison.undecodedEventCount > 0 {
+            completeness = .incomplete(baseUndecodedEvents: base.undecodedEventCount,
+                                       comparisonUndecodedEvents: comparison.undecodedEventCount)
+        } else {
+            completeness = .complete
+        }
         let risk: RegressionRisk
-        if !removedCriticalTypes.isEmpty {
+        if completeness != .complete {
+            risk = RegressionRisk(level: .high, strength: 1.0,
+                reasoning: "Incomplete typed trace input: \(base.undecodedEventCount) baseline and \(comparison.undecodedEventCount) candidate events could not be decoded. Regression assessment is indeterminate.")
+        } else if !removedCriticalTypes.isEmpty {
             risk = RegressionRisk(level: .high, strength: 0.95, reasoning: "Critical reasoning steps removed: \(removedCriticalTypes.joined(separator: ", "))")
         } else if !reorderedCriticalTypes.isEmpty {
             risk = RegressionRisk(level: .high, strength: 1.0, reasoning: "Critical reasoning steps reordered: \(reorderedCriticalTypes.joined(separator: ", "))")
@@ -178,7 +188,8 @@ public struct TraceAlignmentEngine<T: TraceableEvent>: Sendable {
             engineVersion: "v2-causal-strict",
             alignments: alignments,
             regressionRisk: risk,
-            verificationArtifacts: vArtifacts
+            verificationArtifacts: vArtifacts,
+            inputCompleteness: completeness
         )
     }
     
