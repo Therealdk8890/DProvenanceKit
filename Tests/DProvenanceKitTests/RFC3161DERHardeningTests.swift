@@ -198,6 +198,64 @@ final class RFC3161DERHardeningTests: XCTestCase {
     }
 
 
+
+    func testTSAProfileRequiresSoleCriticalTimestampingEKU() throws {
+        let time = try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20261113210519Z"))
+        XCTAssertNoThrow(try RFC3161TSAProfile.validate(
+            certificateDER: makeProfileCertificate(), generationTimeUnixMicroseconds: time
+        ))
+        XCTAssertThrowsError(try RFC3161TSAProfile.validate(
+            certificateDER: makeProfileCertificate(includeEKU: false),
+            generationTimeUnixMicroseconds: time
+        ))
+        XCTAssertThrowsError(try RFC3161TSAProfile.validate(
+            certificateDER: makeProfileCertificate(critical: false),
+            generationTimeUnixMicroseconds: time
+        ))
+        XCTAssertThrowsError(try RFC3161TSAProfile.validate(
+            certificateDER: makeProfileCertificate(includeExtraPurpose: true),
+            generationTimeUnixMicroseconds: time
+        ))
+    }
+
+    func testTSAProfileChecksCertificateValidityAtGenerationTime() throws {
+        let before = try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20261112210519Z"))
+        let inside = try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20261113210519Z"))
+        let after = try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20361111210519Z"))
+        let certificate = makeProfileCertificate()
+        XCTAssertThrowsError(try RFC3161TSAProfile.validate(
+            certificateDER: certificate, generationTimeUnixMicroseconds: before
+        ))
+        XCTAssertNoThrow(try RFC3161TSAProfile.validate(
+            certificateDER: certificate, generationTimeUnixMicroseconds: inside
+        ))
+        XCTAssertThrowsError(try RFC3161TSAProfile.validate(
+            certificateDER: certificate, generationTimeUnixMicroseconds: after
+        ))
+    }
+
+    private func makeProfileCertificate(
+        includeEKU: Bool = true, critical: Bool = true, includeExtraPurpose: Bool = false
+    ) -> Data {
+        let algorithm = derSequence(derTLV(0x06, Data([0x2A, 0x03])))
+        let usages = derTLV(0x06, Data([0x2B, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x08]))
+            + (includeExtraPurpose ? derTLV(0x06, Data([0x2B, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01])) : Data())
+        let eku = derSequence(derTLV(0x06, Data([0x55, 0x1D, 0x25]))
+            + (critical ? derBoolean(true) : Data())
+            + derTLV(0x04, derSequence(usages)))
+        let extensions = derSequence(includeEKU ? eku : Data())
+        let validity = derSequence(
+            derTLV(0x17, Data("261113210517Z".utf8))
+                + derTLV(0x17, Data("361110210517Z".utf8))
+        )
+        let tbs = derSequence(
+            derTLV(0xA0, derInteger(2)) + derInteger(1) + algorithm
+                + derSequence(Data()) + validity + derSequence(Data())
+                + derSequence(Data()) + derTLV(0xA3, extensions)
+        )
+        return derSequence(tbs + algorithm + derTLV(0x03, Data([0x00])))
+    }
+
     func testCMSFixtureVerifiesSignatureImprintNonceAndCertificate() throws {
         let token = try XCTUnwrap(Data(base64Encoded: signedTimestampTokenBase64))
         let imprint = Data(repeating: 0xA5, count: 32)
@@ -210,11 +268,11 @@ final class RFC3161DERHardeningTests: XCTestCase {
 
         XCTAssertEqual(
             info.certificateSHA256,
-            "4e3998dfb1ea301de86bc35e4fe7aa836dde3d8da9b4c295d6a091ae8d6400db"
+            "0709b3073dfde7fc50eb7f814135b7722b10bc6459051d034e750c1f7a555f10"
         )
         XCTAssertEqual(
             info.genTimeUnixMicroseconds,
-            try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20261102202529Z"))
+            try XCTUnwrap(RFC3161DER.parseGeneralizedTimeMicroseconds("20261113210519Z"))
         )
     }
 
@@ -258,8 +316,10 @@ final class RFC3161DERHardeningTests: XCTestCase {
         )
     }
 
+    // OpenSSL-generated RFC 3161 test token: critical timestamping-only EKU,
+    // SHA-256 imprint A5*32, nonce 42. Public test certificate only.
     private let signedTimestampTokenBase64 = """
-    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
+    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
     """
 
     private func makeTSTInfo(
