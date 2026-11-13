@@ -184,6 +184,7 @@ public enum RFC3161TimestampVerificationFailure: String, Sendable, Equatable {
     case invalidGenerationTime
     case cmsSignatureInvalid
     case tsaCertificateNotPinned
+    case tsaCertificateProfileInvalid
 }
 
 public struct RFC3161TimestampVerification: Sendable, Equatable {
@@ -297,6 +298,13 @@ public enum RFC3161TimestampVerifier {
                 tsaCertificateSHA256: info.certificateSHA256,
                 failure: nil
             )
+        } catch is RFC3161TSAProfile.ProfileError {
+            return RFC3161TimestampVerification(
+                isValid: false,
+                generationTimeUnixMicroseconds: nil,
+                tsaCertificateSHA256: nil,
+                failure: .tsaCertificateProfileInvalid
+            )
         } catch RFC3161DER.ParseError.unsupportedHashAlgorithm {
             return RFC3161TimestampVerification(
                 isValid: false,
@@ -332,6 +340,98 @@ public enum RFC3161TimestampVerifier {
                 tsaCertificateSHA256: nil,
                 failure: .cmsSignatureInvalid
             )
+        }
+    }
+}
+
+/// Enforce the RFC 3161 TSA signer certificate profile in addition to the
+/// CMS signature and exact certificate fingerprint pin. This intentionally
+/// does not evaluate a PKI chain or perform revocation checks: the independent
+/// fingerprint pin is the trust anchor for this verifier.
+enum RFC3161TSAProfile {
+    enum ProfileError: Error {
+        case invalidCertificate
+        case invalidExtendedKeyUsage
+        case outsideCertificateValidity
+    }
+
+    static func validate(
+        certificateDER: Data,
+        generationTimeUnixMicroseconds: Int64
+    ) throws {
+        let certificate = try RFC3161DER.parse(certificateDER)
+        guard certificate.tag == 0x30, certificate.children.count == 3,
+              certificate.children[0].tag == 0x30 else {
+            throw ProfileError.invalidCertificate
+        }
+        let tbs = certificate.children[0]
+        // RFC 5280 TBSCertificate: [0] version, serial, signature, issuer,
+        // validity, subject, subjectPublicKeyInfo, optional [3] extensions.
+        guard tbs.children.count >= 7, tbs.children[0].tag == 0xA0,
+              tbs.children[0].children.count == 1,
+              tbs.children[0].children[0].integer == 2,
+              tbs.children[1].tag == 0x02,
+              tbs.children[4].tag == 0x30,
+              tbs.children[4].children.count == 2 else {
+            throw ProfileError.invalidCertificate
+        }
+        let validity = tbs.children[4].children
+        guard let notBefore = certificateTime(validity[0]),
+              let notAfter = certificateTime(validity[1]),
+              notBefore <= notAfter,
+              generationTimeUnixMicroseconds >= notBefore,
+              generationTimeUnixMicroseconds <= notAfter else {
+            throw ProfileError.outsideCertificateValidity
+        }
+
+        let extensionWrappers = tbs.children.filter { $0.tag == 0xA3 }
+        guard extensionWrappers.count == 1,
+              extensionWrappers[0].children.count == 1,
+              extensionWrappers[0].children[0].tag == 0x30 else {
+            throw ProfileError.invalidExtendedKeyUsage
+        }
+        let extensions = extensionWrappers[0].children[0].children
+        let ekuOID = [2, 5, 29, 37]
+        let timestampingOID = [1, 3, 6, 1, 5, 5, 7, 3, 8]
+        var foundEKU = false
+        for ext in extensions {
+            guard ext.tag == 0x30,
+                  (2...3).contains(ext.children.count),
+                  ext.children[0].tag == 0x06 else {
+                throw ProfileError.invalidCertificate
+            }
+            let oid = try RFC3161DER.decodeOID(ext.children[0].value)
+            guard oid == ekuOID else { continue }
+            guard !foundEKU, ext.children.count == 3,
+                  ext.children[1].tag == 0x01,
+                  ext.children[1].value == Data([0xFF]),
+                  ext.children[2].tag == 0x04 else {
+                throw ProfileError.invalidExtendedKeyUsage
+            }
+            let usages = try RFC3161DER.parse(ext.children[2].value)
+            guard usages.tag == 0x30, usages.children.count == 1,
+                  usages.children[0].tag == 0x06,
+                  try RFC3161DER.decodeOID(usages.children[0].value) == timestampingOID else {
+                throw ProfileError.invalidExtendedKeyUsage
+            }
+            foundEKU = true
+        }
+        guard foundEKU else { throw ProfileError.invalidExtendedKeyUsage }
+    }
+
+    private static func certificateTime(_ node: RFC3161DER.Node) -> Int64? {
+        guard let value = node.stringValue else { return nil }
+        switch node.tag {
+        case 0x17: // UTCTime YYMMDDHHMMSSZ, 1950-2049 per RFC 5280.
+            guard value.count == 13, value.hasSuffix("Z"),
+                  let year = Int(value.prefix(2)) else { return nil }
+            let century = year >= 50 ? "19" : "20"
+            return RFC3161DER.parseGeneralizedTimeMicroseconds(century + value)
+        case 0x18: // GeneralizedTime YYYYMMDDHHMMSSZ.
+            guard value.count == 15 else { return nil }
+            return RFC3161DER.parseGeneralizedTimeMicroseconds(value)
+        default:
+            return nil
         }
     }
 }
@@ -447,6 +547,10 @@ enum RFC3161CMS {
             token: encapsulatedContent,
             expectedMessageImprint: expectedMessageImprint,
             expectedNonce: expectedNonce
+        )
+        try RFC3161TSAProfile.validate(
+            certificateDER: certificateData,
+            generationTimeUnixMicroseconds: info.genTimeUnixMicroseconds
         )
         return Info(
             genTimeUnixMicroseconds: info.genTimeUnixMicroseconds,
