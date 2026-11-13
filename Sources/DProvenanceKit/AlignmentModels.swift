@@ -20,6 +20,11 @@ public enum AlignmentStrengthCategory: String, Sendable, Codable, Equatable {
     }
 }
 
+public enum TraceAlignmentInputCompleteness: Sendable, Equatable {
+    case complete
+    case incomplete(baseUndecodedEvents: Int, comparisonUndecodedEvents: Int)
+}
+
 public struct TraceAlignmentResult<T: TraceableEvent>: Sendable {
     public let baseRunID: UUID
     public let comparisonRunID: UUID
@@ -32,6 +37,11 @@ public struct TraceAlignmentResult<T: TraceableEvent>: Sendable {
     
     // Verification Proofs (if captureMode == .evidenceOnly)
     public let verificationArtifacts: VerificationArtifacts?
+
+    /// A comparison over a partial typed view cannot establish a regression-free
+    /// path. Older consumers also receive a fail-closed high risk in that case.
+    public let inputCompleteness: TraceAlignmentInputCompleteness
+    public var isReliable: Bool { inputCompleteness == .complete }
     
     public init(
         baseRunID: UUID,
@@ -40,7 +50,8 @@ public struct TraceAlignmentResult<T: TraceableEvent>: Sendable {
         engineVersion: String,
         alignments: [EventAlignment<T>],
         regressionRisk: RegressionRisk,
-        verificationArtifacts: VerificationArtifacts? = nil
+        verificationArtifacts: VerificationArtifacts? = nil,
+        inputCompleteness: TraceAlignmentInputCompleteness = .complete
     ) {
         self.baseRunID = baseRunID
         self.comparisonRunID = comparisonRunID
@@ -49,6 +60,7 @@ public struct TraceAlignmentResult<T: TraceableEvent>: Sendable {
         self.alignments = alignments
         self.regressionRisk = regressionRisk
         self.verificationArtifacts = verificationArtifacts
+        self.inputCompleteness = inputCompleteness
     }
 }
 
