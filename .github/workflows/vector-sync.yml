@@ -14,10 +14,12 @@ on:
     branches: [main]
     paths:
       - "ConformanceHarness/vectors/**"
+      - "docs/test-vectors/attestation-malformed-v1.json"
       - ".github/workflows/vector-sync.yml"
   pull_request:
     paths:
       - "ConformanceHarness/vectors/**"
+      - "docs/test-vectors/attestation-malformed-v1.json"
       - ".github/workflows/vector-sync.yml"
   schedule:
     # Mondays 14:00 UTC
@@ -65,3 +67,17 @@ jobs:
             exit 1
           fi
           echo "Vendored vectors are in sync with the canonical source."
+
+      - name: Compare malformed attestation wire fixtures against Python source
+        run: |
+          # Canonical parser-negative cases are shared between Swift XCTest
+          # and Python pytest. Fail if either side silently changes their shape.
+          reference=/tmp/dpk-python/tests/fixtures/attestation-malformed-v1.json
+          local=docs/test-vectors/attestation-malformed-v1.json
+          if ! cmp -s "$local" "$reference"; then
+            echo "::error::Shared DPK-BINARY-V1 malformed-wire corpus differs from Python main."
+            echo "Update both SDKs' tests/fixtures in reviewed PRs."
+            diff -u "$reference" "$local" || true
+            exit 1
+          fi
+          echo "Shared malformed-attestation vectors match Python main."

@@ -1,0 +1,76 @@
+{
+  "schema": "dpk.attestation-malformed-v1",
+  "base": "attestation-v1.json",
+  "cases": [
+    {
+      "id": "uppercase-digest",
+      "mutation": "uppercase_digest",
+      "expected": "malformedDigest"
+    },
+    {
+      "id": "edges-missing",
+      "mutation": "remove_edges",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "edges-null",
+      "mutation": "null_edges",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "edges-object",
+      "mutation": "object_edges",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "edges-string",
+      "mutation": "string_edges",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "events-null",
+      "mutation": "null_events",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "event-schema-bool",
+      "mutation": "event_schema_bool",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "event-sequence-string",
+      "mutation": "event_sequence_string",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "event-priority-bool",
+      "mutation": "event_priority_bool",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "event-timestamp-string",
+      "mutation": "event_timestamp_string",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "envelope-version-bool",
+      "mutation": "envelope_version_bool",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "envelope-eventcount-string",
+      "mutation": "envelope_eventcount_string",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "envelope-edgecount-bool",
+      "mutation": "envelope_edgecount_bool",
+      "expected": "decodeRejected"
+    },
+    {
+      "id": "envelope-issued-string",
+      "mutation": "envelope_issued_string",
+      "expected": "decodeRejected"
+    }
+  ]
+}
