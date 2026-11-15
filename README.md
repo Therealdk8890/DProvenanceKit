@@ -8,6 +8,14 @@ It is designed to sit beside your app's existing observability and evaluation st
 
 > **The short version:** when an OS, model, prompt, or tool change alters an important workflow, DPK helps make that change visible before it ships.
 
+## Open-source evidence engine; separate enterprise operations
+
+**DProvenanceKit is the evidence layer**: instrument, compare, gate, attest, and verify AI decision-path records locally. It works without a commercial account or hosted service.
+
+For teams needing a coordinated operational layer, **NobodySystems** is a **separately licensed, proprietary private-alpha platform** combining DProvenanceKit evidence, [WarrantKit](https://github.com/Therealdk8890/WarrantKit) runtime-bound authority, and [AgentContainment](https://github.com/Therealdk8890/AgentContainment) external enforcement. Its current alpha includes a local controller, bounded guarded tools, and separate evidence verification; organization-wide policy lifecycle, cross-run evidence correlation, fleet operations, production enterprise guarantees, and hosted editions are **product direction, not shipped capabilities**.
+
+**Start with the free SDK proof below.** For the engine/platform responsibilities, evaluation checklist, current limitations, and private-alpha inquiry path, see [NobodySystems integration and commercial boundary](docs/NOBODYSYSTEMS.md). See also [commercial services](COMMERCIAL.md) and the [product-layer matrix](docs/PRODUCT_LAYERS.md).
+
 ## Try it in five minutes
 
 You need Swift 6 and an Apple development environment. The live Foundation Models example requires an OS and device that support Apple's Foundation Models framework (iOS 26, macOS 26, or visionOS 26); model availability also depends on the device and system.

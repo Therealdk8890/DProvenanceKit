@@ -8,6 +8,14 @@ license**. They depend on these Apache SDKs; they do **not** relicense them.
 > Langfuse, OpenTelemetry, LangSmith, and similar tools — not a replacement
 > dashboard.
 
+## NobodySystems: adjacent enterprise operations (private alpha)
+
+**NobodySystems** is the separately licensed operational/control-plane product that coordinates the independent **DProvenanceKit (evidence)**, **WarrantKit (authority)**, and **AgentContainment (enforcement)** engines. Its current private alpha provides a local controller, bounded guarded operations, and independent evidence-bundle verification. Planned organizational policy lifecycle and distribution, cross-run evidence correlation and operator workflows, fleet management, enterprise identity and tenancy, support commitments, and hosted editions are **not production features delivered by this alpha**.
+
+This is distinct from the DProvenanceKit-specific `DProvenanceKit-Premium` and `dprovenancekit-server` proposals referenced below. The commercial rows in this document describe product ownership and target capabilities **not a current general-availability or SLA promise**. The current publicly defined paid DProvenanceKit offer remains the scoped services engagement in [COMMERCIAL.md](../COMMERCIAL.md). None of these layers is required for the OSS SDK's tracing, CI gates, signing, or offline verification.
+
+See [NobodySystems integration and evaluation boundaries](NOBODYSYSTEMS.md) for an independently runnable proof, maturity table, and private-alpha inquiry route.
+
 ## Free / commercial matrix
 
 | Capability | Layer | License | Where |
