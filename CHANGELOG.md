@@ -6,9 +6,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.10.0] - Unreleased
+## [0.10.0] - 2026-11-15
 
-Prepared coordinated release candidate; no 0.10.0 tag or GitHub Release is published yet.
+Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.
 
 ### Added
 - Experimental Structural Alignment v1 engine with integer basis-point scoring,

@@ -1,9 +1,25 @@
-# DProvenanceKit 0.10.0 release preparation
+# DProvenanceKit 0.10.0 release record
 
-Status: **unpublished candidate**. Latest published Swift and Python versions: **0.9.2**.
+Status: **published for Swift and Python**. Latest published versions: **0.10.0**.
 Swift tag: `0.10.0`. Python tag: `v0.10.0`. The unpublished Python 0.9.3 preparation is
 superseded by 0.10.0. The version constant and numbered changelog identify this build;
-they do not establish that a release tag exists.
+the verified publication evidence is recorded below.
+
+## Verified publication
+
+| Distribution | Immutable source / evidence |
+|---|---|
+| [Swift 0.10.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.10.0) | `f3b0ff225e15bf3ca075b1fd6f0023dd4834af4c` |
+| [Python v0.10.0](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.10.0) | `26ca41f9657a8b123673f2de463f3a669a8b8f96` |
+| [PyPI 0.10.0](https://pypi.org/project/dprovenancekit/0.10.0/) | [Trusted Publishing run 43797953686](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/43797953686) passed tests, build/version checks, provenance attestation and upload |
+
+Both tags resolve to the validated merge commits. Swift's exact source tree passed
+macOS/iOS builds, tests, conformance and concurrency checks in GitHub CI. A fresh
+consumer build from the published Swift tag was not run in this Linux workspace.
+A fresh PyPI install verified version 0.10.0, viewer modules/resources, no core runtime
+dependencies and both offline demos, including the bundle round trip. Optional heavy
+framework integrations remain skipped as recorded in the release notes. This record
+updates main without moving published tags or changing immutable PyPI artifacts.
 
 ## Release scope
 
@@ -58,16 +74,17 @@ A Linux documentation/vector check is not a substitute for executing these Apple
 
 ## Publication gates
 
-- [ ] Record both final candidate SHAs, review the diff and resolve CI/DCO failures.
-- [ ] Swift full CI, release guards, conformance and vector parity pass at the final SHA.
-- [ ] Python independently passes its [release checklist](https://github.com/Therealdk8890/DProvenanceKitPython/blob/release/0.10.0-preparation/docs/RELEASE_0.10.0.md), including wheel/sdist validation and documented integration skips.
-- [ ] Merge both preparation PRs, then verify the final main commits and their checks.
-- [ ] Confirm Swift `0.10.0` and Python `v0.10.0` do not already exist; never reuse or move tags.
-- [ ] Publish Swift `0.10.0` and GitHub Release from the validated commit.
+- [x] Record both final candidate SHAs, review the diff and resolve CI/DCO failures.
+- [x] Swift full CI, release guards, conformance and vector parity pass at the final SHA.
+- [x] Python independently passes its [release checklist](https://github.com/Therealdk8890/DProvenanceKitPython/blob/main/docs/RELEASE_0.10.0.md), including wheel/sdist validation and documented integration skips.
+- [x] Merge both preparation PRs, then verify the final main commits and their checks.
+- [x] Confirm Swift `0.10.0` and Python `v0.10.0` do not already exist; never reuse or move tags.
+- [x] Publish Swift `0.10.0` and GitHub Release from the validated commit.
 - [ ] Verify a fresh Swift consumer resolves the tag and its supported library targets build.
-- [ ] Publish Python through GitHub Release/Trusted Publishing and confirm the exact 0.10.0 PyPI artifacts, provenance and clean-install smoke tests.
-- [ ] Update latest-published status, candidate install guidance and changelog dates only after each SDK's publication is confirmed.
-- [ ] Announce a coordinated release only after both distribution paths succeed.
+- [x] Publish Python through GitHub Release/Trusted Publishing and confirm the exact 0.10.0 PyPI artifacts, provenance and clean-install smoke tests.
+- [x] Update latest-published status, candidate install guidance and changelog dates only after each SDK's publication is confirmed.
+- [x] Announce a coordinated release only after both distribution paths succeed.
 
-Release preparation leaves these publication gates open. If a path fails, report each
-SDK's status separately. Matching versions do not imply feature parity.
+The checklist above is retained as the release procedure; verified publication evidence
+is recorded at the top of this page. For future releases, report each SDK's status
+separately if a path fails. Matching versions do not imply feature parity.
