@@ -142,8 +142,7 @@ The SDK remains free under Apache 2.0. For a fixed-scope review of one AI workfl
 
 ### For Open-Source Users
 
-The following dependency targets 0.10.0 after publication. Until then, use published
-0.9.2 for a released package or the `release/0.10.0-preparation` branch for evaluation:
+Add the published 0.10.0 Swift package:
 
 ```swift
 dependencies: [
@@ -260,10 +259,10 @@ Every release: baseline vs. candidate. A clear record of whether the instrumente
 
 ## Status
 
-**Public beta — [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2)
-is the latest published Swift release. This checkout prepares the unpublished 0.10.0
-candidate.** APIs may continue to evolve before 1.0. See the
-[release checklist](RELEASE_0.10.0.md) for scope and publication gates.
+**Public beta — [0.10.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.10.0)
+is the latest published Swift release. The coordinated Python 0.10.0 package is also
+published on PyPI.** APIs may continue to evolve before 1.0. See the
+[publication record](RELEASE_0.10.0.md) for scope and validation.
 
 ---
 

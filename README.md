@@ -48,11 +48,7 @@ This compares a baseline weather-assistant transcript that calls a live-data too
 
 ## Add DPK to a Swift package
 
-The dependency declaration below is prepared for **0.10.0 once published**.
-Until then, **0.9.2 remains the published package**; use that version for a released
-dependency or check out `release/0.10.0-preparation` to evaluate the candidate.
-
-Add the package dependency after publication:
+Add the published **0.10.0** package dependency:
 
 ```swift
 dependencies: [
@@ -105,7 +101,7 @@ These boundaries are deliberate. See [attestation limitations](docs/ATTESTATION.
 
 The README is intentionally optimized for the Foundation Models developer entry point. The expanded reference retains the broader SDK architecture, Swift/Python comparison, observability positioning, Python onboarding example, attestation details, and adoption guidance: **[DProvenanceKit technical overview](docs/TECHNICAL_OVERVIEW.md)**.
 
-The **0.10.0 candidate** adds portable reasoning-history object/bundle verification
+The **0.10.0 release** adds portable reasoning-history object/bundle verification
 and experimental Structural Alignment v1/configuration authorization APIs. These are
 opt-in surfaces; the existing alignment engine remains available. See the
 [release checklist](docs/RELEASE_0.10.0.md), [reasoning-history format](docs/REASONING_REPOSITORY.md)
@@ -147,12 +143,11 @@ We're looking for Swift teams building privacy-sensitive on-device AI features �
 
 ## Status and license
 
-**Public beta — latest published Swift release: [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2).** The coordinated Python SDK release [0.9.2](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.9.2) is also published; its release workflow completed successfully, including the PyPI publish step ([workflow run](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/42661357851)). Matching versions identify a coordinated product release, not feature parity or interchangeable packages. APIs may continue to evolve before 1.0.
+**Public beta — latest published Swift release: [0.10.0](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.10.0).** The coordinated Python SDK release [0.10.0](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.10.0) is also published on [PyPI](https://pypi.org/project/dprovenancekit/0.10.0/); its [Trusted Publishing workflow](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/43797953686) succeeded. Matching versions identify a coordinated product release, not feature parity or interchangeable packages. APIs may continue to evolve before 1.0.
 
-This checkout prepares **0.10.0**. Neither SDK's 0.10.0 release has been published;
-candidate-only capabilities in the matrix above are documented in the
-[release checklist](docs/RELEASE_0.10.0.md). A coordinated release is complete only
-after both publication paths are verified.
+Both 0.10.0 publication paths are verified. The opt-in and experimental capabilities
+in the matrix above retain their documented limits; see the
+[publication record](docs/RELEASE_0.10.0.md).
 
 Apache License 2.0. Free for commercial use.
 
