@@ -48,11 +48,15 @@ This compares a baseline weather-assistant transcript that calls a live-data too
 
 ## Add DPK to a Swift package
 
-Add the package dependency:
+The dependency declaration below is prepared for **0.10.0 once published**.
+Until then, **0.9.2 remains the published package**; use that version for a released
+dependency or check out `release/0.10.0-preparation` to evaluate the candidate.
+
+Add the package dependency after publication:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.2")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.10.0")
 ]
 ```
 
@@ -101,6 +105,12 @@ These boundaries are deliberate. See [attestation limitations](docs/ATTESTATION.
 
 The README is intentionally optimized for the Foundation Models developer entry point. The expanded reference retains the broader SDK architecture, Swift/Python comparison, observability positioning, Python onboarding example, attestation details, and adoption guidance: **[DProvenanceKit technical overview](docs/TECHNICAL_OVERVIEW.md)**.
 
+The **0.10.0 candidate** adds portable reasoning-history object/bundle verification
+and experimental Structural Alignment v1/configuration authorization APIs. These are
+opt-in surfaces; the existing alignment engine remains available. See the
+[release checklist](docs/RELEASE_0.10.0.md), [reasoning-history format](docs/REASONING_REPOSITORY.md)
+and [configuration contract](ConformanceHarness/CONFIGURATION_AUTHORIZATION_v1.md).
+
 ## Platform and language support
 
 Swift and Python use a **shared DProvenanceKit product release version**. Matching version numbers identify a coordinated product release, not identical feature sets or interchangeable package artifacts. Use the capability matrix below and each SDK’s API documentation to determine what is available in that language. See the [cross-language release policy](docs/RELEASE_POLICY.md).
@@ -113,6 +123,9 @@ Swift and Python use a **shared DProvenanceKit product release version**. Matchi
 | Secure Enclave-backed signing keys | Yes, on supported Apple hardware | — |
 | Software-key trace attestation | Yes | MVP |
 | Proof packs | Yes | Not yet |
+| Portable reasoning-history objects and bundle verification | Yes; read-only verification | Yes |
+| Local reasoning-history operations and web workbench | Not available | Yes; opt-in |
+| Structural Alignment v1 and signed configuration manifests | Experimental, opt-in | Experimental, opt-in |
 
 Python SDK: [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython) — `pip install "dprovenancekit[crypto]"` for the attestation extra (0.7.0+).
 
@@ -135,6 +148,11 @@ We're looking for Swift teams building privacy-sensitive on-device AI features �
 ## Status and license
 
 **Public beta — latest published Swift release: [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2).** The coordinated Python SDK release [0.9.2](https://github.com/Therealdk8890/DProvenanceKitPython/releases/tag/v0.9.2) is also published; its release workflow completed successfully, including the PyPI publish step ([workflow run](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/42661357851)). Matching versions identify a coordinated product release, not feature parity or interchangeable packages. APIs may continue to evolve before 1.0.
+
+This checkout prepares **0.10.0**. Neither SDK's 0.10.0 release has been published;
+candidate-only capabilities in the matrix above are documented in the
+[release checklist](docs/RELEASE_0.10.0.md). A coordinated release is complete only
+after both publication paths are verified.
 
 Apache License 2.0. Free for commercial use.
 
