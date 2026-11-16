@@ -6,6 +6,46 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - Unreleased
+
+Prepared coordinated release candidate; no 0.10.0 tag or GitHub Release is published yet.
+
+### Added
+- Experimental Structural Alignment v1 engine with integer basis-point scoring,
+  deterministic assignment, independent F1/hierarchy/order gates and shared
+  Python/Swift golden and negative vectors. It is opt-in and does not replace the
+  existing alignment engine or frozen Trace Specification v1.
+- Experimental deterministic configuration fingerprints and signed Ed25519 manifests
+  verified using CryptoKit against caller-supplied trusted-key policy.
+- Canonical reasoning-history object encoding, decoding and SHA-256 addressing, plus
+  bounded, read-only portable bundle verification and P-256 signature trust reporting.
+  Shared fixtures cover the Python/Swift exchange; Swift does not implement Python's
+  local repository operations, branch storage or web workbench.
+- Shared malformed DPK-BINARY-V1 attestation-wire conformance tests and CI fixture-parity
+  checks alongside the structural-alignment/configuration/repository vector families.
+- Documentation of the independently usable OSS evidence engine and the separate
+  NobodySystems private-alpha operational layer, with delivered and planned scope explicit.
+
+### Fixed
+- Alignment snapshots reject inconsistent provenance metadata.
+- Typed comparisons with undecodable persisted events expose incomplete input and a
+  conservative high-risk/indeterminate result instead of implying reliable equivalence.
+- RFC 3161 verification enforces critical timestamping-only extended key usage and
+  signer-certificate validity at the timestamp's `genTime`.
+
+### Compatibility and scope
+- Existing complete-input matching, profile hashes, frozen Trace Specification v1,
+  DPK-BINARY-V1 attestation encoding and proof-pack formats are unchanged.
+- Stricter timestamp certificate validation can reject tokens previously accepted;
+  the authenticated CMS path remains macOS-only and uses explicit pinned-TSA trust,
+  not general PKI-chain validation. iOS structural checks do not authenticate the signer.
+- A valid signature or bundle establishes recorded integrity relative to the supplied
+  trust policy, not content truth, complete observation or authorization to execute.
+- Structural Alignment v1 and configuration authorization remain experimental.
+  Publishing this SDK version does not promote those independent contracts to stable.
+- Matching SDK versions identify a coordinated release, not identical features.
+  See the [0.10.0 release checklist](docs/RELEASE_0.10.0.md) for publication gates.
+
 ## [0.9.2] - 2026-11-06
 
 ### Added
@@ -520,7 +560,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.2...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.2...0.10.0
 [0.9.2]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...0.9.2
 [0.9.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.1...0.9.0
 [0.8.1]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.0...0.8.1

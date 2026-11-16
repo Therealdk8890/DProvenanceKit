@@ -142,11 +142,12 @@ The SDK remains free under Apache 2.0. For a fixed-scope review of one AI workfl
 
 ### For Open-Source Users
 
-Add the released Swift package to your project's dependencies:
+The following dependency targets 0.10.0 after publication. Until then, use published
+0.9.2 for a released package or the `release/0.10.0-preparation` branch for evaluation:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.9.2")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.10.0")
 ]
 ```
 
@@ -259,7 +260,10 @@ Every release: baseline vs. candidate. A clear record of whether the instrumente
 
 ## Status
 
-**Public beta — [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2) is prepared for release; the tag has not yet been published. APIs may continue to evolve before 1.0.**
+**Public beta — [0.9.2](https://github.com/Therealdk8890/DProvenanceKit/releases/tag/0.9.2)
+is the latest published Swift release. This checkout prepares the unpublished 0.10.0
+candidate.** APIs may continue to evolve before 1.0. See the
+[release checklist](RELEASE_0.10.0.md) for scope and publication gates.
 
 ---
 
