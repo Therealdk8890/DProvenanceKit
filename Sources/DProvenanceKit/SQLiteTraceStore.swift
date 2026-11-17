@@ -499,7 +499,12 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         }
 
         while try stmt.step() {
-            let eventID = stmt.columnString(at: 0).flatMap(UUID.init(uuidString:)) ?? UUID()
+            // Persisted identity must never be replaced with a fresh UUID: doing so
+            // disconnects lineage edges and can make corrupted evidence appear valid.
+            guard let eventID = stmt.columnString(at: 0).flatMap(UUID.init(uuidString:)) else {
+                undecodedCount += 1
+                continue
+            }
             let engine = stmt.columnString(at: 1)
             let spanID = stmt.columnString(at: 2)
             let parentSpanID = stmt.columnString(at: 3)
