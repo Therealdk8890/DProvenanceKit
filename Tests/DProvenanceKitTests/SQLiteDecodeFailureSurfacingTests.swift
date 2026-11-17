@@ -178,6 +178,34 @@ final class SQLiteDecodeFailureSurfacingTests: XCTestCase {
         await reopened.close()
     }
 
+
+    func testMalformedPersistedEventIDIsCountedWithoutFabricatingIdentity() async throws {
+        let runID = UUID()
+        try await record(["stable", "stable"], runID: runID)
+
+        let raw = try RawTraceStore(fileURL: storeURL)
+        let recordedRuns = try await raw.fetchAllRuns()
+        let original = try XCTUnwrap(recordedRuns.first { $0.runID == runID })
+        let corruptedID = try XCTUnwrap(original.events.first?.id)
+
+        let db = try SQLiteConnection(fileURL: storeURL)
+        let update = try db.prepare("UPDATE trace_events SET id = ? WHERE id = ?")
+        try update.bind("not-a-uuid", at: 1)
+        try update.bind(corruptedID.uuidString, at: 2)
+        _ = try update.step()
+        db.close()
+
+        let store = try SQLiteTraceStore<WidePayload>(fileURL: storeURL)
+        let fetched = try await store.getRun(id: runID)
+        let run = try XCTUnwrap(fetched)
+        XCTAssertEqual(run.events.count, 1)
+        XCTAssertEqual(run.undecodedEventCount, 1)
+        XCTAssertThrowsError(try AttestableTrace(run: run)) { error in
+            XCTAssertEqual(error as? TraceAttestationError, .undecodedEvents(count: 1))
+        }
+        await store.close()
+    }
+
     func testGetEventsOmitsUndecodableRowsWithoutFabricating() async throws {
         let runID = UUID()
         // Recover the persisted event ids through the raw store, which is schema-blind.
