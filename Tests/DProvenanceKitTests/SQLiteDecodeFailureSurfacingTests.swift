@@ -184,7 +184,8 @@ final class SQLiteDecodeFailureSurfacingTests: XCTestCase {
         try await record(["stable", "stable"], runID: runID)
 
         let raw = try RawTraceStore(fileURL: storeURL)
-        let original = try XCTUnwrap(try await raw.fetchAllRuns().first { $0.runID == runID })
+        let recordedRuns = try await raw.fetchAllRuns()
+        let original = try XCTUnwrap(recordedRuns.first { $0.runID == runID })
         let corruptedID = try XCTUnwrap(original.events.first?.id)
 
         let db = try SQLiteConnection(fileURL: storeURL)
