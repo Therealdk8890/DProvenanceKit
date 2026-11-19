@@ -212,6 +212,7 @@ struct CandidateTests {
                 }
             }
         }
+        try testAuthentication(url.deletingLastPathComponent())
         print("PASS: 2 unsigned closure preimages and binding checks; payload boundaries")
         print("PASS: \(fixtures.positiveCases.count) shared chains, \(checkedEntries) exact entry preimages, adversarial checks")
     }

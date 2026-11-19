@@ -25,6 +25,6 @@ jobs:
       - name: Type-check and run candidate
         run: |
           cd Experimental/EventChainCandidate
-          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors -typecheck Chain.swift PayloadScanner.swift CandidateTests.swift
-          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors Chain.swift PayloadScanner.swift CandidateTests.swift -o "$RUNNER_TEMP/event-chain-tests"
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors -typecheck Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift -o "$RUNNER_TEMP/event-chain-tests"
           "$RUNNER_TEMP/event-chain-tests" event_chain_v1_candidate.json
