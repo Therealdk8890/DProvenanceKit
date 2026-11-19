@@ -25,6 +25,24 @@ jobs:
       - name: Type-check and run candidate
         run: |
           cd Experimental/EventChainCandidate
-          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors -typecheck Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift
-          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift -o "$RUNNER_TEMP/event-chain-tests"
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors -typecheck Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift ExchangeTests.swift
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors Chain.swift PayloadScanner.swift CandidateTests.swift ClosureAuthentication.swift AuthenticationTests.swift ExchangeTests.swift -o "$RUNNER_TEMP/event-chain-tests"
           "$RUNNER_TEMP/event-chain-tests" event_chain_v1_candidate.json
+      - name: Check out reviewed Python candidate at exact commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          repository: Therealdk8890/DProvenanceKitPython
+          ref: 3453d8f57b52f0ccc642d1ed45e188d530ac85b7
+          path: python-candidate
+          persist-credentials: false
+      - name: Set up Python for reciprocal test
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Verify reciprocal signed artifacts
+        run: |
+          cmp Experimental/EventChainCandidate/event_chain_v1_candidate.json python-candidate/conformance/vectors/event_chain_v1_candidate.json
+          cd python-candidate
+          python -m pip install -r event_chain_gate_requirements.txt
+          python scripts/event_chain_gate.py
+          python -m experimental.event_chain.exchange "$RUNNER_TEMP/event-chain-tests" conformance/vectors/event_chain_v1_candidate.json

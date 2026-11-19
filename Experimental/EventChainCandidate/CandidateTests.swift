@@ -82,6 +82,10 @@ func rejects(_ expected: ChainFailure, _ operation: () throws -> Void) throws {
 @main
 struct CandidateTests {
     static func main() throws {
+        if CommandLine.arguments.count > 1 && CommandLine.arguments[1].hasPrefix("exchange-") {
+            try runExchangeCommand(Array(CommandLine.arguments.dropFirst()))
+            return
+        }
         try check(CommandLine.arguments.count == 2, "pass fixture path")
         let url = URL(fileURLWithPath: CommandLine.arguments[1])
         let fixtures = try JSONDecoder().decode(FixtureFile.self, from: Data(contentsOf: url))
