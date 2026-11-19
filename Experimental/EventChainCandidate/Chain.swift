@@ -214,3 +214,57 @@ struct ChainBuilder {
         EventChain(runID: runID, head: head, entries: entries)
     }
 }
+
+
+// Unsigned closure only: no signature, trust, full trace binding or completeness claim.
+struct RunClose: Sendable {
+    var runID: String
+    var chainVersion: Int64
+    var finalChainIndex: UInt64?
+    var finalChainHead: Data
+    var eventCount: UInt64
+    var traceDigest: Data
+    var keyID: Data
+    var issuedAtUnixMicroseconds: Int64
+}
+
+extension ChainCodec {
+    static func closePreimage(_ close: RunClose) throws -> Data {
+        guard close.chainVersion == 1 else { throw ChainFailure.unsupportedVersion }
+        var result = Data("DPROVENANCEKIT-RUN-CLOSE-V1".utf8)
+        result += try uuidBytes(close.runID)
+        result += i64(1)
+        let head = try hash(close.finalChainHead)
+        if close.eventCount == 0 {
+            guard close.finalChainIndex == nil, try genesis(close.runID) == head else {
+                throw ChainFailure.closureMismatch
+            }
+        } else {
+            guard close.finalChainIndex == close.eventCount - 1 else {
+                throw ChainFailure.closureMismatch
+            }
+        }
+        if let index = close.finalChainIndex {
+            result += Data([1]) + u64(index)
+        } else {
+            result += Data([0])
+        }
+        result += head + u64(close.eventCount)
+        result += try hash(close.traceDigest)
+        result += try hash(close.keyID)
+        result += i64(close.issuedAtUnixMicroseconds)
+        return result
+    }
+
+    // This checks an unsigned chain binding; it is not an authentication API.
+    static func verifyCloseBinding(
+        _ chain: EventChain, _ close: RunClose, expectedRunID: String
+    ) throws {
+        _ = try closePreimage(close)
+        guard try uuid(close.runID) == uuid(expectedRunID) else {
+            throw ChainFailure.runMismatch
+        }
+        try verify(chain, expectedRunID: expectedRunID, expectedCount: close.eventCount,
+                   expectedHead: close.finalChainHead)
+    }
+}

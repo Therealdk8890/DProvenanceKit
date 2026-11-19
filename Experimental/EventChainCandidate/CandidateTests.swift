@@ -2,6 +2,7 @@ import Foundation
 
 struct FixtureFile: Decodable {
     let positiveCases: [FixtureCase]
+    let unsignedClosureCases: [ClosureFixture]
 }
 
 struct FixtureCase: Decodable {
@@ -20,6 +21,40 @@ struct FixtureEntry: Decodable {
     let previousHash: String
     let preimageHex: String
     let entryHash: String
+}
+
+struct ClosureFixture: Decodable {
+    let name: String
+    let runID: String
+    let chainVersion: Int64
+    let finalChainIndex: UInt64?
+    let finalChainHead: String
+    let eventCount: UInt64
+    let traceDigest: String
+    let keyID: String
+    let issuedAtUnixMicroseconds: Int64
+    let preimageHex: String
+    let preimageSHA256: String
+
+    func commitment() throws -> RunClose {
+        try RunClose(runID: runID, chainVersion: chainVersion,
+                     finalChainIndex: finalChainIndex, finalChainHead: decodeHex(finalChainHead),
+                     eventCount: eventCount, traceDigest: decodeHex(traceDigest),
+                     keyID: decodeHex(keyID), issuedAtUnixMicroseconds: issuedAtUnixMicroseconds)
+    }
+}
+
+func decodeHex(_ value: String) throws -> Data {
+    let bytes = Array(value.utf8)
+    guard bytes.count == 64 else { throw ChainFailure.invalidHash }
+    var result = Data()
+    for index in stride(from: 0, to: bytes.count, by: 2) {
+        guard let byte = UInt8(String(decoding: bytes[index...index + 1], as: UTF8.self), radix: 16),
+              bytes[index...index + 1].allSatisfy({ (48...57).contains($0) || (97...102).contains($0) })
+        else { throw ChainFailure.invalidHash }
+        result.append(byte)
+    }
+    return result
 }
 
 enum TestFailure: Error {
@@ -125,6 +160,59 @@ struct CandidateTests {
             var scanner = PayloadScanner(good)
             try scanner.validate()
         }
+        for extra in [256, 257] {
+            let payload = "{\"x\":" + String(repeating: "[", count: extra) + "0" +
+                String(repeating: "]", count: extra) + "}"
+            var scanner = PayloadScanner(payload)
+            if extra == 256 { try scanner.validate() }
+            else { try rejects(.invalidPayload) { try scanner.validate() } }
+        }
+        for extra in [0, 1] {
+            let payload = "{\"x\":\"" + String(repeating: "é", count: (1_048_576 - 8) / 2) +
+                String(repeating: "a", count: extra) + "\"}"
+            try check(payload.utf8.count == 1_048_576 + extra, "payload boundary")
+            var scanner = PayloadScanner(payload)
+            if extra == 0 { try scanner.validate() }
+            else { try rejects(.invalidPayload) { try scanner.validate() } }
+        }
+        try check(fixtures.unsignedClosureCases.count == 2, "closure fixture count")
+        for item in fixtures.unsignedClosureCases {
+            let close = try item.commitment()
+            let raw = try ChainCodec.closePreimage(close)
+            try check(hex(raw) == item.preimageHex, "closure preimage")
+            try check(hex(ChainCodec.digest(raw)) == item.preimageSHA256, "closure digest")
+            guard let source = fixtures.positiveCases.first(where: { $0.name == item.name }) else {
+                throw TestFailure.assertion("missing closure chain")
+            }
+            var builder = try ChainBuilder(runID: item.runID)
+            for entry in source.entries { try builder.append(entry.event) }
+            try ChainCodec.verifyCloseBinding(builder.snapshot(), close, expectedRunID: item.runID)
+            var bad = close
+            bad.finalChainIndex = close.eventCount
+            let wrongIndex = bad
+            try rejects(.closureMismatch) { _ = try ChainCodec.closePreimage(wrongIndex) }
+            bad = close
+            bad.keyID = Data()
+            let wrongKey = bad
+            try rejects(.invalidHash) { _ = try ChainCodec.closePreimage(wrongKey) }
+            if !source.entries.isEmpty {
+                var shortened = try ChainBuilder(runID: item.runID)
+                for entry in source.entries.dropLast() { try shortened.append(entry.event) }
+                try rejects(.closureMismatch) {
+                    try ChainCodec.verifyCloseBinding(shortened.snapshot(), close, expectedRunID: item.runID)
+                }
+                var replacement = try ChainBuilder(runID: item.runID)
+                for (index, entry) in source.entries.enumerated() {
+                    var event = entry.event
+                    if index == 0 { event.payloadJSON = event.payloadJSON == "{}" ? "{\"changed\":1}" : "{}" }
+                    try replacement.append(event)
+                }
+                try rejects(.closureMismatch) {
+                    try ChainCodec.verifyCloseBinding(replacement.snapshot(), close, expectedRunID: item.runID)
+                }
+            }
+        }
+        print("PASS: 2 unsigned closure preimages and binding checks; payload boundaries")
         print("PASS: \(fixtures.positiveCases.count) shared chains, \(checkedEntries) exact entry preimages, adversarial checks")
     }
 }

@@ -2,13 +2,14 @@ import Foundation
 
 // Validate a JSON object without reserialization, numeric coercion or Swift String key equality.
 // Escaped surrogate pairs combine; isolated escaped surrogates match Python's candidate parser.
-// Candidate-only resource cap: depth 256. Cross-SDK limits remain a specification review gate.
+// Candidate caps shared with Python: root depth 0, maximum 256, 1 MiB UTF-8.
 struct PayloadScanner {
-    private let tokens: [UInt32]
+    private let input: String
+    private var tokens: [UInt32] = []
     private var offset = 0
 
     init(_ text: String) {
-        tokens = text.unicodeScalars.map(\.value)
+        input = text
     }
 
     private var peek: UInt32? { offset < tokens.count ? tokens[offset] : nil }
@@ -28,6 +29,9 @@ struct PayloadScanner {
     }
 
     mutating func validate() throws {
+        guard input.utf8.count <= 1_048_576 else { throw ChainFailure.invalidPayload }
+        tokens = input.unicodeScalars.map(\.value)
+        offset = 0
         whitespace()
         try object(depth: 0)
         whitespace()
