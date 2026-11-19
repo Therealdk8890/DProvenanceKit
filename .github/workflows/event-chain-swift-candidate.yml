@@ -1,0 +1,30 @@
+name: Event chain Swift candidate quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate:
+    name: event-chain Swift lint + strict compiler + vectors
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.5
+        run: sudo xcode-select -s /Applications/Xcode_26.5.app
+      - name: Lint
+        run: |
+          command -v swiftlint || brew install swiftlint
+          swiftlint version
+          swiftlint lint --strict --config Experimental/EventChainCandidate/.swiftlint.yml Experimental/EventChainCandidate
+      - name: Type-check and run candidate
+        run: |
+          cd Experimental/EventChainCandidate
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors -typecheck Chain.swift PayloadScanner.swift CandidateTests.swift
+          swiftc -swift-version 6 -strict-concurrency=complete -warnings-as-errors Chain.swift PayloadScanner.swift CandidateTests.swift -o "$RUNNER_TEMP/event-chain-tests"
+          "$RUNNER_TEMP/event-chain-tests" event_chain_v1_candidate.json
