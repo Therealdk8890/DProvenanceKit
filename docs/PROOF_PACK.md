@@ -56,6 +56,17 @@ to anything without invalidating the signature, because those fields were never 
 **Re-issue as v2** to make the role signer-vouched. `mediaType` is informational in both
 versions; do not treat it as vouched.
 
+**Downgrade/relabel guard.** `proofPackVersion` itself is not covered by the signature, so a
+v2 pack can be rewritten as `proofPackVersion: 1`. To stop that from stripping the role check,
+the verifier rejects a v1 pack whose artifact digest the signed trace records beside a `role`
+that differs from the declared one: `ProofPackVerificationFailure.artifactRoleMismatch(index:)`,
+CLI exit `1` (a v2 relabel already fails as `artifactNotBound`). A v1 pack whose
+trace records the digest *without* any role still verifies as value-presence-only. Roles are
+compared byte-for-byte (UTF-8), not by Unicode canonical equivalence, matching the Python
+verifier. Value-presence-only certificates say `VERIFIED (ROLE NOT SIGNER-VOUCHED)` in the
+headline. The `requireRoleBinding` default is unchanged (`false`) for compatibility; pass it
+(or `--require-role-binding`) when the role is load-bearing.
+
 A consumer that integrates on the pass/fail bit can require the strong binding and reject v1
 outright: `pack.verify(requireRoleBinding: true)` fails a value-presence-only pack with
 `ProofPackVerificationFailure.roleBindingRequired`, and the CLI exposes this as
@@ -95,6 +106,9 @@ Given a pack and an optional trusted-key set:
       a `role` key equal to the artifact's `role` and a `sha256` key equal to its digest
       (binding check — ties the bytes *and their role* to the signed run). **v1:** the
       `sha256` must appear as a string leaf in at least one payload (digest presence only).
+   c. **v1:** if any signed payload object pairs this `sha256` with a `role`, the declared
+      `role` must byte-equal one of those roles, or the pack fails with
+      `artifactRoleMismatch` (relabel/downgrade guard).
 5. All artifacts must bind. With `--require-role-binding`, a v1 pack is rejected here even
    though its digests are present. Exit codes match `verify`: `0` valid, `1` invalid or
    unreadable, `2` malformed arguments.

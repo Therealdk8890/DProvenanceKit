@@ -218,7 +218,8 @@ public enum VerificationReceiptProjector {
                 trace = verification.attestation?.isValid ?? false
                 evidence = false
                 filesUnchanged = false
-            case .artifactNotBound, .malformedArtifact, .noArtifacts, .unsupportedVersion, .roleBindingRequired:
+            case .artifactNotBound, .malformedArtifact, .noArtifacts, .unsupportedVersion, .roleBindingRequired,
+                 .artifactRoleMismatch:
                 trace = verification.attestation?.isValid ?? false
                 evidence = false
                 filesUnchanged = verification.attestation?.isValid == true
