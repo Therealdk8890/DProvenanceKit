@@ -63,7 +63,7 @@ final class ProofPackCertificateTests: XCTestCase {
             result, pack: pack, issuedAt: issuedAt, toolVersion: toolVersion
         )
 
-        XCTAssertTrue(text.contains("RESULT: VERIFIED"))
+        XCTAssertTrue(text.contains("RESULT: VERIFIED (ROLE NOT SIGNER-VOUCHED)"))
         // A v1 pack verifies, and saying only that would mislead the reader about the label.
         XCTAssertTrue(flattened(text).contains("NOT covered by the signature"))
         XCTAssertTrue(flattened(text).contains("Treat the label as a claim, not as evidence"))
@@ -156,34 +156,35 @@ final class ProofPackCertificateTests: XCTestCase {
 
     // MARK: - HTML safety and self-containment
 
-    /// A v1 pack's role is attacker-choosable (that is exactly what `valuePresenceOnly` means),
-    /// and the pack still verifies after a relabel. If the certificate interpolated that role
-    /// into HTML unescaped, a verifying pack could carry script into a document that gets opened
-    /// in a browser and forwarded to a court.
-    func testHostileRoleFromAValidV1PackIsEscaped() throws {
+    /// A v1 pack's `mediaType` is never signature-covered, so the pack still verifies after it
+    /// is rewritten. If the certificate interpolated it into HTML unescaped, a verifying pack
+    /// could carry script into a document that gets opened in a browser and forwarded to a court.
+    /// (A hostile *role* no longer verifies: the trace records the real role beside the digest,
+    /// so the relabel fails as `artifactRoleMismatch` — and that failure page must be safe too.)
+    func testHostileLabelsFromAV1PackAreEscaped() throws {
         let pack = try loadPack(version: 1)
-        let hostile = ProofPackArtifact(
-            role: #"<script>alert('xss')</script>"#,
-            mediaType: #"text/html" onload="alert(1)"#,
-            encoding: pack.artifacts[0].encoding,
-            content: pack.artifacts[0].content,
-            sha256: pack.artifacts[0].sha256
-        )
-        let relabelled = ProofPackDocument(
-            proofPackVersion: 1,
-            attestation: pack.attestation,
-            artifacts: [hostile]
-        )
+        func relabel(role: String) -> ProofPackDocument {
+            ProofPackDocument(proofPackVersion: 1, attestation: pack.attestation, artifacts: [ProofPackArtifact(
+                role: role,
+                mediaType: #"text/html" onload="alert(1)"#,
+                encoding: pack.artifacts[0].encoding,
+                content: pack.artifacts[0].content,
+                sha256: pack.artifacts[0].sha256
+            )])
+        }
 
-        let result = relabelled.verify()
-        XCTAssertTrue(result.isValid, "v1 binds the digest only, so a relabel still verifies")
-
-        let html = ProofPackCertificate.html(
-            result, pack: relabelled, issuedAt: issuedAt, toolVersion: toolVersion
-        )
-        XCTAssertFalse(html.contains("<script>"), "hostile role must not reach the document as markup")
-        XCTAssertTrue(html.contains("&lt;script&gt;"))
+        let hostileMedia = relabel(role: pack.artifacts[0].role)
+        let valid = hostileMedia.verify()
+        XCTAssertTrue(valid.isValid, "mediaType is informational, so rewriting it still verifies")
+        let html = ProofPackCertificate.html(valid, pack: hostileMedia, issuedAt: issuedAt, toolVersion: toolVersion)
         XCTAssertFalse(html.contains(#"onload="alert(1)"#))
+        XCTAssertTrue(html.contains("&quot; onload=&quot;"))
+
+        let hostileRole = relabel(role: #"<script>alert('xss')</script>"#)
+        let invalid = hostileRole.verify()
+        XCTAssertEqual(invalid.failure, .artifactRoleMismatch(index: 0))
+        let failedHTML = ProofPackCertificate.html(invalid, pack: hostileRole, issuedAt: issuedAt, toolVersion: toolVersion)
+        XCTAssertFalse(failedHTML.contains("<script>"), "hostile role must not reach the document as markup")
     }
 
     /// The reader archives this file. Anything fetched at render time would leave the artifact

@@ -139,6 +139,11 @@ public enum ProofPackVerificationFailure: Sendable, Equatable {
     /// The caller required role-bound (v2) verification, but the pack is a v1 pack whose
     /// binding covers only the digest — its `role` is producer-asserted, not signer-vouched.
     case roleBindingRequired
+    /// The signed trace records this artifact's digest co-located with a `role`, but never
+    /// with the role the pack declares. The pack's label contradicts what the signer
+    /// vouched — the signature of a relabel after signing, including a v2 pack rewritten
+    /// as v1 to dodge the role check (`proofPackVersion` is not covered by the signature).
+    case artifactRoleMismatch(index: Int)
 }
 
 extension ProofPackVerificationFailure: CustomStringConvertible {
@@ -158,6 +163,8 @@ extension ProofPackVerificationFailure: CustomStringConvertible {
             return "artifactNotBound(index: \(index))"
         case .roleBindingRequired:
             return "roleBindingRequired"
+        case .artifactRoleMismatch(let index):
+            return "artifactRoleMismatch(index: \(index))"
         }
     }
 }
@@ -322,6 +329,20 @@ public enum ProofPackVerifier {
             guard recomputed == artifact.sha256 else {
                 return failure(.artifactDigestMismatch(index: index), attestation: attestationResult)
             }
+            // Downgrade/relabel guard for v1. `proofPackVersion` is not signed, so a v2 pack
+            // can be rewritten as v1 with a new `role`. When the signer DID record a role
+            // beside this digest, any other declared role contradicts the signature — reject
+            // it instead of accepting it as value-presence-only. (v2 already fails such a
+            // relabel below as `artifactNotBound`; that code is unchanged.)
+            if !packBindsRole {
+                let signedRoles = payloads.compactMap { $0 }.flatMap {
+                    rolesColocated(with: artifact.sha256, in: $0)
+                }
+                if !signedRoles.isEmpty,
+                   !signedRoles.contains(where: { bytesEqual($0, artifact.role) }) {
+                    return failure(.artifactRoleMismatch(index: index), attestation: attestationResult)
+                }
+            }
             guard let eventIndex = payloads.firstIndex(where: { payload in
                 guard let payload else { return false }
                 if packBindsRole {
@@ -358,7 +379,7 @@ public enum ProofPackVerifier {
     private static func containsStringLeaf(_ value: Any, equalTo target: String) -> Bool {
         switch value {
         case let string as String:
-            return string == target
+            return bytesEqual(string, target)
         case let array as [Any]:
             return array.contains { containsStringLeaf($0, equalTo: target) }
         case let object as [String: Any]:
@@ -368,17 +389,6 @@ public enum ProofPackVerifier {
         }
     }
 
-    /// Reports whether some JSON object in `value` has a `role` key equal to `role` AND a
-    /// `sha256` key equal to `sha256` — the canonical shape a producer records per
-    /// `docs/PROOF_PACK.md` (`{"role": "...", "sha256": "..."}`).
-    ///
-    /// The check matches these two SPECIFIC keys, not arbitrary sibling strings. Binding the
-    /// role's value against any string in the object would let an attacker relabel an
-    /// artifact to any other string the signer happened to co-locate (a `status`, a `stage`,
-    /// a free-form note), none of which the signer vouched as the artifact's *role*. Keying
-    /// the check on `role`/`sha256` is what actually makes the role signer-vouched — and
-    /// requiring both in the same object stops splicing one artifact's digest onto another's
-    /// role from elsewhere in the same signed trace.
     /// Unwraps a payload recorded through `AnyTraceableEvent`, whose `Codable` carries the
     /// domain payload as a JSON *string* under `rawJSON` — so such an event encodes as
     /// `{"priorityValue":…,"rawJSON":"{…}","typeIdentifier":…}`.
@@ -410,10 +420,22 @@ public enum ProofPackVerifier {
         return inner
     }
 
+    /// Reports whether some JSON object in `value` has a `role` key equal to `role` AND a
+    /// `sha256` key equal to `sha256` — the canonical shape a producer records per
+    /// `docs/PROOF_PACK.md` (`{"role": "...", "sha256": "..."}`).
+    ///
+    /// The check matches these two SPECIFIC keys, not arbitrary sibling strings. Binding the
+    /// role's value against any string in the object would let an attacker relabel an
+    /// artifact to any other string the signer happened to co-locate (a `status`, a `stage`,
+    /// a free-form note), none of which the signer vouched as the artifact's *role*. Keying
+    /// the check on `role`/`sha256` is what actually makes the role signer-vouched — and
+    /// requiring both in the same object stops splicing one artifact's digest onto another's
+    /// role from elsewhere in the same signed trace.
     private static func containsRoleBinding(_ value: Any, sha256: String, role: String) -> Bool {
         switch value {
         case let object as [String: Any]:
-            if (object["sha256"] as? String) == sha256, (object["role"] as? String) == role {
+            if let digest = object["sha256"] as? String, bytesEqual(digest, sha256),
+               let declared = object["role"] as? String, bytesEqual(declared, role) {
                 return true
             }
             return object.values.contains { containsRoleBinding($0, sha256: sha256, role: role) }
@@ -422,5 +444,31 @@ public enum ProofPackVerifier {
         default:
             return false
         }
+    }
+
+    /// Every string `role` recorded in a JSON object whose `sha256` key equals `sha256`
+    /// (byte-for-byte), at any depth.
+    private static func rolesColocated(with sha256: String, in value: Any) -> [String] {
+        switch value {
+        case let object as [String: Any]:
+            var roles: [String] = []
+            if let digest = object["sha256"] as? String, bytesEqual(digest, sha256),
+               let role = object["role"] as? String {
+                roles.append(role)
+            }
+            for child in object.values { roles += rolesColocated(with: sha256, in: child) }
+            return roles
+        case let array as [Any]:
+            return array.flatMap { rolesColocated(with: sha256, in: $0) }
+        default:
+            return []
+        }
+    }
+
+    /// Exact UTF-8 byte equality. Swift's `String ==` uses Unicode canonical equivalence,
+    /// so a precomposed and a decomposed spelling compare equal; the Python verifier
+    /// compares code points. Signed labels must match byte-for-byte in both SDKs.
+    static func bytesEqual(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.utf8.elementsEqual(rhs.utf8)
     }
 }
