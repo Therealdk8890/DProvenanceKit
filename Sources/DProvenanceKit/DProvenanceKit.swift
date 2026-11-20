@@ -63,9 +63,39 @@ public enum DProvenanceKit<T: TraceableEvent> {
             return traceEvent.id
         }
         
+        private var mismatchCount = 0
+
+        /// Payloads handed to this run (via the static `DProvenanceKit<U>.record`) whose
+        /// type is not this run's `T`. They are dropped — a run never stores a foreign
+        /// type — but no longer silently: the count is here, and DEBUG builds log the
+        /// first one per run.
+        public var payloadTypeMismatchCount: Int {
+            sequenceLock.lock(); defer { sequenceLock.unlock() }
+            return mismatchCount
+        }
+
         @discardableResult
         public func recordAny(_ payload: Any, engineName: String?) -> UUID? {
-            guard let typedPayload = payload as? T else { return nil }
+            guard let typedPayload = payload as? T else {
+                sequenceLock.lock()
+                mismatchCount += 1
+                let first = mismatchCount == 1
+                sequenceLock.unlock()
+                #if DEBUG
+                if first {
+                    dpkDiagnosticsLog.warning("""
+                    DProvenanceKit: a '\(String(describing: type(of: payload)), privacy: .public)' \
+                    payload was recorded inside a run of '\(String(describing: T.self), privacy: .public)' \
+                    and was dropped. Record with DProvenanceKit<\(String(describing: T.self), privacy: .public)>, \
+                    or erase to AnyTraceableEvent. Further mismatches in this run are counted in \
+                    payloadTypeMismatchCount without logging.
+                    """)
+                }
+                #else
+                _ = first
+                #endif
+                return nil
+            }
             return self.record(typedPayload, engineName: engineName)
         }
 

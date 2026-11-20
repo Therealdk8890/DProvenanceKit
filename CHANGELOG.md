@@ -6,6 +6,34 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Behavior change:** `SQLiteTraceStore.lineageEdges(of:)` / `impactEdges(of:)` throw
+  `TraceError.corruptEdgeRow` for a persisted edge row that does not decode. An unknown
+  edge type was previously rewritten to `.informed` and a malformed UUID row skipped,
+  silently changing or truncating lineage.
+- A payload whose type does not match the active run (`DProvenanceKit<U>.record` inside a
+  `DProvenanceKit<T>` run) is still dropped, but is now counted in
+  `ActiveTraceRun.payloadTypeMismatchCount` and logged once per run in DEBUG builds. The
+  FoundationModels recorders probe the run type first, so they never trip it.
+- `TraceWriteBuffer` bounds pending lineage edges (`BufferCapacity.maxPendingEdges`,
+  default 100,000). An edge refused at the cap is counted as a structural drop, so
+  `dropStats.preservedIntegrity` reports it; previously the edge queue grew without limit
+  while the writer was stalled.
+- Attestation edge anchoring is a single linear BFS instead of a quadratic fixpoint;
+  results, including which dangling edge is reported, are unchanged.
+- `RawTraceStore` no longer substitutes `"{}"` for a payload that is not valid UTF-8 (it
+  returns a lossy decoding and `payloadIsValidUTF8 == false`) and no longer traps on a
+  negative stored `sequence`. Event sequences are stored and read by bit pattern.
+- **Behavior change:** `SQLiteTraceStore` refuses to open a file whose `user_version` is
+  newer than it understands (`SQLiteError.unsupportedSchemaVersion`), and schema
+  migrations use the new throwing `SQLiteConnection.readUserVersion()` /
+  `setUserVersion(_:)` instead of a setter that swallowed write errors.
+
+### Compatibility
+- New enum cases (`TraceError.corruptEdgeRow`, `SQLiteError.unsupportedSchemaVersion`)
+  affect exhaustive `switch` statements without a `default`. New parameters and
+  properties are defaulted; the non-throwing `userVersion` property remains.
+
 ## [0.10.0] - 2026-11-15
 
 Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.
