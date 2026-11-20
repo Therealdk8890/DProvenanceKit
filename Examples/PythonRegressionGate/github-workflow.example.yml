@@ -1,0 +1,26 @@
+# Copy to .github/workflows/agent-regression.yml in your own repository.
+#
+# One-time setup, committed to your repo:
+#   python agent.py && dpk record     # writes .dprovenance/baseline.sqlite
+#   git add .dprovenance/baseline.sqlite
+#
+# On every pull request this re-runs your instrumented agent (or eval script)
+# and fails the check if a CRITICAL step disappeared or changed.
+name: agent-regression
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "dprovenancekit==0.10.0"
+      - run: python agent.py   # replace with the command that runs your agent
+      - run: dpk gate          # compares against .dprovenance/baseline.sqlite
