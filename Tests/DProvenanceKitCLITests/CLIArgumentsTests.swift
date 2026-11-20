@@ -235,4 +235,44 @@ final class CLIArgumentsTests: XCTestCase {
         XCTAssertEqual(invocation.caseName, "my-case")
         XCTAssertEqual(invocation.outPath, "/tmp/x.json")
     }
+
+    // MARK: - verify --out (review finding #7)
+
+    func testVerifyOutWithoutCertificateIsRejected() {
+        for args in [["verify", "--in=pack.json", "--proof-pack", "--out=cert.txt"],
+                     ["verify", "--in=doc.json", "--out=cert.txt"]] {
+            XCTAssertThrowsError(try CLIArguments.parse(args), "\(args)") { error in
+                XCTAssertEqual(error as? CLIArgumentError, .outRequiresCertificate)
+            }
+        }
+    }
+
+    func testVerifyOutWithCertificateAndOtherModesOutStillParse() throws {
+        let verify = try CLIArguments.parse(["verify", "--in=pack.json", "--proof-pack",
+                                             "--certificate=html", "--out=cert.html"])
+        XCTAssertEqual(verify.outPath, "cert.html")
+        XCTAssertEqual(verify.certificate, .html)
+        XCTAssertEqual(try CLIArguments.parse(["web-export", "--out=x.json"]).outPath, "x.json")
+        XCTAssertEqual(try CLIArguments.parse(["attest-demo", "--out=x.json"]).outPath, "x.json")
+    }
+
+    func testHelpDocumentsCertificateAndVerifyOut() {
+        let help = DProvenanceKitCLI.usageText
+        XCTAssertTrue(help.contains("--certificate=text|html"))
+        XCTAssertTrue(help.contains("verify: write the --certificate there"))
+    }
+
+    // MARK: - Terminal escaping of producer-controlled labels
+
+    func testTerminalControlAndBidiScalarsAreEscaped() {
+        XCTAssertEqual(TerminalText.sanitize("ok\u{1B}[2K\rVALID"), "ok\\u{1B}[2K\\u{D}VALID")
+        XCTAssertEqual(TerminalText.sanitize("a\u{202E}gnp.exe"), "a\\u{202E}gnp.exe")
+        XCTAssertEqual(TerminalText.sanitize("line\nbreak\u{9B}"), "line\\u{A}break\\u{9B}")
+        XCTAssertEqual(TerminalText.sanitize("résumé 履歴 ✅"), "résumé 履歴 ✅", "printable text passes through")
+    }
+
+    func testMultiLineRenderingKeepsLineBreaksButEscapesControls() {
+        XCTAssertEqual(TerminalText.sanitizeLines("RESULT\nrole: x\u{1B}]0;pwned\u{7}\n"),
+                       "RESULT\nrole: x\\u{1B}]0;pwned\\u{7}\n")
+    }
 }

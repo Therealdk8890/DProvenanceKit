@@ -6,6 +6,18 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Behavior change:** `dpk verify --out=<path>` without `--certificate` now exits 2
+  (`--out` only ever wrote a certificate; it previously printed to stdout and left the
+  requested file unwritten). `--help` documents `--certificate=text|html` and what
+  `--out` does per mode.
+
+### Security
+- `dpk verify` escapes terminal control, C1 and bidi-control characters in
+  producer-supplied labels (artifact roles, event type identifiers, failure and
+  decoding-error text, and text certificates) as `\u{XXXX}`, so a crafted pack cannot
+  rewrite or reorder what the terminal shows.
+
 ## [0.10.0] - 2026-11-15
 
 Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.
