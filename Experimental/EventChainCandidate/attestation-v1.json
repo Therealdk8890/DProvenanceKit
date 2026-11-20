@@ -1,0 +1,90 @@
+{
+  "attestation" : {
+    "algorithm" : "P256-SHA256",
+    "canonicalization" : "DPK-BINARY-V1",
+    "contextID" : "demo_1",
+    "edgeCount" : 0,
+    "eventCount" : 5,
+    "issuedAtUnixMicroseconds" : 1783678543043978,
+    "keyID" : "3f22f1cb2920e0e6d7292e886213a5e9fd553fe34879b5b9db79fbed10919ab3",
+    "publicKeyBase64" : "BAhkM0hlxv1OjvpabIp2f21+3FnytS2wEZjfT3U3dNQldJyEpt0QxRs+/49C+JS9SGy21VPfuiPMUvdJ8q0pPJw=",
+    "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+    "signatureBase64" : "MEUCIDd3nOchzOew6oggQLpua4XqMel3UTNAMJOFK7lpicb/AiEAx5xcTc+I+uiZBtn+sfsSjpx/Cmxlp2g+bYQpQ0Xqg20=",
+    "traceDigest" : "28b71e7572d7251bfa9e6c2afc5d3bab8b079d5539da8dc7847faf8edaa9fb2c",
+    "version" : 1
+  },
+  "trace" : {
+    "contextID" : "demo_1",
+    "edges" : [
+
+    ],
+    "events" : [
+      {
+        "contextID" : "demo_1",
+        "engineName" : "Agent",
+        "id" : "0E657FB8-7F87-4BA2-BBB5-795DC9FE8910",
+        "payloadJSON" : "{\"fileIO\":{\"action\":\"read\",\"file\":\"App.swift\"}}",
+        "priority" : 2,
+        "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+        "schemaVersion" : 1,
+        "sequence" : 0,
+        "spanID" : "s1",
+        "timestampUnixMicroseconds" : 1783678543043608,
+        "typeIdentifier" : "fileIO"
+      },
+      {
+        "contextID" : "demo_1",
+        "engineName" : "Agent",
+        "id" : "ECA8EE2A-E84C-4E74-B9B5-C831C8733A93",
+        "payloadJSON" : "{\"toolExecution\":{\"params\":\"SwiftUI\",\"toolName\":\"SearchDocs\"}}",
+        "priority" : 2,
+        "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+        "schemaVersion" : 1,
+        "sequence" : 1,
+        "spanID" : "s1",
+        "timestampUnixMicroseconds" : 1783678543043647,
+        "typeIdentifier" : "tool"
+      },
+      {
+        "contextID" : "demo_1",
+        "engineName" : "Agent",
+        "id" : "807F93D2-E480-45C0-9FDF-280A42AAA905",
+        "payloadJSON" : "{\"decision\":{\"action\":\"ValidateAPI\"}}",
+        "priority" : 3,
+        "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+        "schemaVersion" : 1,
+        "sequence" : 2,
+        "spanID" : "s1",
+        "timestampUnixMicroseconds" : 1783678543043647,
+        "typeIdentifier" : "decision"
+      },
+      {
+        "contextID" : "demo_1",
+        "engineName" : "Agent",
+        "id" : "E0D85E45-6C9B-4D55-8E22-633EBB49D046",
+        "payloadJSON" : "{\"decision\":{\"action\":\"GenerateFix\"}}",
+        "priority" : 3,
+        "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+        "schemaVersion" : 1,
+        "sequence" : 3,
+        "spanID" : "s1",
+        "timestampUnixMicroseconds" : 1783678543043648,
+        "typeIdentifier" : "decision"
+      },
+      {
+        "contextID" : "demo_1",
+        "engineName" : "Agent",
+        "id" : "2B46EA42-B080-4E11-9AB0-A7BD1AC7091E",
+        "payloadJSON" : "{\"toolExecution\":{\"params\":\"build\",\"toolName\":\"VerifyFix\"}}",
+        "priority" : 2,
+        "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65",
+        "schemaVersion" : 1,
+        "sequence" : 4,
+        "spanID" : "s1",
+        "timestampUnixMicroseconds" : 1783678543043648,
+        "typeIdentifier" : "tool"
+      }
+    ],
+    "runID" : "9E0CB978-62E4-433F-8867-70A9297BFC65"
+  }
+}
