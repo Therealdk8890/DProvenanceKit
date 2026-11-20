@@ -332,6 +332,52 @@ final class OTLPHTTPExporterTests: XCTestCase {
         }
     }
 
+    // MARK: - Transport security and query preservation
+
+    func testQueryStringSurvivesNormalization() async throws {
+        let configuration = OTLPHTTPExporter<StubEvent>.Configuration(
+            endpoint: URL(string: "https://collector.example:4318/otel/?project=a&env=b")!
+        )
+        let exporter = makeExporter(configuration, responses: [.init(statusCode: 200)])
+        _ = try await exporter.export([sampleRun()])
+        XCTAssertEqual(StubURLProtocol.requests.first?.url?.absoluteString,
+                       "https://collector.example:4318/otel/v1/traces?project=a&env=b")
+    }
+
+    func testCredentialHeadersOverCleartextToRemoteHostAreRefused() async {
+        for header in ["Authorization", "x-api-key", "x-honeycomb-team-token", "DD-API-KEY"] {
+            var configuration = OTLPHTTPExporter<StubEvent>.Configuration(
+                endpoint: URL(string: "http://collector.example:4318")!
+            )
+            configuration.headers[header] = "secret"
+            let exporter = makeExporter(configuration, responses: [.init(statusCode: 200)])
+            do {
+                _ = try await exporter.export([sampleRun()])
+                XCTFail("expected insecureEndpoint for \(header)")
+            } catch let OTelExportError.insecureEndpoint(endpoint) {
+                XCTAssertEqual(endpoint, "http://collector.example:4318/v1/traces")
+            } catch {
+                XCTFail("unexpected error \(error)")
+            }
+            XCTAssertTrue(StubURLProtocol.requests.isEmpty, "no request may leave with \(header)")
+        }
+    }
+
+    func testCleartextIsAllowedForLoopbackOptInOrNoCredentials() async throws {
+        var loopback = OTLPHTTPExporter<StubEvent>.Configuration(endpoint: URL(string: "http://localhost:4318")!)
+        loopback.headers["Authorization"] = "Basic abc"
+        var optIn = OTLPHTTPExporter<StubEvent>.Configuration(endpoint: URL(string: "http://collector.example:4318")!)
+        optIn.headers["Authorization"] = "Basic abc"
+        optIn.allowInsecureTransport = true
+        var anonymous = OTLPHTTPExporter<StubEvent>.Configuration(endpoint: URL(string: "http://collector.example:4318")!)
+        anonymous.headers["x-custom"] = "yes"
+        for configuration in [loopback, optIn, anonymous] {
+            let exporter = makeExporter(configuration, responses: [.init(statusCode: 200)])
+            _ = try await exporter.export([sampleRun()])
+            XCTAssertEqual(StubURLProtocol.requests.count, 1, configuration.endpoint.absoluteString)
+        }
+    }
+
     // MARK: - Compression (gzip)
 
     func testGzipSetsContentEncodingAndBodyRoundTrips() async throws {

@@ -6,6 +6,33 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+- **Default change:** `CloudTraceStore`, `CloudWriter` and `OTLPHTTPExporter` refuse to
+  send credentials (the cloud API key; OTLP headers such as `Authorization` or
+  `x-api-key`) over plain `http` to a non-loopback host. Cloud reads throw
+  `CloudTraceStoreError.insecureEndpoint`; refused ingest batches are quarantined
+  immediately instead of retried; OTLP exports throw `OTelExportError.insecureEndpoint`.
+  `https` and loopback (`localhost`, `*.localhost`, `127.x.x.x`, `::1`) are unaffected.
+  Opt out per instance with `allowInsecureTransport: true` /
+  `Configuration.allowInsecureTransport = true`. Policy is exposed as
+  `DPKTransportSecurity.allowsCredentials(to:)`.
+- `RFC3161TimestampVerifier.verify` and `verifyExternalTimestamp` accept
+  `trustedKeyIDs:` to pin the DPK signer in the same call; results now report
+  `attestationTrust` (`.embeddedKeyOnly` unless pinned) and `attestationFailure`.
+  Previously a valid timestamp result said nothing about who signed the attestation.
+
+### Fixed
+- `OTLPHTTPExporter` preserves an endpoint's query string instead of appending
+  `/v1/traces` after it.
+- Corrected the `externalTimestamp` documentation: the token's imprint covers the
+  attestation's canonical signing payload (all fields except the signature bytes).
+
+### Compatibility
+- New enum cases (`CloudTraceStoreError.insecureEndpoint`,
+  `OTelExportError.insecureEndpoint`) affect exhaustive `switch` statements without a
+  `default`. All new parameters and properties are defaulted, so existing call sites
+  compile unchanged.
+
 ## [0.10.0] - 2026-11-15
 
 Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.

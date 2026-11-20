@@ -150,12 +150,18 @@ public extension TraceAttestationDocument {
     #if os(macOS)
     /// Verifies the DPK signature, then verifies the RFC 3161 CMS signature,
     /// SHA-256 message imprint, nonce, and a pinned TSA signer certificate.
+    ///
+    /// Pass `trustedKeyIDs` to also pin the DPK signer. Without it, a valid result
+    /// proves when the attestation existed and that its embedded key signed it — not
+    /// who signed it; check `attestationTrust` before relying on signer identity.
     func verifyExternalTimestamp(
-        trustedTSA: RFC3161TSATrust
+        trustedTSA: RFC3161TSATrust,
+        trustedKeyIDs: Set<String>? = nil
     ) -> RFC3161TimestampVerification {
         RFC3161TimestampVerifier.verify(
             document: self,
-            trustedTSA: trustedTSA
+            trustedTSA: trustedTSA,
+            trustedKeyIDs: trustedKeyIDs
         )
     }
     #endif
@@ -192,34 +198,68 @@ public struct RFC3161TimestampVerification: Sendable, Equatable {
     public let generationTimeUnixMicroseconds: Int64?
     public let tsaCertificateSHA256: String?
     public let failure: RFC3161TimestampVerificationFailure?
+    /// Trust level of the DPK signer, as established by the embedded attestation check:
+    /// `.trustedKey` only when the caller pinned `trustedKeyIDs` and the key matched.
+    /// `nil` when the attestation itself did not verify.
+    public let attestationTrust: TraceAttestationTrust?
+    /// Why the embedded attestation failed (for example `.untrustedKey` when the signer
+    /// is not in `trustedKeyIDs`), when `failure == .attestationInvalid`.
+    public let attestationFailure: TraceAttestationVerificationFailure?
 
     public init(
         isValid: Bool,
         generationTimeUnixMicroseconds: Int64?,
         tsaCertificateSHA256: String?,
-        failure: RFC3161TimestampVerificationFailure?
+        failure: RFC3161TimestampVerificationFailure?,
+        attestationTrust: TraceAttestationTrust? = nil,
+        attestationFailure: TraceAttestationVerificationFailure? = nil
     ) {
         self.isValid = isValid
         self.generationTimeUnixMicroseconds = generationTimeUnixMicroseconds
         self.tsaCertificateSHA256 = tsaCertificateSHA256
         self.failure = failure
+        self.attestationTrust = attestationTrust
+        self.attestationFailure = attestationFailure
     }
 }
 
 public enum RFC3161TimestampVerifier {
+    /// Verifies the embedded DPK attestation (pinning `trustedKeyIDs` when given), then the
+    /// RFC 3161 token. A signer outside `trustedKeyIDs` fails as `.attestationInvalid` with
+    /// `attestationFailure == .untrustedKey`. Without `trustedKeyIDs` a valid result reports
+    /// `attestationTrust == .embeddedKeyOnly`: the time is attested, the signer is not.
     public static func verify(
         document: TraceAttestationDocument,
-        trustedTSA: RFC3161TSATrust
+        trustedTSA: RFC3161TSATrust,
+        trustedKeyIDs: Set<String>? = nil
     ) -> RFC3161TimestampVerification {
-        guard document.verify().isValid else {
+        let attestation = document.verify(trustedKeyIDs: trustedKeyIDs)
+        guard attestation.isValid else {
             return RFC3161TimestampVerification(
                 isValid: false,
                 generationTimeUnixMicroseconds: nil,
                 tsaCertificateSHA256: nil,
-                failure: .attestationInvalid
+                failure: .attestationInvalid,
+                attestationTrust: nil,
+                attestationFailure: attestation.failure
             )
         }
+        let token = verifyToken(document: document, trustedTSA: trustedTSA)
+        return RFC3161TimestampVerification(
+            isValid: token.isValid,
+            generationTimeUnixMicroseconds: token.generationTimeUnixMicroseconds,
+            tsaCertificateSHA256: token.tsaCertificateSHA256,
+            failure: token.failure,
+            attestationTrust: attestation.trust,
+            attestationFailure: nil
+        )
+    }
 
+    /// Token-only checks; the caller has already verified the attestation.
+    private static func verifyToken(
+        document: TraceAttestationDocument,
+        trustedTSA: RFC3161TSATrust
+    ) -> RFC3161TimestampVerification {
         guard let timestamp = document.externalTimestamp else {
             return RFC3161TimestampVerification(
                 isValid: false,
