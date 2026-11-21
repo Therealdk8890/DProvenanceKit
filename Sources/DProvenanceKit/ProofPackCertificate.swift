@@ -112,7 +112,13 @@ public enum ProofPackCertificate {
             return out.joined(separator: "\n") + "\n"
         }
 
-        out.append("RESULT: VERIFIED")
+        // A value-presence-only pack verifies, but its labels are producer claims; say so in
+        // the headline, not only further down, so a skim never reads it as role-vouched.
+        if verification.bindingStrength == .valuePresenceOnly {
+            out.append("RESULT: VERIFIED (ROLE NOT SIGNER-VOUCHED)")
+        } else {
+            out.append("RESULT: VERIFIED")
+        }
         out.append("Verified at: \(stamp)")
         out.append("Verified with: DProvenanceKit \(toolVersion) (proof pack schema v\(pack.proofPackVersion))")
         out.append("")
@@ -189,7 +195,11 @@ public enum ProofPackCertificate {
         var body = ""
 
         if verification.isValid {
-            body += #"<p class="result ok">VERIFIED</p>"#
+            if verification.bindingStrength == .valuePresenceOnly {
+                body += #"<p class="result ok">VERIFIED <span class="warn">(role not signer-vouched)</span></p>"#
+            } else {
+                body += #"<p class="result ok">VERIFIED</p>"#
+            }
         } else {
             body += #"<p class="result bad">NOT VERIFIED</p>"#
             body += "<p class=\"lede\">This document did not verify. Do not rely on it as evidence of record integrity.</p>"
