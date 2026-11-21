@@ -98,6 +98,13 @@ final class DPKGateVerdictTests: XCTestCase {
         XCTAssertThrowsError(try DPKGateVerdict(passed: true, evidence: ["bad key": "x"])) { error in
             XCTAssertEqual(error as? DPKGateVerdict.Error, .invalidEvidenceKey("bad key"))
         }
+        // ASCII only, like Python: a decomposed accent, precomposed letter, superscript digit.
+        for key in ["source.cafe\u{0301}", "caf\u{00E9}", "n\u{00B2}"] {
+            XCTAssertThrowsError(try DPKGateVerdict(passed: true, evidence: [key: "x"])) { error in
+                XCTAssertEqual(error as? DPKGateVerdict.Error, .invalidEvidenceKey(key))
+            }
+        }
+        XCTAssertNoThrow(try DPKGateVerdict(passed: true, evidence: ["attestation.sha256_v2": "x"]))
         XCTAssertThrowsError(try DPKGateVerdict(gateJSON: ["regression_level": "high"])) { error in
             XCTAssertEqual(error as? DPKGateVerdict.Error, .missingPassed)
         }
