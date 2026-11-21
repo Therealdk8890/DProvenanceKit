@@ -25,6 +25,7 @@ no machine-specific paths. It drives the real SDK for each category:
 | Query semantics (§6) | `TraceQueryNode.evaluate(run:)` over the corpus |
 | Profile hash (§10.1) | `AlignmentExecutionContract.computeProfileHash(…)` |
 | Alignment verdict (§10.2) | `TraceAlignmentEngine.align(…)` + `canonicalSort` |
+| OTel gate-verdict attributes (OTEL_GENAI_MAPPING_v1 §3) | `DPKGateVerdict.attributes()` / `evaluationResultAttributes()` + OTLP/JSON encoding |
 
 ## Vectors
 
