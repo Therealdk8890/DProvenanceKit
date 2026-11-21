@@ -30,6 +30,13 @@ final class ProofPackTests: XCTestCase {
         let priority: TracePriority
     }
 
+    /// Records an artifact digest with no `role` beside it — a v1-era producer.
+    private struct DigestOnlyEvent: TraceableEvent {
+        let typeIdentifier: String
+        let digest: String
+        let priority: TracePriority
+    }
+
     private let reportBytes = Data(#"{"claims":[{"id":"c1","verdict":"supported"}]}"#.utf8)
 
     // MARK: - Happy paths
@@ -179,10 +186,11 @@ final class ProofPackTests: XCTestCase {
         XCTAssertEqual(result.attestation?.isValid, true, "the attestation itself is untouched")
     }
 
-    func testV1RelabelStillVerifiesButIsLabeledValuePresenceOnly() throws {
-        // The identical relabel under a v1 pack: it still verifies (v1 binds digest presence
-        // only), but the result must honestly report that the role is NOT signer-vouched, so
-        // a consumer is not silently misled.
+    func testV1RelabelOfASignerVouchedRoleIsRejected() throws {
+        // The identical relabel under a v1 pack. The signer recorded `claim-proof-report`
+        // beside this digest, so declaring `board-approved-final` contradicts the signature.
+        // `proofPackVersion` is not signed, so accepting this would let anyone strip v2's
+        // role check by rewriting the version field.
         let digest = hex(reportBytes)
         let relabeled = ProofPackArtifact(
             role: "board-approved-final",
@@ -199,13 +207,114 @@ final class ProofPackTests: XCTestCase {
         let v1Pack = ProofPackDocument(proofPackVersion: 1, attestation: signed, artifacts: [relabeled])
 
         let result = v1Pack.verify()
-        XCTAssertTrue(result.isValid, "v1 binds on digest presence, so it still verifies")
-        XCTAssertEqual(result.bindings.count, 1)
-        XCTAssertEqual(result.bindings[0].strength, .valuePresenceOnly)
-        XCTAssertEqual(
-            result.bindingStrength, .valuePresenceOnly,
-            "the weaker v1 binding must be surfaced, not hidden"
+        XCTAssertFalse(result.isValid, "a v1 relabel of a signer-vouched role must not verify")
+        XCTAssertEqual(result.failure, .artifactRoleMismatch(index: 0))
+        XCTAssertEqual(result.attestation?.isValid, true, "the attestation itself is untouched")
+    }
+
+    func testV1PackWhoseTraceRecordsNoRoleStillVerifiesAsValuePresenceOnly() throws {
+        // A genuine v1 producer that recorded only the digest (no `role` beside it) keeps
+        // verifying, honestly labeled value-presence-only: nothing in the signature
+        // contradicts its label, it just doesn't vouch for it.
+        let digest = hex(reportBytes)
+        let run = TraceRun<DigestOnlyEvent>(
+            runID: uuid("30000000-0000-0000-0000-000000000009"),
+            contextID: "proof-pack-digest-only",
+            events: [
+                TraceEvent(
+                    id: uuid("40000000-0000-0000-0000-000000000009"),
+                    runID: uuid("30000000-0000-0000-0000-000000000009"),
+                    contextID: "proof-pack-digest-only",
+                    engineName: "OnDeviceAgent",
+                    schemaVersion: 1,
+                    sequence: 0,
+                    spanID: nil,
+                    parentSpanID: nil,
+                    payload: DigestOnlyEvent(typeIdentifier: "artifact-emitted", digest: digest, priority: .critical),
+                    timestamp: Date(timeIntervalSince1970: 1_700_000_000)
+                ),
+            ]
         )
+        let signed = try TraceAttestationDocument.signed(
+            run: run,
+            using: SoftwareTraceAttestationKey(),
+            issuedAt: Date(timeIntervalSince1970: 1_700_000_200)
+        )
+        let v1Pack = ProofPackDocument(
+            proofPackVersion: 1,
+            attestation: signed,
+            artifacts: [utf8Artifact(bytes: reportBytes, sha256: digest)]
+        )
+
+        let result = v1Pack.verify()
+        XCTAssertTrue(result.isValid, result.failure.map(String.init(describing:)) ?? "")
+        XCTAssertEqual(result.bindingStrength, .valuePresenceOnly)
+        XCTAssertEqual(v1Pack.verify(requireRoleBinding: true).failure, .roleBindingRequired)
+    }
+
+    func testPublicV2VectorDowngradedToV1AndRelabeledIsRejected() throws {
+        // Exactly the attack from the review: take the committed v2 vector, rewrite it as
+        // v1 and relabel the artifact. Before the fix this printed VALID and exited 0.
+        let original = try ProofPackDocument.decodeJSON(Data(contentsOf: vectorURL(version: 2)))
+        let downgraded = ProofPackDocument(
+            proofPackVersion: 1,
+            attestation: original.attestation,
+            artifacts: original.artifacts.map {
+                ProofPackArtifact(
+                    role: "attacker-chosen-role",
+                    mediaType: "text/html",
+                    encoding: $0.encoding,
+                    content: $0.content,
+                    sha256: $0.sha256
+                )
+            }
+        )
+
+        let result = downgraded.verify()
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.failure, .artifactRoleMismatch(index: 0))
+
+        // Downgrading WITHOUT relabeling is harmless: the declared role is the signed one.
+        let versionOnly = ProofPackDocument(
+            proofPackVersion: 1, attestation: original.attestation, artifacts: original.artifacts
+        )
+        XCTAssertTrue(versionOnly.verify().isValid)
+    }
+
+    func testRoleComparisonIsByteExactNotCanonicallyEquivalent() throws {
+        // "café" precomposed (U+00E9) vs decomposed (e + U+0301) compare equal under Swift's
+        // String ==, but they are different bytes — and the Python verifier compares code
+        // points. A role must only bind when it is the exact signed byte sequence.
+        let precomposed = "caf\u{00E9}-report"
+        let decomposed = "cafe\u{0301}-report"
+        XCTAssertEqual(precomposed, decomposed, "precondition: Swift treats these as equal")
+
+        let digest = hex(reportBytes)
+        let signed = try TraceAttestationDocument.signed(
+            run: makeRun(boundDigests: [digest], role: precomposed),
+            using: SoftwareTraceAttestationKey(),
+            issuedAt: Date(timeIntervalSince1970: 1_700_000_200)
+        )
+        func pack(role: String) -> ProofPackDocument {
+            ProofPackDocument(attestation: signed, artifacts: [ProofPackArtifact(
+                role: role,
+                mediaType: "application/json",
+                encoding: .utf8,
+                content: String(decoding: reportBytes, as: UTF8.self),
+                sha256: digest
+            )])
+        }
+
+        XCTAssertTrue(pack(role: precomposed).verify().isValid)
+        let respelled = pack(role: decomposed).verify()
+        XCTAssertFalse(respelled.isValid, "a canonically-equivalent respelling is a different label")
+        XCTAssertEqual(respelled.failure, .artifactNotBound(index: 0))
+
+        // Same under v1: the respelling contradicts the signed role.
+        let v1 = ProofPackDocument(
+            proofPackVersion: 1, attestation: signed, artifacts: pack(role: decomposed).artifacts
+        )
+        XCTAssertEqual(v1.verify().failure, .artifactRoleMismatch(index: 0))
     }
 
     func testV2RequiresRoleColocatedWithDigestNotMerelyPresent() throws {
@@ -677,7 +786,10 @@ final class ProofPackTests: XCTestCase {
 
     /// A three-event run whose middle event carries the artifact digests, matching the
     /// producer rule in docs/PROOF_PACK.md: record the hash before attesting.
-    private func makeRun(boundDigests: [String]) -> TraceRun<TestEvent> {
+    private func makeRun(
+        boundDigests: [String],
+        role: String = "claim-proof-report"
+    ) -> TraceRun<TestEvent> {
         let runID = uuid("30000000-0000-0000-0000-000000000001")
         let contextID = "proof-pack-case-1"
         let timestamp = Date(timeIntervalSince1970: 1_700_000_000.5)
@@ -722,7 +834,7 @@ final class ProofPackTests: XCTestCase {
                     payload: TestEvent(
                         typeIdentifier: "artifact-emitted",
                         artifacts: boundDigests.map {
-                            TestEvent.ArtifactRef(role: "claim-proof-report", sha256: $0)
+                            TestEvent.ArtifactRef(role: role, sha256: $0)
                         },
                         priority: .critical
                     ),
