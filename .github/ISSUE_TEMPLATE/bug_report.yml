@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in DProvenanceKit does not behave as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please report security vulnerabilities privately as described in SECURITY.md, not here.
+  - type: dropdown
+    id: sdk
+    attributes:
+      label: SDK
+      options:
+        - Swift (this repository)
+        - Python (dprovenancekit on PyPI)
+        - GitHub Action
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Swift package version, or output of `python -m pip show dprovenancekit`
+      placeholder: "0.10.0"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest code or command sequence that shows the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+      description: Include the gate or CLI output if relevant.
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "macOS 26.1, Xcode 26.5 / Python 3.12 on Ubuntu 24.04"
