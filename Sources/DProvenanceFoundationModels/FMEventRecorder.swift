@@ -8,9 +8,10 @@ public protocol FoundationModelEventEmbedding: TraceableEvent {
 }
 
 /// Routes FoundationModels events into whatever run is ambient. All routes
-/// are safe no-ops outside a run (core's record semantics), and rely on
-/// core's `recordAny` being a silent guarded cast: a route whose payload type
-/// does not match the ambient run's type records nothing.
+/// are safe no-ops outside a run (core's record semantics). Each built-in route
+/// probes the ambient run's concrete type first, so a route whose payload type
+/// does not match records nothing and never trips core's type-mismatch counter
+/// (`ActiveTraceRun.payloadTypeMismatchCount`) or its DEBUG warning.
 ///
 /// `canDeliver` reports whether a record issued right now would land: the
 /// capture layer consults it before spending dedupe bookkeeping (entry-id
@@ -36,6 +37,7 @@ public struct FMEventRecorder: Sendable {
 
     /// For `DProvenanceKit<FoundationModelTraceEvent>` runs.
     public static let direct = FMEventRecorder { event in
+        guard TraceContext.currentRun is DProvenanceKit<FoundationModelTraceEvent>.ActiveTraceRun else { return }
         DProvenanceKit<FoundationModelTraceEvent>.record(event)
     } canDeliver: {
         TraceContext.currentRun is DProvenanceKit<FoundationModelTraceEvent>.ActiveTraceRun
@@ -43,17 +45,22 @@ public struct FMEventRecorder: Sendable {
 
     /// For `AnyTraceableEvent` runs, via `eraseToAny()` (deterministic rawJSON).
     public static let typeErased = FMEventRecorder { event in
+        guard TraceContext.currentRun is DProvenanceKit<AnyTraceableEvent>.ActiveTraceRun else { return }
         DProvenanceKit<AnyTraceableEvent>.record(event.eraseToAny())
     } canDeliver: {
         TraceContext.currentRun is DProvenanceKit<AnyTraceableEvent>.ActiveTraceRun
     }
 
-    /// DEFAULT: tries direct then typeErased. The guarded cast in core's
-    /// `recordAny` guarantees at most one lands, and an unrelated-payload run
-    /// records neither.
+    /// DEFAULT: direct when the ambient run is typed for FM events, typeErased
+    /// when it is an `AnyTraceableEvent` run; an unrelated-payload run records
+    /// neither. At most one lands.
     public static let automatic = FMEventRecorder { event in
-        DProvenanceKit<FoundationModelTraceEvent>.record(event)
-        DProvenanceKit<AnyTraceableEvent>.record(event.eraseToAny())
+        let run = TraceContext.currentRun
+        if run is DProvenanceKit<FoundationModelTraceEvent>.ActiveTraceRun {
+            DProvenanceKit<FoundationModelTraceEvent>.record(event)
+        } else if run is DProvenanceKit<AnyTraceableEvent>.ActiveTraceRun {
+            DProvenanceKit<AnyTraceableEvent>.record(event.eraseToAny())
+        }
     } canDeliver: {
         TraceContext.currentRun is DProvenanceKit<FoundationModelTraceEvent>.ActiveTraceRun
             || TraceContext.currentRun is DProvenanceKit<AnyTraceableEvent>.ActiveTraceRun
@@ -62,6 +69,7 @@ public struct FMEventRecorder: Sendable {
     /// For runs typed by a host vocabulary that embeds FM events as a case.
     public static func embedding<T: FoundationModelEventEmbedding>(_ type: T.Type) -> FMEventRecorder {
         FMEventRecorder { event in
+            guard TraceContext.currentRun is DProvenanceKit<T>.ActiveTraceRun else { return }
             DProvenanceKit<T>.record(T(foundationModelEvent: event))
         } canDeliver: {
             TraceContext.currentRun is DProvenanceKit<T>.ActiveTraceRun

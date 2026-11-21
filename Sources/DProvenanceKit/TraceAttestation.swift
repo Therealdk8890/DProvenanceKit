@@ -555,23 +555,25 @@ private enum TraceAttestationValidator {
 
         // Every edge must be connected to the attested run. Both endpoints living in
         // OTHER runs is fine mid-chain (transitive upstream lineage), so anchoring is
-        // computed as a fixpoint over the edge graph, not per-edge containment.
+        // computed over the edge graph, not per-edge containment: an edge is anchored
+        // when either endpoint is reachable (undirected) from a run event. One BFS,
+        // O(events + edges); the earlier repeated-sweep fixpoint was quadratic on a
+        // long chain listed in reverse.
+        var neighbors: [UUID: [UUID]] = [:]
+        for edge in edges {
+            neighbors[edge.sourceID, default: []].append(edge.targetID)
+            neighbors[edge.targetID, default: []].append(edge.sourceID)
+        }
         var anchored = eventIDs
-        var remaining = edges
-        var grew = true
-        while grew {
-            grew = false
-            remaining.removeAll { edge in
-                guard anchored.contains(edge.sourceID) || anchored.contains(edge.targetID) else {
-                    return false
-                }
-                anchored.insert(edge.sourceID)
-                anchored.insert(edge.targetID)
-                grew = true
-                return true
+        var frontier = Array(eventIDs)
+        while let node = frontier.popLast() {
+            for next in neighbors[node] ?? [] where anchored.insert(next).inserted {
+                frontier.append(next)
             }
         }
-        if let dangling = remaining.first {
+        if let dangling = edges.first(where: {
+            !anchored.contains($0.sourceID) && !anchored.contains($0.targetID)
+        }) {
             throw TraceAttestationError.danglingEdge(dangling)
         }
     }

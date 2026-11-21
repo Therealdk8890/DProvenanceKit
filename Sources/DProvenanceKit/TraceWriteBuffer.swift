@@ -64,6 +64,8 @@ public final class TraceWriteBuffer: @unchecked Sendable {
     /// event is either admitted before the store's final drain or counted as dropped —
     /// there is no interleaving that admits a row no writer will ever drain.
     private var isClosed = false
+    /// Logs the first edge refused at `maxPendingEdges`; re-armed by `drainEdges`.
+    private var edgeOverflowLogged = false
 
     // Tracking for per-run degradation
     private var queueDepthByRun: [String: Int] = [:]
@@ -178,6 +180,16 @@ public final class TraceWriteBuffer: @unchecked Sendable {
                 droppedByTier[TracePriority.structural.rawValue] &+= 1
                 return
             }
+            guard edgeQueue.count < config.capacity.maxPendingEdges else {
+                // Same accounting as a post-close edge: lineage is structural, so a
+                // refused edge must flip preservedIntegrity rather than vanish.
+                droppedByTier[TracePriority.structural.rawValue] &+= 1
+                if !edgeOverflowLogged {
+                    edgeOverflowLogged = true
+                    DPKLog.store.error("Pending lineage edges reached maxPendingEdges (\(self.config.capacity.maxPendingEdges)); further edges are dropped and counted as structural losses until the writer drains.")
+                }
+                return
+            }
             edgeQueue.append(edge)
         }
     }
@@ -267,6 +279,7 @@ public final class TraceWriteBuffer: @unchecked Sendable {
 
     public func drainEdges() -> [TraceEdge] {
         lock.withLock {
+            edgeOverflowLogged = false
             var result: [TraceEdge] = []
             while let edge = edgeQueue.popFirst() {
                 result.append(edge)
