@@ -29,6 +29,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `trustedKeyIDs:` to pin the DPK signer in the same call; results now report
   `attestationTrust` (`.embeddedKeyOnly` unless pinned) and `attestationFailure`.
   Previously a valid timestamp result said nothing about who signed the attestation.
+- `dpk verify` escapes terminal control, C1 and bidi-control characters in
+  producer-supplied labels (artifact roles, event type identifiers, failure and
+  decoding-error text, and text certificates) as `\u{XXXX}`, so a crafted pack cannot
+  rewrite or reorder what the terminal shows.
 
 ### Fixed
 - `OTLPHTTPExporter` preserves an endpoint's query string instead of appending
@@ -57,6 +61,11 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   migrations use the new throwing `SQLiteConnection.readUserVersion()` /
   `setUserVersion(_:)` instead of a setter that swallowed write errors.
 
+- **Behavior change:** `dpk verify --out=<path>` without `--certificate` now exits 2
+  (`--out` only ever wrote a certificate; it previously printed to stdout and left the
+  requested file unwritten). `--help` documents `--certificate=text|html` and what
+  `--out` does per mode.
+
 ### Compatibility
 - New enum cases (`CloudTraceStoreError.insecureEndpoint`,
   `OTelExportError.insecureEndpoint`) affect exhaustive `switch` statements without a
@@ -65,6 +74,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - New enum cases (`TraceError.corruptEdgeRow`, `SQLiteError.unsupportedSchemaVersion`)
   affect exhaustive `switch` statements without a `default`. New parameters and
   properties are defaulted; the non-throwing `userVersion` property remains.
+
+### Repository
+- CI hygiene: Dependabot now tracks GitHub Actions and the WebVisualizer's npm
+  dependencies; the unreferenced
+  `scripts/check_version_surface.sh` (superseded by
+  `.github/scripts/check-release-surfaces.sh`) is removed.
+- `swift run --package-path ConformanceHarness` works from a clone whose directory is
+  not named `DProvenanceKit`.
+- The test target excludes its on-disk interop fixtures, silencing SwiftPM's
+  "unhandled files" warning.
+- `.gitleaks.toml` extends the default ruleset with a narrow allowlist for public signer
+  key IDs, so golden vectors cannot turn the secret scan red.
+- WebVisualizer dev dependencies updated (`npm audit fix`): vite 8.3.8 and its
+  transitive nanoid/source-map-js; `npm audit` reports 0 vulnerabilities.
 
 ## [0.10.0] - 2026-11-15
 

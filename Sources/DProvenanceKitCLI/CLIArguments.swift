@@ -14,6 +14,7 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
     case minF1RequiresGate
     case requireRoleBindingRequiresProofPack
     case certificateRequiresProofPack
+    case outRequiresCertificate
     case missingRequiredFlag(String)
 
     var description: String {
@@ -36,6 +37,8 @@ enum CLIArgumentError: Error, Equatable, CustomStringConvertible {
             return "--require-role-binding only applies to proof packs; pass --proof-pack or drop it"
         case .certificateRequiresProofPack:
             return "--certificate only applies to proof packs; pass --proof-pack or drop it"
+        case .outRequiresCertificate:
+            return "verify --out writes a certificate; pass --certificate=text|html or drop --out"
         case .missingRequiredFlag(let flag):
             return "missing required flag \(flag)"
         }
@@ -165,6 +168,12 @@ enum CLIArguments {
         if invocation.certificate != nil, !invocation.proofPack {
             throw CLIArgumentError.certificateRequiresProofPack
         }
+        // verify only writes a file when rendering a certificate. Accepting a bare --out
+        // printed to stdout and left the requested file unwritten, so a script checking
+        // for that file read a stale (or missing) verdict.
+        if invocation.mode == .verify, invocation.outPath != nil, invocation.certificate == nil {
+            throw CLIArgumentError.outRequiresCertificate
+        }
         if invocation.mode == .verify, invocation.inPath == nil {
             throw CLIArgumentError.missingRequiredFlag("--in=<attestation.json>")
         }
@@ -221,6 +230,44 @@ enum CLIArguments {
         default:
             // Unreachable: `parse` only routes whitelisted flags here.
             throw CLIArgumentError.unknownFlag(name)
+        }
+    }
+}
+
+/// Neutralizes attacker-controlled text before it reaches a terminal or CI log. A
+/// verified document's labels (artifact roles, event type identifiers, decoding-error
+/// paths) are chosen by whoever produced the file; raw ESC/CSI sequences could rewrite
+/// earlier lines (e.g. paint "VALID" over "INVALID"), and bidi overrides could reorder
+/// what a reviewer reads. Control, bidi-control and other format scalars are shown as
+/// `\u{XXXX}`; everything else, including non-ASCII text, passes through.
+enum TerminalText {
+    static func sanitize(_ text: String) -> String {
+        var out = ""
+        out.unicodeScalars.reserveCapacity(text.unicodeScalars.count)
+        for scalar in text.unicodeScalars {
+            if isUnsafe(scalar) {
+                out += "\\u{" + String(scalar.value, radix: 16, uppercase: true) + "}"
+            } else {
+                out.unicodeScalars.append(scalar)
+            }
+        }
+        return out
+    }
+
+    /// Sanitizes each line, keeping the line breaks themselves (for multi-line renderings
+    /// such as the text certificate, whose labels come from the verified pack).
+    static func sanitizeLines(_ text: String) -> String {
+        text.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { sanitize(String($0)) }
+            .joined(separator: "\n")
+    }
+
+    private static func isUnsafe(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x00...0x1F, 0x7F...0x9F: return true          // C0, DEL, C1 (incl. ESC, CSI)
+        case 0x200E, 0x200F, 0x202A...0x202E, 0x2066...0x2069: return true // bidi controls
+        case 0x2028, 0x2029: return true                     // line/paragraph separators
+        default: return false
         }
     }
 }
