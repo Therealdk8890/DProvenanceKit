@@ -157,4 +157,32 @@ final class TraceAttestationEdgeValidationTests: XCTestCase {
         let attestation = try TraceAttestor.attest(trace: trace, using: SoftwareTraceAttestationKey())
         XCTAssertTrue(TraceAttestationVerifier.verify(attestation, for: trace).isValid)
     }
+
+    /// Anchoring used repeated sweeps over the remaining edges, O(edges^2) on a long
+    /// upstream chain listed farthest-first. It is now one BFS; this chain would take
+    /// ~200M edge checks under the old fixpoint.
+    func testLongReverseOrderedChainAnchorsInLinearTime() throws {
+        let anchor = UUID()
+        var nodes = [anchor]
+        for _ in 0..<20_000 { nodes.append(UUID()) }
+        // Farthest hop first: each sweep of the old loop could only anchor the last edge.
+        let chain = (1..<nodes.count).reversed().map {
+            TraceEdge(sourceID: nodes[$0], targetID: nodes[$0 - 1], type: .derivedFrom)
+        }
+        let start = Date()
+        _ = try TraceAttestor.attest(trace: makeTrace(edges: chain, eventIDs: [anchor]),
+                                     using: SoftwareTraceAttestationKey())
+        XCTAssertLessThan(Date().timeIntervalSince(start), 10, "anchoring must be linear")
+    }
+
+    func testFirstDanglingEdgeIsStillTheOneReported() {
+        let a = UUID(), b = UUID()
+        let anchored = TraceEdge(sourceID: b, targetID: a, type: .derivedFrom)
+        let firstLoose = TraceEdge(sourceID: UUID(), targetID: UUID(), type: .informed)
+        let secondLoose = TraceEdge(sourceID: UUID(), targetID: UUID(), type: .informed)
+        let trace = makeTrace(edges: [anchored, firstLoose, secondLoose], eventIDs: [a])
+        assertSigningFails(trace, with: {
+            if case .danglingEdge(let edge) = $0 { return edge == firstLoose } else { return false }
+        }, "the reported dangling edge stays the first one in input order")
+    }
 }

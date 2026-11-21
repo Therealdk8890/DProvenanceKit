@@ -13,11 +13,16 @@ public struct RawTraceEvent: Sendable, Identifiable, Equatable {
     public let spanID: String?
     public let parentSpanID: String?
     public let typeIdentifier: String
+    /// The stored payload as text. When the bytes are not valid UTF-8 (corruption or a
+    /// foreign writer) this is a lossy decoding with U+FFFD replacements and
+    /// `payloadIsValidUTF8` is `false` — never a fabricated `"{}"`.
     public let payloadJSON: String
     public let timestamp: Date
     /// `TraceEvent.schemaVersion` as recorded; 1 for rows written before the
     /// `schema_version` column existed.
     public let schemaVersion: Int
+    /// `false` when the persisted payload bytes were not valid UTF-8.
+    public var payloadIsValidUTF8: Bool = true
 }
 
 public struct RawTraceRun: Sendable, Identifiable, Equatable {
@@ -123,16 +128,19 @@ public final class RawTraceStore: @unchecked Sendable {
             let eventID = stmt.columnString(at: 0).flatMap(UUID.init(uuidString:))
             let contextID = stmt.columnString(at: 1) ?? ""
             let priority = Int(stmt.columnInt64(at: 2))
-            let sequence = UInt64(stmt.columnInt64(at: 3))
+            // bitPattern: a negative value in a corrupt or foreign row must not trap
+            // the inspector; it mirrors the writer's Int64(bitPattern:).
+            let sequence = UInt64(bitPattern: stmt.columnInt64(at: 3))
             let engine = stmt.columnString(at: 4) ?? "Unknown"
             let spanID = stmt.columnString(at: 5)
             let parentSpanID = stmt.columnString(at: 6)
             let type = stmt.columnString(at: 7) ?? "Unknown"
             let payloadData = stmt.columnData(at: 8)
-            let timestampMs = stmt.columnInt64(at: 9)
+            let timestampMicros = stmt.columnInt64(at: 9)
             let schemaVersion = hasSchemaVersion ? Int(stmt.columnInt64(at: 10)) : 1
 
-            let payloadJSON = String(data: payloadData, encoding: .utf8) ?? "{}"
+            let strictPayload = String(data: payloadData, encoding: .utf8)
+            let payloadJSON = strictPayload ?? String(decoding: payloadData, as: UTF8.self)
 
             let event = RawTraceEvent(
                 // A row whose id fails to parse still surfaces (under a fresh UUID)
@@ -147,8 +155,9 @@ public final class RawTraceStore: @unchecked Sendable {
                 parentSpanID: parentSpanID,
                 typeIdentifier: type,
                 payloadJSON: payloadJSON,
-                timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0),
-                schemaVersion: schemaVersion
+                timestamp: Date(timeIntervalSince1970: Double(timestampMicros) / 1_000_000.0),
+                schemaVersion: schemaVersion,
+                payloadIsValidUTF8: strictPayload != nil
             )
             events.append(event)
         }

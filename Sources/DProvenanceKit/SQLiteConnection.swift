@@ -16,6 +16,9 @@ public enum SQLiteError: Error, CustomStringConvertible {
     case prepareFailed(Int32, String?)
     case stepFailed(Int32, String?)
     case bindFailed(Int32, String?)
+    /// The file's `PRAGMA user_version` is newer than this build understands. Opening it
+    /// read-write would run older migrations and writes against a schema they predate.
+    case unsupportedSchemaVersion(found: Int32, supported: Int32)
     
     public var description: String {
         switch self {
@@ -24,6 +27,8 @@ public enum SQLiteError: Error, CustomStringConvertible {
         case .prepareFailed(let code, let msg): return "Prepare failed (\(code)): \(msg ?? "Unknown")"
         case .stepFailed(let code, let msg): return "Step failed (\(code)): \(msg ?? "Unknown")"
         case .bindFailed(let code, let msg): return "Bind failed (\(code)): \(msg ?? "Unknown")"
+        case .unsupportedSchemaVersion(let found, let supported):
+            return "Store schema version \(found) is newer than this DProvenanceKit supports (\(supported)); upgrade DProvenanceKit to open it"
         }
     }
 }
@@ -181,18 +186,23 @@ public final class SQLiteConnection: @unchecked Sendable {
         }
     }
     
+    /// Non-throwing convenience kept for source compatibility. It reads 0 and drops
+    /// writes on error, so migrations must use `readUserVersion()` / `setUserVersion(_:)`,
+    /// which surface the failure instead of silently re-running or skipping a step.
     public var userVersion: Int32 {
-        get {
-            guard let stmt = try? prepare("PRAGMA user_version;") else { return 0 }
-            defer { stmt.reset() }
-            if (try? stmt.step()) == true {
-                return Int32(stmt.columnInt(at: 0))
-            }
-            return 0
-        }
-        set {
-            try? execute("PRAGMA user_version = \(newValue);")
-        }
+        get { (try? readUserVersion()) ?? 0 }
+        set { try? setUserVersion(newValue) }
+    }
+
+    public func readUserVersion() throws -> Int32 {
+        let stmt = try prepare("PRAGMA user_version;")
+        defer { stmt.reset() }
+        guard try stmt.step() else { return 0 }
+        return Int32(stmt.columnInt(at: 0))
+    }
+
+    public func setUserVersion(_ version: Int32) throws {
+        try execute("PRAGMA user_version = \(version);")
     }
 }
 
