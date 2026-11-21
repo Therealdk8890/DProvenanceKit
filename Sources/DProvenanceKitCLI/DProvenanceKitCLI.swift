@@ -291,15 +291,15 @@ struct DProvenanceKitCLI {
             let result = document.verify(trustedKeyIDs: trustSet)
             guard result.isValid else {
                 printErr("INVALID: \(result.failure?.rawValue ?? "unknown failure")")
-                printErr("Key ID: \(result.keyID)")
+                printErr("Key ID: \(TerminalText.sanitize(result.keyID))")
                 exit(1)
             }
 
             print("VALID")
             print("Run ID: \(document.trace.runID.uuidString.lowercased())")
             print("Events: \(document.trace.events.count)  Edges: \(document.trace.edges.count)")
-            print("Digest: \(document.attestation.traceDigest)")
-            print("Key ID: \(result.keyID)")
+            print("Digest: \(TerminalText.sanitize(document.attestation.traceDigest))")
+            print("Key ID: \(TerminalText.sanitize(result.keyID))")
             switch result.trust {
             case .embeddedKeyOnly:
                 print("Trust: signature valid; signer identity not pinned")
@@ -307,7 +307,7 @@ struct DProvenanceKitCLI {
                 print("Trust: signature valid; signer key pinned")
             }
         } catch {
-            printErr("verify failed: \(error)")
+            printErr("verify failed: \(TerminalText.sanitize(String(describing: error)))")
             exit(1)
         }
     }
@@ -346,18 +346,22 @@ struct DProvenanceKitCLI {
                     )
                 }
                 if let outPath {
-                    try rendered.write(to: URL(fileURLWithPath: outPath), atomically: true, encoding: .utf8)
-                    printErr("Certificate written to \(outPath)")
+                    // A text certificate is meant to be cat'ed or pasted; strip terminal
+                    // controls from its pack-supplied labels. HTML is already escaped and is
+                    // rendered by a browser, so it is written verbatim.
+                    let output = format == .text ? TerminalText.sanitizeLines(rendered) : rendered
+                    try output.write(to: URL(fileURLWithPath: outPath), atomically: true, encoding: .utf8)
+                    printErr("Certificate written to \(TerminalText.sanitize(outPath))")
                 } else {
-                    print(rendered, terminator: "")
+                    print(TerminalText.sanitizeLines(rendered), terminator: "")
                 }
                 exit(result.isValid ? 0 : 1)
             }
 
             guard result.isValid else {
-                printErr("INVALID: \(result.failure.map(String.init(describing:)) ?? "unknown failure")")
+                printErr("INVALID: \(TerminalText.sanitize(result.failure.map(String.init(describing:)) ?? "unknown failure"))")
                 if let attestation = result.attestation {
-                    printErr("Key ID: \(attestation.keyID)")
+                    printErr("Key ID: \(TerminalText.sanitize(attestation.keyID))")
                 }
                 exit(1)
             }
@@ -365,8 +369,8 @@ struct DProvenanceKitCLI {
             print("VALID")
             print("Run ID: \(pack.attestation.trace.runID.uuidString.lowercased())")
             print("Events: \(pack.attestation.trace.events.count)  Edges: \(pack.attestation.trace.edges.count)  Artifacts: \(pack.artifacts.count)")
-            print("Digest: \(pack.attestation.attestation.traceDigest)")
-            print("Key ID: \(pack.attestation.attestation.keyID)")
+            print("Digest: \(TerminalText.sanitize(pack.attestation.attestation.traceDigest))")
+            print("Key ID: \(TerminalText.sanitize(pack.attestation.attestation.keyID))")
             switch result.attestation?.trust {
             case .trustedKey?:
                 print("Trust: signature valid; signer key pinned")
@@ -374,7 +378,7 @@ struct DProvenanceKitCLI {
                 print("Trust: signature valid; signer identity not pinned")
             }
             for binding in result.bindings {
-                print("Artifact: \(binding.role)  sha256=\(binding.sha256.prefix(12))…  bound by event[\(binding.eventIndex)] \(binding.eventTypeIdentifier)")
+                print("Artifact: \(TerminalText.sanitize(binding.role))  sha256=\(TerminalText.sanitize(String(binding.sha256.prefix(12))))…  bound by event[\(binding.eventIndex)] \(TerminalText.sanitize(binding.eventTypeIdentifier))")
             }
             switch result.bindingStrength {
             case .roleBound?:
@@ -385,13 +389,17 @@ struct DProvenanceKitCLI {
                 break
             }
         } catch {
-            printErr("verify failed: \(error)")
+            printErr("verify failed: \(TerminalText.sanitize(String(describing: error)))")
             exit(1)
         }
     }
 
     static func printUsage() {
-        print("""
+        print(usageText)
+    }
+
+    static var usageText: String {
+        """
         DProvenanceKit CLI Evaluator
 
         Usage: DProvenanceKitCLI <mode> [flags]
@@ -408,18 +416,22 @@ struct DProvenanceKitCLI {
           --gate            Exit non-zero if any case fails — for CI regression gating
           --min-f1=<value>  With --gate, also require F1 >= <value> on both datasets
           --case=<name>     web-export: which corpus case to export (default: first)
-          --out=<path>      web-export: write JSON to a file instead of stdout
+          --out=<path>      web-export / attest-demo: write JSON to a file instead of
+                            stdout; verify: write the --certificate there (requires
+                            --certificate)
           --in=<path>       verify: attestation document (or proof pack) to verify
           --proof-pack      verify: treat --in as a proof pack and also check that each
                             embedded artifact's SHA-256 is bound inside the signed trace
           --require-role-binding  verify --proof-pack: reject a v1 (value-presence-only)
                             pack instead of warning — require the role to be signer-vouched
+          --certificate=text|html  verify --proof-pack: render a human-readable
+                            certificate instead of the summary (exit code unchanged)
           --trusted-key=<id> verify: require this signer key ID (64 hex chars, repeatable)
           -h, --help        Show this help
 
         Unknown, malformed, duplicated, or out-of-range arguments exit 2 — they are
         never ignored, so a typo cannot silently weaken a verification or a CI gate.
-        """)
+        """
     }
 
     static func printErr(_ message: String) {
