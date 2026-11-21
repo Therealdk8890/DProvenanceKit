@@ -133,7 +133,11 @@ let package = Package(
         ),
         .testTarget(
             name: "DProvenanceKitTests",
-            dependencies: ["DProvenanceKit", "DProvenanceUI", "E2EDecisionPathDemoLib"]
+            dependencies: ["DProvenanceKit", "DProvenanceUI", "E2EDecisionPathDemoLib"],
+            // Interop fixtures are read from disk via #filePath, not from Bundle.module;
+            // excluding them silences SwiftPM's "unhandled files" warning without
+            // generating a resource bundle nobody reads.
+            exclude: ["fixtures"]
         ),
         // Covers the CLI's fail-closed argument validation: a malformed --trusted-key
         // or --min-f1 must stop the run, never silently weaken it.
