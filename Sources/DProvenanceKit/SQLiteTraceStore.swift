@@ -74,6 +74,9 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         return names
     }
 
+    /// The `PRAGMA user_version` this build writes and understands.
+    static var currentSchemaVersion: Int32 { 3 }
+
     public init(fileURL: URL, maxGlobalBuffer: Int = 50_000, maxPerRunBuffer: Int = 5_000) throws {
         let database = try SQLiteConnection(fileURL: fileURL)
         let buf = TraceWriteBuffer(maxGlobalBuffer: maxGlobalBuffer, maxPerRunBuffer: maxPerRunBuffer)
@@ -88,6 +91,13 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         
         // Ensure tables exist
         try database.transaction {
+            // A file written by a newer DProvenanceKit may carry tables or semantics this
+            // build does not know; running our migrations and writes against it could
+            // corrupt it. Refuse instead.
+            let foundVersion = try database.readUserVersion()
+            guard foundVersion <= Self.currentSchemaVersion else {
+                throw SQLiteError.unsupportedSchemaVersion(found: foundVersion, supported: Self.currentSchemaVersion)
+            }
             try database.execute("""
             CREATE TABLE IF NOT EXISTS runs (
                 run_id TEXT PRIMARY KEY,
@@ -145,7 +155,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             // corpus grows.
             try database.execute("CREATE INDEX IF NOT EXISTS idx_runs_start_time ON runs(start_time);")
             
-            if database.userVersion < 2 {
+            if try database.readUserVersion() < 2 {
                 try database.execute("""
                 CREATE TABLE IF NOT EXISTS trace_edges (
                     source_id TEXT NOT NULL,
@@ -155,7 +165,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 """)
                 try database.execute("CREATE INDEX IF NOT EXISTS idx_edge_source ON trace_edges(source_id, edge_type);")
                 try database.execute("CREATE INDEX IF NOT EXISTS idx_edge_target ON trace_edges(target_id, edge_type);")
-                database.userVersion = 2
+                try database.setUserVersion(2)
             }
 
             // Attestation persistence (schema v3). Stores the self-contained,
@@ -168,7 +178,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             // guarantee to local re-verification. Gated on user_version so a DB already
             // at v2 (edges) still gains the table exactly once. Keyed by run_id:
             // re-attesting a run replaces its stored document.
-            if database.userVersion < 3 {
+            if try database.readUserVersion() < 3 {
                 try database.execute("""
                 CREATE TABLE IF NOT EXISTS attestations (
                     run_id TEXT PRIMARY KEY,
@@ -178,7 +188,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                 );
                 """)
                 try database.execute("CREATE INDEX IF NOT EXISTS idx_attestations_issued_at ON attestations(issued_at);")
-                database.userVersion = 3
+                try database.setUserVersion(3)
             }
 
             // Write-behind reconciliation
@@ -233,7 +243,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             runID: event.runID.uuidString,
             contextID: event.contextID,
             priority: event.payload.priority.rawValue,
-            sequence: Int64(event.sequence),
+            sequence: Int64(bitPattern: event.sequence),
             engine: event.engineName,
             spanID: event.spanID,
             parentSpanID: event.parentSpanID,
@@ -510,8 +520,8 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
             let parentSpanID = stmt.columnString(at: 3)
             _ = stmt.columnString(at: 4) // type
             let payloadData = stmt.columnData(at: 5)
-            let timestampMs = stmt.columnInt64(at: 6)
-            let sequence = UInt64(stmt.columnInt64(at: 7))
+            let timestampMicros = stmt.columnInt64(at: 6)
+            let sequence = UInt64(bitPattern: stmt.columnInt64(at: 7))
             // Authoritative as stored: legacy rows were backfilled to the column's
             // NOT NULL DEFAULT 1 by the ALTER in init, and a recorded value — even an
             // unconventional 0 — must round-trip unchanged or attestation digests
@@ -529,7 +539,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     spanID: spanID,
                     parentSpanID: parentSpanID,
                     payload: payload,
-                    timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
+                    timestamp: Date(timeIntervalSince1970: Double(timestampMicros) / 1_000_000.0)
                 )
                 events.append(event)
             } else {
@@ -582,14 +592,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         
         var edges: [TraceEdge] = []
         while try stmt.step() {
-            guard let sourceStr = stmt.columnString(at: 0),
-                  let targetStr = stmt.columnString(at: 1),
-                  let typeStr = stmt.columnString(at: 2),
-                  let sourceUUID = UUID(uuidString: sourceStr),
-                  let targetUUID = UUID(uuidString: targetStr) else {
-                continue
-            }
-            edges.append(TraceEdge(sourceID: sourceUUID, targetID: targetUUID, type: TraceEdgeType(rawValue: typeStr) ?? .informed))
+            edges.append(try Self.decodeEdgeRow(stmt))
         }
         return edges
     }
@@ -617,18 +620,29 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
         
         var edges: [TraceEdge] = []
         while try stmt.step() {
-            guard let sourceStr = stmt.columnString(at: 0),
-                  let targetStr = stmt.columnString(at: 1),
-                  let typeStr = stmt.columnString(at: 2),
-                  let sourceUUID = UUID(uuidString: sourceStr),
-                  let targetUUID = UUID(uuidString: targetStr) else {
-                continue
-            }
-            edges.append(TraceEdge(sourceID: sourceUUID, targetID: targetUUID, type: TraceEdgeType(rawValue: typeStr) ?? .informed))
+            edges.append(try Self.decodeEdgeRow(stmt))
         }
         return edges
     }
     
+    /// Decodes one `(source_id, target_id, edge_type)` row. A row that does not decode is
+    /// corruption or schema drift: it used to be skipped (silently truncating lineage) or,
+    /// for an unknown edge type, rewritten to `.informed` (silently changing what the
+    /// edge claims). Lineage is evidence, so the read fails loudly instead.
+    static func decodeEdgeRow(_ stmt: SQLiteStatement) throws -> TraceEdge {
+        let sourceStr = stmt.columnString(at: 0)
+        let targetStr = stmt.columnString(at: 1)
+        let typeStr = stmt.columnString(at: 2)
+        guard let sourceUUID = sourceStr.flatMap(UUID.init(uuidString:)),
+              let targetUUID = targetStr.flatMap(UUID.init(uuidString:)),
+              let type = typeStr.flatMap(TraceEdgeType.init(rawValue:)) else {
+            throw TraceError.corruptEdgeRow(
+                sourceID: sourceStr ?? "<null>", targetID: targetStr ?? "<null>", type: typeStr ?? "<null>"
+            )
+        }
+        return TraceEdge(sourceID: sourceUUID, targetID: targetUUID, type: type)
+    }
+
     public func getEvents(ids: Set<UUID>) async throws -> [UUID: TraceEvent<T>] {
         if ids.isEmpty { return [:] }
         try await flush()
@@ -691,8 +705,8 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
 
             let spanID = stmt.columnString(at: 4)
             let parentSpanID = stmt.columnString(at: 5)
-            let timestampMs = stmt.columnInt64(at: 7)
-            let sequence = UInt64(stmt.columnInt64(at: 8))
+            let timestampMicros = stmt.columnInt64(at: 7)
+            let sequence = UInt64(bitPattern: stmt.columnInt64(at: 8))
             // Authoritative as stored (see fetchRun): the migration backfills legacy
             // rows to 1, so no read-side coercion may rewrite a recorded value.
             let schemaVersion = Int(stmt.columnInt64(at: 9))
@@ -708,7 +722,7 @@ public final class SQLiteTraceStore<T: TraceableEvent>: TraceStore, @unchecked S
                     spanID: spanID,
                     parentSpanID: parentSpanID,
                     payload: payload,
-                    timestamp: Date(timeIntervalSince1970: Double(timestampMs) / 1_000_000.0)
+                    timestamp: Date(timeIntervalSince1970: Double(timestampMicros) / 1_000_000.0)
                 )
                 events[id] = event
             } else {
