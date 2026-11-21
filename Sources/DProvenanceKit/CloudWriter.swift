@@ -23,6 +23,7 @@ public actor CloudWriter {
     private let apiKey: String
     private let buffer: TraceWriteBuffer
     private let session: URLSession
+    private let allowInsecureTransport: Bool
 
     private var writeTask: Task<Void, Never>?
     /// Kept separately because `Task` exposes cancellation but not completion state.
@@ -43,13 +44,15 @@ public actor CloudWriter {
         apiKey: String,
         buffer: TraceWriteBuffer,
         session: URLSession = .shared,
-        circuitBreaker: CircuitBreaker = CircuitBreaker()
+        circuitBreaker: CircuitBreaker = CircuitBreaker(),
+        allowInsecureTransport: Bool = false
     ) {
         self.endpoint = endpoint
         self.apiKey = apiKey
         self.buffer = buffer
         self.session = session
         self.circuitBreaker = circuitBreaker
+        self.allowInsecureTransport = allowInsecureTransport
     }
     
     public func start() {
@@ -272,6 +275,16 @@ public actor CloudWriter {
                 // invalidation) is endpoint/session feedback and must keep counting,
                 // or the batch would retry forever with the breaker bypassed and no
                 // quarantine ever surfacing it.
+                // A cleartext endpoint is a configuration error, not a transient fault:
+                // retrying would only re-attempt to leak the key. Quarantine at once so
+                // the loss is surfaced instead of burning the retry budget.
+                if case CloudTraceStoreError.insecureEndpoint = error {
+                    DPKLog.cloud.error("Refusing to send the API key over cleartext HTTP to a non-loopback host; quarantining \(batch.events.count) events and \(batch.edges.count) edges. Use https or allowInsecureTransport.")
+                    quarantineQueue.append(batch)
+                    inflightBatch = nil
+                    attemptCount = 0
+                    return
+                }
                 if error is CancellationError || Task.isCancelled {
                     DPKLog.cloud.info("Send cancelled mid-flight; batch of \(batch.events.count) events and \(batch.edges.count) edges retained inflight for the final drain.")
                     return
@@ -310,6 +323,9 @@ public actor CloudWriter {
     }
     
     private func sendBatch(_ batch: Batch, deadline: Date? = nil) async throws -> Int {
+        guard allowInsecureTransport || DPKTransportSecurity.allowsCredentials(to: endpoint) else {
+            throw CloudTraceStoreError.insecureEndpoint(endpoint.absoluteString)
+        }
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
