@@ -277,7 +277,19 @@ The verifier checks the CMS signature, the TSA signer certificate fingerprint, t
 
 **Verifier boundary:** On macOS, DPK verifies the CMS signature, exact TSA leaf-certificate SHA-256 pin, the **critical and sole** `id-kp-timeStamping` extended key usage, and the leaf certificate's not-before/not-after interval at the token's verified `genTime`. A certificate lacking that critical EKU or whose validity interval excludes `genTime` fails closed. Pinning remains the independently provisioned trust anchor: DPK does **not** build or validate a public-PKI certificate chain, check certificate revocation, or establish the TSA operator's identity beyond the exact pin. Certificate rotation requires an independently reviewed pin update. On iOS, the timestamp client checks the response structure, message imprint, nonce, and generation time, but does **not** validate the CMS signature or TSA certificate. Use a macOS DPK verifier or another independent RFC 3161/CMS verifier before treating an iOS-produced token as trusted.
 
-`verifyExternalTimestamp(trustedTSA:)` first checks the DPK signature using the public key embedded in the document. That establishes signature integrity, not the identity of the DPK signer. Separately call `document.verify(trustedKeyIDs: [expectedKeyID])` using a key ID provisioned through a trusted channel when signer identity matters.
+`verifyExternalTimestamp(trustedTSA:)` first checks the DPK signature using the public key embedded in the document. On its own that establishes signature integrity, not the identity of the DPK signer, and the result reports `attestationTrust == .embeddedKeyOnly`. When signer identity matters, pin it in the same call with a key ID provisioned through a trusted channel:
+
+```swift
+let result = timestamped.verifyExternalTimestamp(
+    trustedTSA: RFC3161TSATrust(certificateSHA256: "<pinned-tsa-certificate-sha256>"),
+    trustedKeyIDs: [expectedKeyID]
+)
+precondition(result.isValid && result.attestationTrust == .trustedKey)
+```
+
+A signer outside `trustedKeyIDs` fails as `.attestationInvalid` with `result.attestationFailure == .untrustedKey`.
+
+The token's message imprint is the SHA-256 of the attestation's canonical signing payload — every envelope field except the signature bytes — not of the serialized JSON document.
 
 DPK does not currently publish to or verify against a transparency log. [`EXTERNAL_ANCHOR_CONTRACT.md`](EXTERNAL_ANCHOR_CONTRACT.md) defines a composable digest-anchor interface and adversarial requirements; it is an interoperability contract, not an implemented log client or service.
 

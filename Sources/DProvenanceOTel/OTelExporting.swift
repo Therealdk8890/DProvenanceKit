@@ -40,6 +40,10 @@ public enum OTelExportError: Error, Sendable, Equatable {
     case encodingFailed(description: String)
     case fileWriteFailed(path: String, description: String)
     case invalidEndpoint(String)
+    /// Credential-bearing headers (Authorization, API keys, tokens) would go over
+    /// cleartext `http` to a non-loopback host. Use `https`, or set
+    /// `Configuration.allowInsecureTransport` for a deliberately trusted network.
+    case insecureEndpoint(String)
     /// `completed` = aggregate receipt of chunks already delivered before the
     /// failure (nil if none) — a mid-chunk failure must not throw away the
     /// fact that earlier chunks landed, or the caller re-sends them.
