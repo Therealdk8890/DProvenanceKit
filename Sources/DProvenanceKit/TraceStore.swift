@@ -128,6 +128,9 @@ public enum TraceError: Error {
     /// so persisting a new attestation would touch the quiesced file — surfaced as an
     /// error rather than silently dropped, matching how post-close records are counted.
     case storeClosed
+    /// A persisted lineage edge row does not decode (a malformed UUID or an edge type this
+    /// version does not know). Raised instead of dropping or re-typing the edge.
+    case corruptEdgeRow(sourceID: String, targetID: String, type: String)
 }
 
 
