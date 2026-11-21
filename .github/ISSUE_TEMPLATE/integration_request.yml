@@ -1,0 +1,28 @@
+name: Integration or feature request
+description: Ask for a framework adapter, CI integration, or feature.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: usecase
+    attributes:
+      label: What are you building?
+      description: The agent or AI feature, and which steps must never silently disappear.
+    validations:
+      required: true
+  - type: input
+    id: stack
+    attributes:
+      label: Framework, model, or CI system
+      placeholder: "Foundation Models, LangGraph, OpenAI Agents SDK, GitLab CI..."
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like DProvenanceKit to do?
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to open a pull request for this.
