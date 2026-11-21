@@ -1,0 +1,23 @@
+# gitleaks configuration for the secret-scan CI job (.github/workflows/ci.yml).
+#
+# Extends the default ruleset; nothing default is disabled. The one allowlist entry
+# covers signer KEY IDs: a key ID is the SHA-256 fingerprint of a PUBLIC key
+# (TraceAttestation.keyID, proof-pack/conformance vectors, configuration manifests),
+# so a 64-hex value under a key-id field is public by construction. Without this the
+# generic-api-key rule's keyword/entropy heuristics can flag golden vectors as the
+# rule set evolves between gitleaks releases, turning a required check red for data
+# that must stay committed byte-for-byte.
+#
+# The match is deliberately narrow: the whole JSON/Swift line must be exactly a
+# key-id field name and a 64-character lowercase hex string. A secret under any other
+# field name (api_key, secret, token, "key", ...) is still reported.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public signer key IDs (SHA-256 of a public key) in vectors, fixtures and docs"
+regexTarget = "line"
+regexes = [
+  '''^\s*"(keyID|key_id|signerKeyID|signer_key_id|trustedKeyID|trusted_key_id)"\s*:\s*"[0-9a-f]{64}",?\s*$''',
+]

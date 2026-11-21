@@ -89,6 +89,20 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   affect exhaustive `switch` statements without a `default`. New parameters and
   properties are defaulted; the non-throwing `userVersion` property remains.
 
+### Repository
+- CI hygiene: Dependabot now tracks GitHub Actions and the WebVisualizer's npm
+  dependencies; the unreferenced
+  `scripts/check_version_surface.sh` (superseded by
+  `.github/scripts/check-release-surfaces.sh`) is removed.
+- `swift run --package-path ConformanceHarness` works from a clone whose directory is
+  not named `DProvenanceKit`.
+- The test target excludes its on-disk interop fixtures, silencing SwiftPM's
+  "unhandled files" warning.
+- `.gitleaks.toml` extends the default ruleset with a narrow allowlist for public signer
+  key IDs, so golden vectors cannot turn the secret scan red.
+- WebVisualizer dev dependencies updated (`npm audit fix`): vite 8.3.8 and its
+  transitive nanoid/source-map-js; `npm audit` reports 0 vulnerabilities.
+
 ## [0.10.0] - 2026-11-15
 
 Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.

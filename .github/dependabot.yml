@@ -1,0 +1,23 @@
+# Keeps the SHA-pinned GitHub Actions and the WebVisualizer's npm toolchain current.
+# Pins stay full commit SHAs (with a version comment); Dependabot rewrites both.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directory: /WebVisualizer
+    schedule:
+      interval: weekly
+    groups:
+      webvisualizer-dev:
+        dependency-type: development
+    commit-message:
+      prefix: deps
