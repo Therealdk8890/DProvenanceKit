@@ -13,7 +13,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "ConformanceHarness",
-            dependencies: [.product(name: "DProvenanceKit", package: "DProvenanceKit")]
+            dependencies: [
+                .product(name: "DProvenanceKit", package: "DProvenanceKit"),
+                .product(name: "DProvenanceOTel", package: "DProvenanceKit"),
+            ]
         )
     ]
 )

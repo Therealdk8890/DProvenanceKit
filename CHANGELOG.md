@@ -6,6 +6,17 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `DPKGateVerdict` (DProvenanceOTel): a gate verdict as OpenTelemetry attributes. It is the
+  Swift twin of Python `dprovenancekit.exporters.GateVerdict`, emitting `dpk.gate.*`
+  attributes and the standard `gen_ai.evaluation.result` event
+  (`evaluationResultEvent(timeUnixNano:)`). Build it from `dpk gate --json` output
+  (`init(gateJSON:)`) or from the shared JSON form. The contract is pinned by the shared
+  `otel_verdict_attributes.json` vector, which the conformance harness (category 7) and
+  `DPKGateVerdictTests` reproduce.
+- `OTLPAnyValue.array` and `OTLPKeyValue.stringArray(_:_:)`: OTLP `arrayValue`
+  attributes. Empty `arrayValue` objects decode as empty arrays.
+
 ### Security
 - Proof packs: a pack whose signed trace records the artifact digest beside a different
   `role` now fails with the new `ProofPackVerificationFailure.artifactRoleMismatch(index:)`
@@ -67,6 +78,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--out` does per mode.
 
 ### Compatibility
+- New enum case `OTLPAnyValue.array` affects exhaustive `switch` statements over
+  `OTLPAnyValue` without a `default`. Existing wire output is unchanged: no current
+  attribute switches to arrays (`dpk.derived_from` stays a comma-joined string).
 - New enum cases (`CloudTraceStoreError.insecureEndpoint`,
   `OTelExportError.insecureEndpoint`) affect exhaustive `switch` statements without a
   `default`. All new parameters and properties are defaulted, so existing call sites
