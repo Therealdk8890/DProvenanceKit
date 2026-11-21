@@ -6,6 +6,16 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+- Proof packs: a pack whose signed trace records the artifact digest beside a different
+  `role` now fails with the new `ProofPackVerificationFailure.artifactRoleMismatch(index:)`
+  under v1 (v2 already failed it as `artifactNotBound`). Previously a v2 pack rewritten as `proofPackVersion: 1` with a new role
+  verified (exit 0). `requireRoleBinding` still defaults to `false`; genuine v1 packs whose
+  traces record no role keep verifying as value-presence-only, and their certificates now
+  say `VERIFIED (ROLE NOT SIGNER-VOUCHED)` in the headline. Source note: exhaustive
+  `switch`es over `ProofPackVerificationFailure` need the new case.
+- Proof-pack role and digest matching is byte-exact UTF-8 instead of Swift `String ==`
+  (Unicode canonical equivalence), matching the Python verifier.
 ### Repository
 - CI hygiene: Dependabot now tracks GitHub Actions and the WebVisualizer's npm
   dependencies; the unreferenced
