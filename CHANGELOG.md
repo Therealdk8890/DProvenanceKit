@@ -102,6 +102,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   key IDs, so golden vectors cannot turn the secret scan red.
 - WebVisualizer dev dependencies updated (`npm audit fix`): vite 8.3.8 and its
   transitive nanoid/source-map-js; `npm audit` reports 0 vulnerabilities.
+- Vendored conformance vectors re-synced from DProvenanceKitPython `main` (f71ca8a):
+  `event_chain_v1_candidate.json` and `otel_verdict_attributes.json` added to
+  `ConformanceHarness/vectors/`, so the vector-sync check passes again. Byte-identical
+  copies; the harness loads vectors by name, so no Swift behavior changes.
 
 ## [0.10.0] - 2026-11-15
 
