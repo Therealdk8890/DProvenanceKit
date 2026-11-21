@@ -39,6 +39,11 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
         /// exact prior wire behavior.
         public var compression: Compression
 
+        /// Permit credential-bearing headers over plain `http` to a non-loopback host.
+        /// Default `false`: such an export throws `OTelExportError.insecureEndpoint`
+        /// instead of putting the secret on the wire in cleartext.
+        public var allowInsecureTransport: Bool
+
         public init(endpoint: URL) {
             self.endpoint = endpoint
             self.headers = [:]
@@ -46,6 +51,7 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
             self.maxRunsPerRequest = 50
             self.retryAttempts = 0
             self.compression = .none
+            self.allowInsecureTransport = false
         }
 
         /// Langfuse accepts OTLP HTTP/JSON directly (>= cloud / self-host v3.22.0).
@@ -143,13 +149,38 @@ public struct OTLPHTTPExporter<T: TraceableEvent>: OTelTraceExporter, Sendable {
     // MARK: - Endpoint normalization (M10)
 
     private func normalizedEndpoint() throws -> URL {
-        var absolute = configuration.endpoint.absoluteString
-        while absolute.hasSuffix("/") { absolute.removeLast() }
-        if !absolute.hasSuffix("/v1/traces") { absolute += "/v1/traces" }
-        guard let url = URL(string: absolute), url.scheme != nil, url.host != nil else {
-            throw OTelExportError.invalidEndpoint(absolute)
+        // Normalize the PATH only, so a query string (e.g. `?project=a`) survives intact
+        // instead of having "/v1/traces" appended after it.
+        // The error carries the would-be normalized string, as it always has.
+        var original = configuration.endpoint.absoluteString
+        while original.hasSuffix("/") { original.removeLast() }
+        if !original.hasSuffix("/v1/traces") { original += "/v1/traces" }
+        guard var components = URLComponents(url: configuration.endpoint, resolvingAgainstBaseURL: false),
+              components.scheme != nil, components.host != nil else {
+            throw OTelExportError.invalidEndpoint(original)
+        }
+        var path = components.percentEncodedPath
+        while path.hasSuffix("/") { path.removeLast() }
+        if !path.hasSuffix("/v1/traces") { path += "/v1/traces" }
+        components.percentEncodedPath = path
+        guard let url = components.url, url.host != nil else {
+            throw OTelExportError.invalidEndpoint(original)
+        }
+        if !configuration.allowInsecureTransport,
+           Self.carriesCredentials(configuration.headers),
+           !DPKTransportSecurity.allowsCredentials(to: url) {
+            throw OTelExportError.insecureEndpoint(url.absoluteString)
         }
         return url
+    }
+
+    /// Header names that carry a secret: Authorization/Proxy-Authorization, and any name
+    /// mentioning a key, token, secret, or auth (x-api-key, x-honeycomb-team-key, ...).
+    static func carriesCredentials(_ headers: [String: String]) -> Bool {
+        headers.keys.contains { name in
+            let lower = name.lowercased()
+            return ["auth", "key", "token", "secret", "password", "cookie"].contains { lower.contains($0) }
+        }
     }
 
     // MARK: - Transport

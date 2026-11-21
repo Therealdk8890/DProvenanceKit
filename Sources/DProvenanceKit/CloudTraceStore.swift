@@ -12,6 +12,10 @@ public enum CloudTraceStoreError: Error, Equatable {
     /// server, so a hosted read could only return a stale/incomplete view.
     case undeliveredQuarantine(count: Int)
     case invalidResponse(endpoint: String, reason: String)
+    /// The endpoint is plain `http` to a non-loopback host, so sending the API key would
+    /// expose it in cleartext. Use `https`, or pass `allowInsecureTransport: true` for a
+    /// deliberately trusted network.
+    case insecureEndpoint(String)
 }
 
 /// A read operation advertised by `{baseEndpoint}/capabilities`.
@@ -83,6 +87,7 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
     private let buffer: TraceWriteBuffer
     private let writer: CloudWriter
     private let session: URLSession
+    private let allowInsecureTransport: Bool
 
     /// Events lost before they reach the buffer — payloads that fail to JSON-encode.
     /// Folded into `dropStats` so an unencodable payload can never vanish while the
@@ -103,19 +108,22 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
         endpoint: URL,
         apiKey: String,
         config: OfflineConfig = OfflineConfig(),
-        session: URLSession = .shared
+        session: URLSession = .shared,
+        allowInsecureTransport: Bool = false
     ) {
         self.endpoint = endpoint
         self.apiKey = apiKey
         self.buffer = TraceWriteBuffer(config: config)
         self.session = session
+        self.allowInsecureTransport = allowInsecureTransport
 
         let ingestionURL = endpoint.appendingPathComponent("ingest")
         self.writer = CloudWriter(
             endpoint: ingestionURL,
             apiKey: apiKey,
             buffer: buffer,
-            session: session
+            session: session,
+            allowInsecureTransport: allowInsecureTransport
         )
 
         Task {
@@ -879,6 +887,9 @@ public final class CloudTraceStore<T: TraceableEvent>: TraceStore, @unchecked Se
             url.appendPathComponent(component)
         }
 
+        guard allowInsecureTransport || DPKTransportSecurity.allowsCredentials(to: url) else {
+            throw CloudTraceStoreError.insecureEndpoint(url.absoluteString)
+        }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
