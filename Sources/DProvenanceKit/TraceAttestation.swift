@@ -179,8 +179,9 @@ public struct TraceAttestationDocument: Codable, Sendable, Equatable {
     public let trace: AttestableTrace
     public let attestation: TraceAttestation
     /// Optional RFC 3161 external timestamp. This field is outside the DPK
-    /// signature; the timestamp token independently commits to the exact
-    /// signed attestation envelope.
+    /// signature; the timestamp token independently commits to the SHA-256 of the
+    /// attestation's canonical signing payload (every envelope field except the
+    /// signature bytes themselves).
     public let externalTimestamp: RFC3161Timestamp?
 
     public init(

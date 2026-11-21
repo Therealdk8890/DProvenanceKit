@@ -86,7 +86,9 @@ let config = OTLPHTTPExporter<MyAIDecision>.Configuration.collector(
 )
 ```
 
-The endpoint is normalized: trailing slashes trimmed, `/v1/traces` appended iff not already the suffix — so both `http://host:4318` and `http://host:4318/v1/traces` work. Headers are sent verbatim; `Content-Type: application/json` is owned by the exporter and always set.
+The endpoint path is normalized: trailing slashes trimmed, `/v1/traces` appended iff not already the suffix — so both `http://host:4318` and `http://host:4318/v1/traces` work. A query string is preserved (`https://host/otel?project=a` exports to `https://host/otel/v1/traces?project=a`). Headers are sent verbatim; `Content-Type: application/json` is owned by the exporter and always set.
+
+**Cleartext guard.** If any header looks like a credential (its name contains `auth`, `key`, `token`, `secret`, `password` or `cookie` — e.g. `Authorization`, `x-api-key`), the endpoint must be `https` or a loopback host (`localhost`, `*.localhost`, `127.x.x.x`, `::1`); otherwise `export` throws `OTelExportError.insecureEndpoint` before anything is sent. Set `configuration.allowInsecureTransport = true` only for a deliberately trusted network. `CloudTraceStore` and `CloudWriter` apply the same rule to their API key (`allowInsecureTransport:` init parameter; refused ingest batches are quarantined, refused reads throw `CloudTraceStoreError.insecureEndpoint`).
 
 ## Wiring: Arize Phoenix (via relay)
 
