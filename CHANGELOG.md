@@ -6,6 +6,15 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- DProvenanceFoundationModels builds against the shipping OS 27 SDK (Xcode 27). The
+  transcript bridge matched `Transcript.Segment.custom`, a case from an early 27.0 beta
+  that Apple removed before release, so every Xcode 27 consumer build failed with
+  `Type 'Transcript.Segment' has no member 'custom'` (seen in CaseClarity's Xcode Cloud
+  builds since 0.9.0). Attachment segments are still skipped and counted. CI now builds
+  the Foundation Models targets on the `xcode-27` runner image, so the
+  `canImport(FoundationModels, _version: 2.0)` branches are compiled somewhere.
+
 ### Added
 - `DPKGateVerdict` (DProvenanceOTel): a gate verdict as OpenTelemetry attributes. It is the
   Swift twin of Python `dprovenancekit.exporters.GateVerdict`, emitting `dpk.gate.*`
