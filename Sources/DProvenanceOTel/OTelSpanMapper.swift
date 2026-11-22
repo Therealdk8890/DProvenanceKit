@@ -536,8 +536,8 @@ public struct OTelSpanMapper<T: TraceableEvent>: Sendable {
         ]
         if let parents = directParents[event.id], !parents.isEmpty {
             // Deterministic (M7): sort by source uuid (lowercased); the type list is
-            // index-aligned to the same order. OTLPAnyValue has no array case, so both
-            // are comma-joined strings.
+            // index-aligned to the same order. Both stay comma-joined strings: the
+            // published wire shape predates `OTLPAnyValue.array`.
             let sorted = parents.sorted { $0.source.uuidString.lowercased() < $1.source.uuidString.lowercased() }
             attributes.append(.string(DPKOTelAttribute.derivedFrom,
                                       sorted.map { $0.source.uuidString }.joined(separator: ",")))

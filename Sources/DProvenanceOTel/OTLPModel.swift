@@ -196,22 +196,46 @@ public struct OTLPKeyValue: Codable, Sendable, Equatable {
     public static func double(_ key: String, _ v: Double) -> OTLPKeyValue {
         OTLPKeyValue(key: key, value: .double(v))
     }
+    public static func stringArray(_ key: String, _ v: [String]) -> OTLPKeyValue {
+        OTLPKeyValue(key: key, value: .array(v.map { .string($0) }))
+    }
 }
 
 /// Exactly one variant key per proto3 JSON; `intValue` ENCODES as a JSON
 /// string (64-bit ints are strings in proto3 JSON), DECODES leniently from
 /// string or number so receipts survive servers that emit bare numbers.
-/// No array/kvlist in v1 (documented limitation — semconv occasionally wants
-/// arrays, e.g. `gen_ai.request.stop_sequences`; `GenAIAttributes.extra`
-/// cannot express them).
+/// `array` encodes as `{"arrayValue": {"values": [...]}}` (OTel attribute
+/// arrays must be homogeneous primitives; the model does not enforce that).
+/// No kvlist (documented limitation; `GenAIAttributes.extra` remains
+/// scalar-only).
 public enum OTLPAnyValue: Codable, Sendable, Equatable {
     case string(String)
     case int(Int64)
     case bool(Bool)
     case double(Double)
+    case array([OTLPAnyValue])
 
     private enum CodingKeys: String, CodingKey {
-        case stringValue, intValue, boolValue, doubleValue
+        case stringValue, intValue, boolValue, doubleValue, arrayValue
+    }
+
+    private struct ArrayValue: Codable, Sendable, Equatable {
+        var values: [OTLPAnyValue]
+
+        init(values: [OTLPAnyValue]) { self.values = values }
+
+        private enum CodingKeys: String, CodingKey { case values }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            // proto3 JSON omits empty repeated fields.
+            values = try container.decodeIfPresent([OTLPAnyValue].self, forKey: .values) ?? []
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(values, forKey: .values)
+        }
     }
 
     public init(from decoder: Decoder) throws {
@@ -229,10 +253,12 @@ public enum OTLPAnyValue: Codable, Sendable, Equatable {
             self = .bool(b)
         } else if let d = try container.decodeIfPresent(Double.self, forKey: .doubleValue) {
             self = .double(d)
+        } else if let a = try container.decodeIfPresent(ArrayValue.self, forKey: .arrayValue) {
+            self = .array(a.values)
         } else {
             throw DecodingError.dataCorrupted(DecodingError.Context(
                 codingPath: decoder.codingPath,
-                debugDescription: "OTLPAnyValue requires exactly one of stringValue/intValue/boolValue/doubleValue"
+                debugDescription: "OTLPAnyValue requires exactly one of stringValue/intValue/boolValue/doubleValue/arrayValue"
             ))
         }
     }
@@ -244,6 +270,7 @@ public enum OTLPAnyValue: Codable, Sendable, Equatable {
         case .int(let i): try container.encode(String(i), forKey: .intValue)
         case .bool(let b): try container.encode(b, forKey: .boolValue)
         case .double(let d): try container.encode(d, forKey: .doubleValue)
+        case .array(let values): try container.encode(ArrayValue(values: values), forKey: .arrayValue)
         }
     }
 }
