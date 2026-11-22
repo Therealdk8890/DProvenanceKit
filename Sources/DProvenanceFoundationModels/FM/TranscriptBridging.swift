@@ -23,7 +23,7 @@ extension FMTranscriptSnapshot {
 
 /// Pure Transcript-to-IR conversion. Segment text uses the verified pattern:
 /// `.text` yields the segment content, `.structure` yields
-/// `content.jsonString`; non-text segment kinds (attachment, custom, unknown)
+/// `content.jsonString`; non-text segment kinds (attachment, unknown)
 /// are skipped and counted so ingestion summaries can surface data loss.
 /// Reasoning and unknown Entry kinds map to `.unknown(description:)` via the
 /// entry's CustomStringConvertible.
@@ -92,7 +92,12 @@ enum FMTranscriptBridge {
             case .text(let textSegment): return textSegment.content
             case .structure(let structuredSegment): return structuredSegment.content.jsonString
             #if canImport(FoundationModels, _version: 2.0)
-            case .attachment, .custom:
+            // The shipping OS 27 SDK declares exactly .text, .structure and
+            // .attachment. An early 27.0 beta also had .custom; it was removed
+            // before release, and naming it fails to compile ("Type
+            // 'Transcript.Segment' has no member 'custom'"). Anything else
+            // still lands in @unknown default.
+            case .attachment:
                 skipped += 1
                 return nil
             #endif
