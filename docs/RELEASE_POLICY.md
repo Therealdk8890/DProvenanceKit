@@ -32,3 +32,10 @@ and [PyPI](https://pypi.org/project/dprovenancekit/0.10.0/).
 The [Python Trusted Publishing workflow](https://github.com/Therealdk8890/DProvenanceKitPython/actions/runs/43797953686)
 succeeded, a fresh PyPI install passed both offline demos, and both tags resolve to
 the validated merge commits. See [the publication record](RELEASE_0.10.0.md).
+
+## 0.11.0 status: prepared
+
+The next coordinated target is **0.11.0**. Swift uses tag `0.11.0`; Python uses `v0.11.0`.
+Both remain unpublished candidates, and 0.10.0 is still the latest published release.
+See [the release checklist](RELEASE_0.11.0.md). Publishing either SDK alone does not
+complete the coordinated release.

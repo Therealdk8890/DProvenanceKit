@@ -6,6 +6,8 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] - Unreleased
+
 ### Fixed
 - DProvenanceFoundationModels builds against the shipping OS 27 SDK (Xcode 27). The
   transcript bridge matched `Transcript.Segment.custom`, a case from an early 27.0 beta
@@ -674,7 +676,8 @@ Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.2...0.10.0
 [0.9.2]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...0.9.2
 [0.9.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.1...0.9.0

@@ -87,11 +87,12 @@ This compares a baseline weather-assistant transcript that calls a live-data too
 
 ## Add DPK to a Swift package
 
-Add the published **0.10.0** package dependency:
+The dependency below targets **0.11.0 once it is tagged**. Until then, **0.10.0 remains the
+latest published package**; use `from: "0.10.0"` for a released dependency.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.10.0")
+    .package(url: "https://github.com/Therealdk8890/DProvenanceKit", from: "0.11.0")
 ]
 ```
 
