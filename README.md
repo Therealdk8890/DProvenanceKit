@@ -27,7 +27,7 @@ The demo records a good run and a run that dropped its `verify` step, then shows
 dpk init my-agent && cd my-agent
 python agent_stub.py && dpk record    # record a known-good run, pin it as the baseline
 python agent_stub.py && dpk gate      # Regression gate: PASS
-# delete the verify_account_status(...) call in agent_stub.py, then:
+# in agent_stub.py, change `is_active = verify_account_status(account)` to `is_active = True`, then:
 python agent_stub.py && dpk gate      # REGRESSION / CRITICAL step removed (exit 1)
 ```
 

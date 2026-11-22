@@ -55,6 +55,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rewrite or reorder what the terminal shows.
 
 ### Fixed
+- README "Gate your own agent in an afternoon": the walkthrough said to delete the
+  `verify_account_status(...)` call in `agent_stub.py`, which leaves `is_active` undefined and
+  crashes the agent with `NameError` before the gate runs. It now says to change the line to
+  `is_active = True`.
 - `OTLPHTTPExporter` preserves an endpoint's query string instead of appending
   `/v1/traces` after it.
 - Corrected the `externalTimestamp` documentation: the token's imprint covers the
