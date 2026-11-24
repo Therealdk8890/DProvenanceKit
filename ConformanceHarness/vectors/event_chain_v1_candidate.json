@@ -1,0 +1,313 @@
+{
+  "status": "candidate-not-frozen",
+  "specVersion": 1,
+  "positiveCases": [
+    {
+      "name": "empty",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000001",
+      "genesisHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entries": [],
+      "head": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entryCount": 0
+    },
+    {
+      "name": "single",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000001",
+      "genesisHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entries": [
+        {
+          "chainIndex": 0,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000b",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 0,
+            "spanID": null,
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\":1}",
+            "timestampUnixMicroseconds": 1719446400000011
+          },
+          "previousHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000000344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e0000000000004000800000000000000b00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e6572000000000000000100000000000000000000000000000000000473746570000000000000000200000000000000077b2261223a317d00061bd3cfe1e00b",
+          "entryHash": "e42045536bc0ff43010e9b35fa3a1d3bceb0f4ca7698d9142c95d7d2330dae44"
+        }
+      ],
+      "head": "e42045536bc0ff43010e9b35fa3a1d3bceb0f4ca7698d9142c95d7d2330dae44",
+      "entryCount": 1
+    },
+    {
+      "name": "sequence_gap_and_unicode",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000001",
+      "genesisHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entries": [
+        {
+          "chainIndex": 0,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000b",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 0,
+            "spanID": null,
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\":1}",
+            "timestampUnixMicroseconds": 1719446400000011
+          },
+          "previousHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000000344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e0000000000004000800000000000000b00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e6572000000000000000100000000000000000000000000000000000473746570000000000000000200000000000000077b2261223a317d00061bd3cfe1e00b",
+          "entryHash": "e42045536bc0ff43010e9b35fa3a1d3bceb0f4ca7698d9142c95d7d2330dae44"
+        },
+        {
+          "chainIndex": 1,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000c",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 3,
+            "spanID": "",
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"é\":\"雪\"}",
+            "timestampUnixMicroseconds": 1719446400000012
+          },
+          "previousHash": "e42045536bc0ff43010e9b35fa3a1d3bceb0f4ca7698d9142c95d7d2330dae44",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000001e42045536bc0ff43010e9b35fa3a1d3bceb0f4ca7698d9142c95d7d2330dae440000000000004000800000000000000c00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e657200000000000000010000000000000003010000000000000000000000000000000004737465700000000000000002000000000000000c7b22c3a9223a22e99baa227d00061bd3cfe1e00c",
+          "entryHash": "833aa9a44fa6fde90db379cf86a8af3cf928746eb0ffda38c1fd9bd47e7e7a3c"
+        },
+        {
+          "chainIndex": 2,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000d",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 4,
+            "spanID": null,
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\": 1}",
+            "timestampUnixMicroseconds": 1719446400000013
+          },
+          "previousHash": "833aa9a44fa6fde90db379cf86a8af3cf928746eb0ffda38c1fd9bd47e7e7a3c",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000002833aa9a44fa6fde90db379cf86a8af3cf928746eb0ffda38c1fd9bd47e7e7a3c0000000000004000800000000000000d00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e6572000000000000000100000000000000040000000000000000000473746570000000000000000200000000000000087b2261223a20317d00061bd3cfe1e00d",
+          "entryHash": "de0b048b38aba12467d86eb0f37cc1f9ad1a83e1cd7cce4b70672521387d3f70"
+        }
+      ],
+      "head": "de0b048b38aba12467d86eb0f37cc1f9ad1a83e1cd7cce4b70672521387d3f70",
+      "entryCount": 3
+    },
+    {
+      "name": "different_run",
+      "runID": "00000000-0000-4000-8000-000000000002",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000002",
+      "genesisHash": "aaa19c37bff51d3aa19e77909adc7c74658b5168f21a3c63dda2b39926c254f6",
+      "entries": [
+        {
+          "chainIndex": 0,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000b",
+            "runID": "00000000-0000-4000-8000-000000000002",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 0,
+            "spanID": null,
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\":1}",
+            "timestampUnixMicroseconds": 1719446400000011
+          },
+          "previousHash": "aaa19c37bff51d3aa19e77909adc7c74658b5168f21a3c63dda2b39926c254f6",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000000aaa19c37bff51d3aa19e77909adc7c74658b5168f21a3c63dda2b39926c254f60000000000004000800000000000000b00000000000040008000000000000002000000000000000464656d6f0000000000000007506c616e6e6572000000000000000100000000000000000000000000000000000473746570000000000000000200000000000000077b2261223a317d00061bd3cfe1e00b",
+          "entryHash": "3b91308340295e7de638b3ad929a27a38ab38bc48ee21cc029b6272e5b3d23fd"
+        }
+      ],
+      "head": "3b91308340295e7de638b3ad929a27a38ab38bc48ee21cc029b6272e5b3d23fd",
+      "entryCount": 1
+    },
+    {
+      "name": "optional_empty_vs_null",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000001",
+      "genesisHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entries": [
+        {
+          "chainIndex": 0,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000b",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 0,
+            "spanID": "",
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\":1}",
+            "timestampUnixMicroseconds": 1719446400000011
+          },
+          "previousHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000000344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e0000000000004000800000000000000b00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e65720000000000000001000000000000000001000000000000000000000000000000000473746570000000000000000200000000000000077b2261223a317d00061bd3cfe1e00b",
+          "entryHash": "edbf8462e18d7fd04ad711ce9225ed04cae4acb13aa6630a0ed8c64643c1ed50"
+        }
+      ],
+      "head": "edbf8462e18d7fd04ad711ce9225ed04cae4acb13aa6630a0ed8c64643c1ed50",
+      "entryCount": 1
+    },
+    {
+      "name": "payload_whitespace",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "genesisPreimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d47454e455349532d563100000000000040008000000000000001",
+      "genesisHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "entries": [
+        {
+          "chainIndex": 0,
+          "event": {
+            "eventID": "00000000-0000-4000-8000-00000000000b",
+            "runID": "00000000-0000-4000-8000-000000000001",
+            "contextID": "demo",
+            "engineName": "Planner",
+            "schemaVersion": 1,
+            "eventSequence": 0,
+            "spanID": null,
+            "parentSpanID": null,
+            "typeIdentifier": "step",
+            "priority": 2,
+            "payloadJSON": "{\"a\": 1}",
+            "timestampUnixMicroseconds": 1719446400000011
+          },
+          "previousHash": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+          "preimageHex": "4450524f56454e414e43454b49542d4556454e542d434841494e2d454e5452592d563100000000000000010000000000000000344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e0000000000004000800000000000000b00000000000040008000000000000001000000000000000464656d6f0000000000000007506c616e6e6572000000000000000100000000000000000000000000000000000473746570000000000000000200000000000000087b2261223a20317d00061bd3cfe1e00b",
+          "entryHash": "c45df68c33a9f0248d13a5e8a09a6ddca3119e64f053fdafa9edc14054d6b1c8"
+        }
+      ],
+      "head": "c45df68c33a9f0248d13a5e8a09a6ddca3119e64f053fdafa9edc14054d6b1c8",
+      "entryCount": 1
+    }
+  ],
+  "unsignedClosureCases": [
+    {
+      "name": "empty",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "chainVersion": 1,
+      "finalChainIndex": null,
+      "finalChainHead": "344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e",
+      "eventCount": 0,
+      "traceDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "keyID": "2222222222222222222222222222222222222222222222222222222222222222",
+      "issuedAtUnixMicroseconds": 1719446400000000,
+      "preimageHex": "4450524f56454e414e43454b49542d52554e2d434c4f53452d563100000000000040008000000000000001000000000000000100344711e020d59e1dbcf6a0716bec83e5cf849175dfa71dca55cd5eaf03d02c2e00000000000000001111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200061bd3cfe1e000",
+      "preimageSHA256": "846d37d71d118fce59330f29ae73b464af37291a7617775902a8e2fe3af94019"
+    },
+    {
+      "name": "sequence_gap_and_unicode",
+      "runID": "00000000-0000-4000-8000-000000000001",
+      "chainVersion": 1,
+      "finalChainIndex": 2,
+      "finalChainHead": "de0b048b38aba12467d86eb0f37cc1f9ad1a83e1cd7cce4b70672521387d3f70",
+      "eventCount": 3,
+      "traceDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "keyID": "2222222222222222222222222222222222222222222222222222222222222222",
+      "issuedAtUnixMicroseconds": 1719446400000000,
+      "preimageHex": "4450524f56454e414e43454b49542d52554e2d434c4f53452d5631000000000000400080000000000000010000000000000001010000000000000002de0b048b38aba12467d86eb0f37cc1f9ad1a83e1cd7cce4b70672521387d3f7000000000000000031111111111111111111111111111111111111111111111111111111111111111222222222222222222222222222222222222222222222222222222222222222200061bd3cfe1e000",
+      "preimageSHA256": "bc0adf96451ee91bacdf5d96450b711ab8f363cf065a6789118eeef9f886ab58"
+    }
+  ],
+  "negativeTestPlan": [
+    {
+      "name": "duplicate_sequence",
+      "base": "sequence_gap_and_unicode",
+      "operation": "append event with sequence equal to previous",
+      "expected": "SEQUENCE_NONMONOTONIC"
+    },
+    {
+      "name": "decreasing_sequence",
+      "base": "sequence_gap_and_unicode",
+      "operation": "append event with sequence less than previous",
+      "expected": "SEQUENCE_NONMONOTONIC"
+    },
+    {
+      "name": "duplicate_event_id",
+      "base": "sequence_gap_and_unicode",
+      "operation": "append existing ID with higher sequence",
+      "expected": "DUPLICATE_EVENT_ID"
+    },
+    {
+      "name": "cross_run",
+      "base": "sequence_gap_and_unicode",
+      "operation": "append event belonging to other run",
+      "expected": "RUN_ID_MISMATCH"
+    },
+    {
+      "name": "wrong_index",
+      "base": "sequence_gap_and_unicode",
+      "operation": "replace second entry index with 4",
+      "expected": "CHAIN_INDEX_MISMATCH"
+    },
+    {
+      "name": "wrong_previous",
+      "base": "sequence_gap_and_unicode",
+      "operation": "flip first byte of second previousHash",
+      "expected": "PREVIOUS_HASH_MISMATCH"
+    },
+    {
+      "name": "modified_payload",
+      "base": "sequence_gap_and_unicode",
+      "operation": "change second payload without changing its hash",
+      "expected": "ENTRY_HASH_MISMATCH"
+    },
+    {
+      "name": "deleted_middle",
+      "base": "sequence_gap_and_unicode",
+      "operation": "remove second entry retaining third index",
+      "expected": "CHAIN_INDEX_MISMATCH"
+    },
+    {
+      "name": "truncated_tail",
+      "base": "sequence_gap_and_unicode",
+      "operation": "remove last entry and retain trusted original closure",
+      "expected": "CLOSURE_MISMATCH"
+    },
+    {
+      "name": "replace_chain",
+      "base": "sequence_gap_and_unicode",
+      "operation": "recompute a different chain and retain trusted original closure",
+      "expected": "CLOSURE_MISMATCH"
+    },
+    {
+      "name": "oversized_uuid_text",
+      "base": "sequence_gap_and_unicode",
+      "operation": "submit 129 ASCII bytes as event ID",
+      "expected": "IDENTIFIER_TOO_LONG"
+    },
+    {
+      "name": "malformed_uuid",
+      "base": "sequence_gap_and_unicode",
+      "operation": "submit non-UUID event ID under limit",
+      "expected": "INVALID_IDENTIFIER"
+    },
+    {
+      "name": "overflow_sequence",
+      "base": "sequence_gap_and_unicode",
+      "operation": "submit 2**64 as sequence",
+      "expected": "INTEGER_OUT_OF_RANGE"
+    }
+  ]
+}

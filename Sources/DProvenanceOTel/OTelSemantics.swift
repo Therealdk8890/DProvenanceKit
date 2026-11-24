@@ -64,8 +64,8 @@ public struct GenAIAttributes: Sendable, Equatable {
     /// the promoted (or containing) span is marked with OTLP status ERROR, so
     /// error-rate dashboards can see it. Nil = success/unset.
     public var errorType: String?
-    /// Appended after the fixed-order gen_ai set, in caller order. Cannot
-    /// express arrays/kvlists (v1 limitation of `OTLPAnyValue`).
+    /// Appended after the fixed-order gen_ai set, in caller order. Arrays use
+    /// `OTLPAnyValue.array`; kvlists are not expressible.
     public var extra: [OTLPKeyValue]
 
     public init(operationName: String? = nil, requestModel: String? = nil,

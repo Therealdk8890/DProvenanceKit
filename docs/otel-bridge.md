@@ -204,11 +204,30 @@ options.semanticAttributes = { event in
 
 Conformance wins; the closure is consulted only when `otelSemantics` returns nil.
 
-`GenAIAttributes` covers `gen_ai.operation.name`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.tool.name`, `gen_ai.provider.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, plus an `extra` list for anything else (strings/ints/bools/doubles only — no arrays or kvlists in v1).
+`GenAIAttributes` covers `gen_ai.operation.name`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.tool.name`, `gen_ai.provider.name`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, plus an `extra` list for anything else (strings, ints, bools, doubles and homogeneous arrays via `OTLPAnyValue.array`; no kvlists).
 
 **Errors.** Set `GenAIAttributes.errorType` when the operation failed: the span exports with OTLP status `ERROR` and an `error.type` attribute, which is what error-rate dashboards read. A promoted event's own span is marked; a non-promoted error event marks its containing span. The FoundationModels bridge sets this automatically from `generationError`.
 
 **Promotion.** By default (`GenAIPromotion.dedicatedChildSpan`), each semantics-bearing event is materialized as its *own child span* — because Langfuse and other GenAI-aware backends read `gen_ai.*` from span attributes only; on span events they're invisible. Promoted inference spans are `CLIENT` kind; `execute_tool` operations are `INTERNAL` (tool execution happens in-process). `GenAIPromotion.attachedToEventOnly` is the escape hatch that merges the attributes onto the span event instead — correct OTLP, invisible to Langfuse's generation mapping.
+
+## Gate verdicts on a trace
+
+`DPKGateVerdict` turns a regression-gate result into the same `dpk.gate.*` attributes the
+Python SDK emits, plus the standard GenAI `gen_ai.evaluation.result` event. Backends that
+only understand the GenAI conventions then show it as a binary evaluation: score 1.0/0.0,
+label `pass`/`fail`.
+
+```swift
+let verdict = try DPKGateVerdict(gateJSONData: gateJSON)          // `dpk gate --json` output
+span.attributes += verdict.attributes()                           // dpk.gate.*, dpk.golden.*, …
+span.events.append(verdict.evaluationResultEvent(timeUnixNano: now))
+```
+
+The attribute names, types and bounds are a cross-SDK contract:
+- free text is limited to 1,024 Unicode scalars;
+- step lists keep at most 64 items, while `dpk.gate.steps.divergent_count` stays exact.
+
+The contract is specified in the Python repo's `conformance/OTEL_GENAI_MAPPING_v1.md` §3 and pinned by `ConformanceHarness/vectors/otel_verdict_attributes.json`.
 
 ## Export options reference
 

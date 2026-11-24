@@ -1,0 +1,1157 @@
+{
+  "spec_version": "1.0",
+  "schema": "dpk.gate.verdict.v1",
+  "description": "Gate verdict -> OpenTelemetry attributes (dpk.* namespace). See OTEL_GENAI_MAPPING_v1.md section 3. 'attributes' omits the SDK-identity keys dpk.sdk.name, dpk.sdk.version, which every SDK MUST still emit. 'otlp_attributes' is the same map in OTLP/JSON KeyValue form (int64 as a decimal string). 'evaluation_result' is the standard gen_ai.evaluation.result event (section 3.3).",
+  "excluded_keys": [
+    "dpk.sdk.name",
+    "dpk.sdk.version"
+  ],
+  "cases": [
+    {
+      "description": "Passing gate with every optional field present.",
+      "verdict": {
+        "passed": true,
+        "regression_level": "none",
+        "strength": 0.0,
+        "fingerprint_match": true,
+        "golden_fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "candidate_fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "golden_run_id": "00000000-0000-4000-8000-000000000001",
+        "candidate_run_id": "00000000-0000-4000-8000-000000000002",
+        "max_regression_level": "none",
+        "allow_divergent_steps": false,
+        "profile": "strict_audit_v1",
+        "removed_steps": [],
+        "added_steps": [],
+        "divergent_steps": [],
+        "reasoning": null,
+        "evidence": {}
+      },
+      "attributes": {
+        "dpk.schema": "dpk.gate.verdict.v1",
+        "dpk.gate.passed": true,
+        "dpk.gate.verdict": "pass",
+        "dpk.gate.regression_level": "none",
+        "dpk.gate.strength": 0.0,
+        "dpk.gate.fingerprint_match": true,
+        "dpk.gate.policy.max_regression_level": "none",
+        "dpk.gate.policy.allow_divergent_steps": false,
+        "dpk.gate.policy.profile": "strict_audit_v1",
+        "dpk.golden.run_id": "00000000-0000-4000-8000-000000000001",
+        "dpk.golden.fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "dpk.candidate.run_id": "00000000-0000-4000-8000-000000000002",
+        "dpk.candidate.fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48"
+      },
+      "otlp_attributes": [
+        {
+          "key": "dpk.schema",
+          "value": {
+            "stringValue": "dpk.gate.verdict.v1"
+          }
+        },
+        {
+          "key": "dpk.gate.passed",
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "key": "dpk.gate.verdict",
+          "value": {
+            "stringValue": "pass"
+          }
+        },
+        {
+          "key": "dpk.gate.regression_level",
+          "value": {
+            "stringValue": "none"
+          }
+        },
+        {
+          "key": "dpk.gate.strength",
+          "value": {
+            "doubleValue": 0.0
+          }
+        },
+        {
+          "key": "dpk.gate.fingerprint_match",
+          "value": {
+            "boolValue": true
+          }
+        },
+        {
+          "key": "dpk.gate.policy.max_regression_level",
+          "value": {
+            "stringValue": "none"
+          }
+        },
+        {
+          "key": "dpk.gate.policy.allow_divergent_steps",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.policy.profile",
+          "value": {
+            "stringValue": "strict_audit_v1"
+          }
+        },
+        {
+          "key": "dpk.golden.run_id",
+          "value": {
+            "stringValue": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        {
+          "key": "dpk.golden.fingerprint",
+          "value": {
+            "stringValue": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48"
+          }
+        },
+        {
+          "key": "dpk.candidate.run_id",
+          "value": {
+            "stringValue": "00000000-0000-4000-8000-000000000002"
+          }
+        },
+        {
+          "key": "dpk.candidate.fingerprint",
+          "value": {
+            "stringValue": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48"
+          }
+        }
+      ],
+      "evaluation_result": {
+        "gen_ai.evaluation.name": "dpk_gate",
+        "gen_ai.evaluation.score.value": 1.0,
+        "gen_ai.evaluation.score.label": "pass",
+        "gen_ai.evaluation.explanation": "DProvenanceKit gate: PASS; severity none; fingerprint match"
+      },
+      "label": "pass",
+      "score": 1.0
+    },
+    {
+      "description": "Failing gate: a CRITICAL step was removed; evidence references attached.",
+      "verdict": {
+        "passed": false,
+        "regression_level": "high",
+        "strength": 1.0,
+        "fingerprint_match": false,
+        "golden_fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "candidate_fingerprint": "343d10a8c111860b6e141cb881eaacd7dc820a8f",
+        "golden_run_id": "00000000-0000-4000-8000-000000000001",
+        "candidate_run_id": "4bf92f35-77b3-4da6-a3ce-929d0e0e4736",
+        "max_regression_level": "none",
+        "allow_divergent_steps": false,
+        "profile": "strict_audit_v1",
+        "removed_steps": [
+          "verify_account_status"
+        ],
+        "added_steps": [],
+        "divergent_steps": [
+          "verify_account_status"
+        ],
+        "reasoning": "Critical reasoning steps removed: verify_account_status",
+        "evidence": {
+          "attestation.format": "DPK-BINARY-V1",
+          "attestation.sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+          "signer.key_id": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+        }
+      },
+      "attributes": {
+        "dpk.schema": "dpk.gate.verdict.v1",
+        "dpk.gate.passed": false,
+        "dpk.gate.verdict": "fail",
+        "dpk.gate.regression_level": "high",
+        "dpk.gate.strength": 1.0,
+        "dpk.gate.fingerprint_match": false,
+        "dpk.gate.policy.max_regression_level": "none",
+        "dpk.gate.policy.allow_divergent_steps": false,
+        "dpk.gate.policy.profile": "strict_audit_v1",
+        "dpk.golden.run_id": "00000000-0000-4000-8000-000000000001",
+        "dpk.golden.fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "dpk.candidate.run_id": "4bf92f35-77b3-4da6-a3ce-929d0e0e4736",
+        "dpk.candidate.fingerprint": "343d10a8c111860b6e141cb881eaacd7dc820a8f",
+        "dpk.gate.steps.removed": [
+          "verify_account_status"
+        ],
+        "dpk.gate.steps.divergent": [
+          "verify_account_status"
+        ],
+        "dpk.gate.steps.divergent_count": 1,
+        "dpk.gate.reasoning": "Critical reasoning steps removed: verify_account_status",
+        "dpk.evidence.attestation.format": "DPK-BINARY-V1",
+        "dpk.evidence.attestation.sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "dpk.evidence.signer.key_id": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+      },
+      "otlp_attributes": [
+        {
+          "key": "dpk.schema",
+          "value": {
+            "stringValue": "dpk.gate.verdict.v1"
+          }
+        },
+        {
+          "key": "dpk.gate.passed",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.verdict",
+          "value": {
+            "stringValue": "fail"
+          }
+        },
+        {
+          "key": "dpk.gate.regression_level",
+          "value": {
+            "stringValue": "high"
+          }
+        },
+        {
+          "key": "dpk.gate.strength",
+          "value": {
+            "doubleValue": 1.0
+          }
+        },
+        {
+          "key": "dpk.gate.fingerprint_match",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.policy.max_regression_level",
+          "value": {
+            "stringValue": "none"
+          }
+        },
+        {
+          "key": "dpk.gate.policy.allow_divergent_steps",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.policy.profile",
+          "value": {
+            "stringValue": "strict_audit_v1"
+          }
+        },
+        {
+          "key": "dpk.golden.run_id",
+          "value": {
+            "stringValue": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        {
+          "key": "dpk.golden.fingerprint",
+          "value": {
+            "stringValue": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48"
+          }
+        },
+        {
+          "key": "dpk.candidate.run_id",
+          "value": {
+            "stringValue": "4bf92f35-77b3-4da6-a3ce-929d0e0e4736"
+          }
+        },
+        {
+          "key": "dpk.candidate.fingerprint",
+          "value": {
+            "stringValue": "343d10a8c111860b6e141cb881eaacd7dc820a8f"
+          }
+        },
+        {
+          "key": "dpk.gate.steps.removed",
+          "value": {
+            "arrayValue": {
+              "values": [
+                {
+                  "stringValue": "verify_account_status"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "dpk.gate.steps.divergent",
+          "value": {
+            "arrayValue": {
+              "values": [
+                {
+                  "stringValue": "verify_account_status"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "dpk.gate.steps.divergent_count",
+          "value": {
+            "intValue": "1"
+          }
+        },
+        {
+          "key": "dpk.gate.reasoning",
+          "value": {
+            "stringValue": "Critical reasoning steps removed: verify_account_status"
+          }
+        },
+        {
+          "key": "dpk.evidence.attestation.format",
+          "value": {
+            "stringValue": "DPK-BINARY-V1"
+          }
+        },
+        {
+          "key": "dpk.evidence.attestation.sha256",
+          "value": {
+            "stringValue": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+          }
+        },
+        {
+          "key": "dpk.evidence.signer.key_id",
+          "value": {
+            "stringValue": "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+          }
+        }
+      ],
+      "evaluation_result": {
+        "gen_ai.evaluation.name": "dpk_gate",
+        "gen_ai.evaluation.score.value": 0.0,
+        "gen_ai.evaluation.score.label": "fail",
+        "gen_ai.evaluation.explanation": "DProvenanceKit gate: FAIL; severity high; fingerprint differs; removed: verify_account_status. Critical reasoning steps removed: verify_account_status"
+      },
+      "label": "fail",
+      "score": 0.0
+    },
+    {
+      "description": "Minimal verdict: only the required 'passed' field.",
+      "verdict": {
+        "passed": false
+      },
+      "attributes": {
+        "dpk.schema": "dpk.gate.verdict.v1",
+        "dpk.gate.passed": false,
+        "dpk.gate.verdict": "fail"
+      },
+      "otlp_attributes": [
+        {
+          "key": "dpk.schema",
+          "value": {
+            "stringValue": "dpk.gate.verdict.v1"
+          }
+        },
+        {
+          "key": "dpk.gate.passed",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.verdict",
+          "value": {
+            "stringValue": "fail"
+          }
+        }
+      ],
+      "evaluation_result": {
+        "gen_ai.evaluation.name": "dpk_gate",
+        "gen_ai.evaluation.score.value": 0.0,
+        "gen_ai.evaluation.score.label": "fail",
+        "gen_ai.evaluation.explanation": "DProvenanceKit gate: FAIL"
+      },
+      "label": "fail",
+      "score": 0.0
+    },
+    {
+      "description": "Bounds: free text truncated to 1024 characters, step lists to 64 items.",
+      "verdict": {
+        "passed": false,
+        "regression_level": "high",
+        "added_steps": [
+          "tool_call.start#0",
+          "tool_call.start#1",
+          "tool_call.start#2",
+          "tool_call.start#3",
+          "tool_call.start#4",
+          "tool_call.start#5",
+          "tool_call.start#6",
+          "tool_call.start#7",
+          "tool_call.start#8",
+          "tool_call.start#9",
+          "tool_call.start#10",
+          "tool_call.start#11",
+          "tool_call.start#12",
+          "tool_call.start#13",
+          "tool_call.start#14",
+          "tool_call.start#15",
+          "tool_call.start#16",
+          "tool_call.start#17",
+          "tool_call.start#18",
+          "tool_call.start#19",
+          "tool_call.start#20",
+          "tool_call.start#21",
+          "tool_call.start#22",
+          "tool_call.start#23",
+          "tool_call.start#24",
+          "tool_call.start#25",
+          "tool_call.start#26",
+          "tool_call.start#27",
+          "tool_call.start#28",
+          "tool_call.start#29",
+          "tool_call.start#30",
+          "tool_call.start#31",
+          "tool_call.start#32",
+          "tool_call.start#33",
+          "tool_call.start#34",
+          "tool_call.start#35",
+          "tool_call.start#36",
+          "tool_call.start#37",
+          "tool_call.start#38",
+          "tool_call.start#39",
+          "tool_call.start#40",
+          "tool_call.start#41",
+          "tool_call.start#42",
+          "tool_call.start#43",
+          "tool_call.start#44",
+          "tool_call.start#45",
+          "tool_call.start#46",
+          "tool_call.start#47",
+          "tool_call.start#48",
+          "tool_call.start#49",
+          "tool_call.start#50",
+          "tool_call.start#51",
+          "tool_call.start#52",
+          "tool_call.start#53",
+          "tool_call.start#54",
+          "tool_call.start#55",
+          "tool_call.start#56",
+          "tool_call.start#57",
+          "tool_call.start#58",
+          "tool_call.start#59",
+          "tool_call.start#60",
+          "tool_call.start#61",
+          "tool_call.start#62",
+          "tool_call.start#63",
+          "tool_call.start#64",
+          "tool_call.start#65",
+          "tool_call.start#66",
+          "tool_call.start#67",
+          "tool_call.start#68",
+          "tool_call.start#69"
+        ],
+        "divergent_steps": [
+          "tool_call.start#0",
+          "tool_call.start#1",
+          "tool_call.start#2",
+          "tool_call.start#3",
+          "tool_call.start#4",
+          "tool_call.start#5",
+          "tool_call.start#6",
+          "tool_call.start#7",
+          "tool_call.start#8",
+          "tool_call.start#9",
+          "tool_call.start#10",
+          "tool_call.start#11",
+          "tool_call.start#12",
+          "tool_call.start#13",
+          "tool_call.start#14",
+          "tool_call.start#15",
+          "tool_call.start#16",
+          "tool_call.start#17",
+          "tool_call.start#18",
+          "tool_call.start#19",
+          "tool_call.start#20",
+          "tool_call.start#21",
+          "tool_call.start#22",
+          "tool_call.start#23",
+          "tool_call.start#24",
+          "tool_call.start#25",
+          "tool_call.start#26",
+          "tool_call.start#27",
+          "tool_call.start#28",
+          "tool_call.start#29",
+          "tool_call.start#30",
+          "tool_call.start#31",
+          "tool_call.start#32",
+          "tool_call.start#33",
+          "tool_call.start#34",
+          "tool_call.start#35",
+          "tool_call.start#36",
+          "tool_call.start#37",
+          "tool_call.start#38",
+          "tool_call.start#39",
+          "tool_call.start#40",
+          "tool_call.start#41",
+          "tool_call.start#42",
+          "tool_call.start#43",
+          "tool_call.start#44",
+          "tool_call.start#45",
+          "tool_call.start#46",
+          "tool_call.start#47",
+          "tool_call.start#48",
+          "tool_call.start#49",
+          "tool_call.start#50",
+          "tool_call.start#51",
+          "tool_call.start#52",
+          "tool_call.start#53",
+          "tool_call.start#54",
+          "tool_call.start#55",
+          "tool_call.start#56",
+          "tool_call.start#57",
+          "tool_call.start#58",
+          "tool_call.start#59",
+          "tool_call.start#60",
+          "tool_call.start#61",
+          "tool_call.start#62",
+          "tool_call.start#63",
+          "tool_call.start#64",
+          "tool_call.start#65",
+          "tool_call.start#66",
+          "tool_call.start#67",
+          "tool_call.start#68",
+          "tool_call.start#69"
+        ],
+        "reasoning": "Critical reasoning steps removed: verify. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "attributes": {
+        "dpk.schema": "dpk.gate.verdict.v1",
+        "dpk.gate.passed": false,
+        "dpk.gate.verdict": "fail",
+        "dpk.gate.regression_level": "high",
+        "dpk.gate.steps.added": [
+          "tool_call.start#0",
+          "tool_call.start#1",
+          "tool_call.start#2",
+          "tool_call.start#3",
+          "tool_call.start#4",
+          "tool_call.start#5",
+          "tool_call.start#6",
+          "tool_call.start#7",
+          "tool_call.start#8",
+          "tool_call.start#9",
+          "tool_call.start#10",
+          "tool_call.start#11",
+          "tool_call.start#12",
+          "tool_call.start#13",
+          "tool_call.start#14",
+          "tool_call.start#15",
+          "tool_call.start#16",
+          "tool_call.start#17",
+          "tool_call.start#18",
+          "tool_call.start#19",
+          "tool_call.start#20",
+          "tool_call.start#21",
+          "tool_call.start#22",
+          "tool_call.start#23",
+          "tool_call.start#24",
+          "tool_call.start#25",
+          "tool_call.start#26",
+          "tool_call.start#27",
+          "tool_call.start#28",
+          "tool_call.start#29",
+          "tool_call.start#30",
+          "tool_call.start#31",
+          "tool_call.start#32",
+          "tool_call.start#33",
+          "tool_call.start#34",
+          "tool_call.start#35",
+          "tool_call.start#36",
+          "tool_call.start#37",
+          "tool_call.start#38",
+          "tool_call.start#39",
+          "tool_call.start#40",
+          "tool_call.start#41",
+          "tool_call.start#42",
+          "tool_call.start#43",
+          "tool_call.start#44",
+          "tool_call.start#45",
+          "tool_call.start#46",
+          "tool_call.start#47",
+          "tool_call.start#48",
+          "tool_call.start#49",
+          "tool_call.start#50",
+          "tool_call.start#51",
+          "tool_call.start#52",
+          "tool_call.start#53",
+          "tool_call.start#54",
+          "tool_call.start#55",
+          "tool_call.start#56",
+          "tool_call.start#57",
+          "tool_call.start#58",
+          "tool_call.start#59",
+          "tool_call.start#60",
+          "tool_call.start#61",
+          "tool_call.start#62",
+          "tool_call.start#63"
+        ],
+        "dpk.gate.steps.divergent": [
+          "tool_call.start#0",
+          "tool_call.start#1",
+          "tool_call.start#2",
+          "tool_call.start#3",
+          "tool_call.start#4",
+          "tool_call.start#5",
+          "tool_call.start#6",
+          "tool_call.start#7",
+          "tool_call.start#8",
+          "tool_call.start#9",
+          "tool_call.start#10",
+          "tool_call.start#11",
+          "tool_call.start#12",
+          "tool_call.start#13",
+          "tool_call.start#14",
+          "tool_call.start#15",
+          "tool_call.start#16",
+          "tool_call.start#17",
+          "tool_call.start#18",
+          "tool_call.start#19",
+          "tool_call.start#20",
+          "tool_call.start#21",
+          "tool_call.start#22",
+          "tool_call.start#23",
+          "tool_call.start#24",
+          "tool_call.start#25",
+          "tool_call.start#26",
+          "tool_call.start#27",
+          "tool_call.start#28",
+          "tool_call.start#29",
+          "tool_call.start#30",
+          "tool_call.start#31",
+          "tool_call.start#32",
+          "tool_call.start#33",
+          "tool_call.start#34",
+          "tool_call.start#35",
+          "tool_call.start#36",
+          "tool_call.start#37",
+          "tool_call.start#38",
+          "tool_call.start#39",
+          "tool_call.start#40",
+          "tool_call.start#41",
+          "tool_call.start#42",
+          "tool_call.start#43",
+          "tool_call.start#44",
+          "tool_call.start#45",
+          "tool_call.start#46",
+          "tool_call.start#47",
+          "tool_call.start#48",
+          "tool_call.start#49",
+          "tool_call.start#50",
+          "tool_call.start#51",
+          "tool_call.start#52",
+          "tool_call.start#53",
+          "tool_call.start#54",
+          "tool_call.start#55",
+          "tool_call.start#56",
+          "tool_call.start#57",
+          "tool_call.start#58",
+          "tool_call.start#59",
+          "tool_call.start#60",
+          "tool_call.start#61",
+          "tool_call.start#62",
+          "tool_call.start#63"
+        ],
+        "dpk.gate.steps.divergent_count": 70,
+        "dpk.gate.reasoning": "Critical reasoning steps removed: verify. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+      },
+      "otlp_attributes": [
+        {
+          "key": "dpk.schema",
+          "value": {
+            "stringValue": "dpk.gate.verdict.v1"
+          }
+        },
+        {
+          "key": "dpk.gate.passed",
+          "value": {
+            "boolValue": false
+          }
+        },
+        {
+          "key": "dpk.gate.verdict",
+          "value": {
+            "stringValue": "fail"
+          }
+        },
+        {
+          "key": "dpk.gate.regression_level",
+          "value": {
+            "stringValue": "high"
+          }
+        },
+        {
+          "key": "dpk.gate.steps.added",
+          "value": {
+            "arrayValue": {
+              "values": [
+                {
+                  "stringValue": "tool_call.start#0"
+                },
+                {
+                  "stringValue": "tool_call.start#1"
+                },
+                {
+                  "stringValue": "tool_call.start#2"
+                },
+                {
+                  "stringValue": "tool_call.start#3"
+                },
+                {
+                  "stringValue": "tool_call.start#4"
+                },
+                {
+                  "stringValue": "tool_call.start#5"
+                },
+                {
+                  "stringValue": "tool_call.start#6"
+                },
+                {
+                  "stringValue": "tool_call.start#7"
+                },
+                {
+                  "stringValue": "tool_call.start#8"
+                },
+                {
+                  "stringValue": "tool_call.start#9"
+                },
+                {
+                  "stringValue": "tool_call.start#10"
+                },
+                {
+                  "stringValue": "tool_call.start#11"
+                },
+                {
+                  "stringValue": "tool_call.start#12"
+                },
+                {
+                  "stringValue": "tool_call.start#13"
+                },
+                {
+                  "stringValue": "tool_call.start#14"
+                },
+                {
+                  "stringValue": "tool_call.start#15"
+                },
+                {
+                  "stringValue": "tool_call.start#16"
+                },
+                {
+                  "stringValue": "tool_call.start#17"
+                },
+                {
+                  "stringValue": "tool_call.start#18"
+                },
+                {
+                  "stringValue": "tool_call.start#19"
+                },
+                {
+                  "stringValue": "tool_call.start#20"
+                },
+                {
+                  "stringValue": "tool_call.start#21"
+                },
+                {
+                  "stringValue": "tool_call.start#22"
+                },
+                {
+                  "stringValue": "tool_call.start#23"
+                },
+                {
+                  "stringValue": "tool_call.start#24"
+                },
+                {
+                  "stringValue": "tool_call.start#25"
+                },
+                {
+                  "stringValue": "tool_call.start#26"
+                },
+                {
+                  "stringValue": "tool_call.start#27"
+                },
+                {
+                  "stringValue": "tool_call.start#28"
+                },
+                {
+                  "stringValue": "tool_call.start#29"
+                },
+                {
+                  "stringValue": "tool_call.start#30"
+                },
+                {
+                  "stringValue": "tool_call.start#31"
+                },
+                {
+                  "stringValue": "tool_call.start#32"
+                },
+                {
+                  "stringValue": "tool_call.start#33"
+                },
+                {
+                  "stringValue": "tool_call.start#34"
+                },
+                {
+                  "stringValue": "tool_call.start#35"
+                },
+                {
+                  "stringValue": "tool_call.start#36"
+                },
+                {
+                  "stringValue": "tool_call.start#37"
+                },
+                {
+                  "stringValue": "tool_call.start#38"
+                },
+                {
+                  "stringValue": "tool_call.start#39"
+                },
+                {
+                  "stringValue": "tool_call.start#40"
+                },
+                {
+                  "stringValue": "tool_call.start#41"
+                },
+                {
+                  "stringValue": "tool_call.start#42"
+                },
+                {
+                  "stringValue": "tool_call.start#43"
+                },
+                {
+                  "stringValue": "tool_call.start#44"
+                },
+                {
+                  "stringValue": "tool_call.start#45"
+                },
+                {
+                  "stringValue": "tool_call.start#46"
+                },
+                {
+                  "stringValue": "tool_call.start#47"
+                },
+                {
+                  "stringValue": "tool_call.start#48"
+                },
+                {
+                  "stringValue": "tool_call.start#49"
+                },
+                {
+                  "stringValue": "tool_call.start#50"
+                },
+                {
+                  "stringValue": "tool_call.start#51"
+                },
+                {
+                  "stringValue": "tool_call.start#52"
+                },
+                {
+                  "stringValue": "tool_call.start#53"
+                },
+                {
+                  "stringValue": "tool_call.start#54"
+                },
+                {
+                  "stringValue": "tool_call.start#55"
+                },
+                {
+                  "stringValue": "tool_call.start#56"
+                },
+                {
+                  "stringValue": "tool_call.start#57"
+                },
+                {
+                  "stringValue": "tool_call.start#58"
+                },
+                {
+                  "stringValue": "tool_call.start#59"
+                },
+                {
+                  "stringValue": "tool_call.start#60"
+                },
+                {
+                  "stringValue": "tool_call.start#61"
+                },
+                {
+                  "stringValue": "tool_call.start#62"
+                },
+                {
+                  "stringValue": "tool_call.start#63"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "dpk.gate.steps.divergent",
+          "value": {
+            "arrayValue": {
+              "values": [
+                {
+                  "stringValue": "tool_call.start#0"
+                },
+                {
+                  "stringValue": "tool_call.start#1"
+                },
+                {
+                  "stringValue": "tool_call.start#2"
+                },
+                {
+                  "stringValue": "tool_call.start#3"
+                },
+                {
+                  "stringValue": "tool_call.start#4"
+                },
+                {
+                  "stringValue": "tool_call.start#5"
+                },
+                {
+                  "stringValue": "tool_call.start#6"
+                },
+                {
+                  "stringValue": "tool_call.start#7"
+                },
+                {
+                  "stringValue": "tool_call.start#8"
+                },
+                {
+                  "stringValue": "tool_call.start#9"
+                },
+                {
+                  "stringValue": "tool_call.start#10"
+                },
+                {
+                  "stringValue": "tool_call.start#11"
+                },
+                {
+                  "stringValue": "tool_call.start#12"
+                },
+                {
+                  "stringValue": "tool_call.start#13"
+                },
+                {
+                  "stringValue": "tool_call.start#14"
+                },
+                {
+                  "stringValue": "tool_call.start#15"
+                },
+                {
+                  "stringValue": "tool_call.start#16"
+                },
+                {
+                  "stringValue": "tool_call.start#17"
+                },
+                {
+                  "stringValue": "tool_call.start#18"
+                },
+                {
+                  "stringValue": "tool_call.start#19"
+                },
+                {
+                  "stringValue": "tool_call.start#20"
+                },
+                {
+                  "stringValue": "tool_call.start#21"
+                },
+                {
+                  "stringValue": "tool_call.start#22"
+                },
+                {
+                  "stringValue": "tool_call.start#23"
+                },
+                {
+                  "stringValue": "tool_call.start#24"
+                },
+                {
+                  "stringValue": "tool_call.start#25"
+                },
+                {
+                  "stringValue": "tool_call.start#26"
+                },
+                {
+                  "stringValue": "tool_call.start#27"
+                },
+                {
+                  "stringValue": "tool_call.start#28"
+                },
+                {
+                  "stringValue": "tool_call.start#29"
+                },
+                {
+                  "stringValue": "tool_call.start#30"
+                },
+                {
+                  "stringValue": "tool_call.start#31"
+                },
+                {
+                  "stringValue": "tool_call.start#32"
+                },
+                {
+                  "stringValue": "tool_call.start#33"
+                },
+                {
+                  "stringValue": "tool_call.start#34"
+                },
+                {
+                  "stringValue": "tool_call.start#35"
+                },
+                {
+                  "stringValue": "tool_call.start#36"
+                },
+                {
+                  "stringValue": "tool_call.start#37"
+                },
+                {
+                  "stringValue": "tool_call.start#38"
+                },
+                {
+                  "stringValue": "tool_call.start#39"
+                },
+                {
+                  "stringValue": "tool_call.start#40"
+                },
+                {
+                  "stringValue": "tool_call.start#41"
+                },
+                {
+                  "stringValue": "tool_call.start#42"
+                },
+                {
+                  "stringValue": "tool_call.start#43"
+                },
+                {
+                  "stringValue": "tool_call.start#44"
+                },
+                {
+                  "stringValue": "tool_call.start#45"
+                },
+                {
+                  "stringValue": "tool_call.start#46"
+                },
+                {
+                  "stringValue": "tool_call.start#47"
+                },
+                {
+                  "stringValue": "tool_call.start#48"
+                },
+                {
+                  "stringValue": "tool_call.start#49"
+                },
+                {
+                  "stringValue": "tool_call.start#50"
+                },
+                {
+                  "stringValue": "tool_call.start#51"
+                },
+                {
+                  "stringValue": "tool_call.start#52"
+                },
+                {
+                  "stringValue": "tool_call.start#53"
+                },
+                {
+                  "stringValue": "tool_call.start#54"
+                },
+                {
+                  "stringValue": "tool_call.start#55"
+                },
+                {
+                  "stringValue": "tool_call.start#56"
+                },
+                {
+                  "stringValue": "tool_call.start#57"
+                },
+                {
+                  "stringValue": "tool_call.start#58"
+                },
+                {
+                  "stringValue": "tool_call.start#59"
+                },
+                {
+                  "stringValue": "tool_call.start#60"
+                },
+                {
+                  "stringValue": "tool_call.start#61"
+                },
+                {
+                  "stringValue": "tool_call.start#62"
+                },
+                {
+                  "stringValue": "tool_call.start#63"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "key": "dpk.gate.steps.divergent_count",
+          "value": {
+            "intValue": "70"
+          }
+        },
+        {
+          "key": "dpk.gate.reasoning",
+          "value": {
+            "stringValue": "Critical reasoning steps removed: verify. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+          }
+        }
+      ],
+      "evaluation_result": {
+        "gen_ai.evaluation.name": "dpk_gate",
+        "gen_ai.evaluation.score.value": 0.0,
+        "gen_ai.evaluation.score.label": "fail",
+        "gen_ai.evaluation.explanation": "DProvenanceKit gate: FAIL; severity high; added: tool_call.start#0, tool_call.start#1, tool_call.start#2, tool_call.start#3, tool_call.start#4, tool_call.start#5, tool_call.start#6, tool_call.start#7, tool_call.start#8, tool_call.start#9, tool_call.start#10, tool_call.start#11, tool_call.start#12, tool_call.start#13, tool_call.start#14, tool_call.start#15, tool_call.start#16, tool_call.start#17, tool_call.start#18, tool_call.start#19, tool_call.start#20, tool_call.start#21, tool_call.start#22, tool_call.start#23, tool_call.start#24, tool_call.start#25, tool_call.start#26, tool_call.start#27, tool_call.start#28, tool_call.start#29, tool_call.start#30, tool_call.start#31, tool_call.start#32, tool_call.start#33, tool_call.start#34, tool_call.start#35, tool_call.start#36, tool_call.start#37, tool_call.start#38, tool_call.start#39, tool_call.start#40, tool_call.start#41, tool_call.start#42, tool_call.start#43, tool_call.start#44, tool_call.start#45, tool_call.start#46, tool_call.start#47, tool_call.start#48, tool…"
+      },
+      "label": "fail",
+      "score": 0.0
+    },
+    {
+      "description": "Built from 'dpk gate --json' output of an SDK predating run ids.",
+      "gate_json": {
+        "passed": false,
+        "regression_level": "high",
+        "strength": 1.0,
+        "max_regression_level": "none",
+        "allow_divergent_steps": false,
+        "fingerprint_match": false,
+        "golden_fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "candidate_fingerprint": "343d10a8c111860b6e141cb881eaacd7dc820a8f",
+        "steps_by_change": {
+          "removed": [
+            "verify"
+          ],
+          "reordered": [
+            "answer"
+          ]
+        },
+        "reasoning": "Critical reasoning steps removed: verify",
+        "summary": "(ignored)"
+      },
+      "attributes": {
+        "dpk.schema": "dpk.gate.verdict.v1",
+        "dpk.gate.passed": false,
+        "dpk.gate.verdict": "fail",
+        "dpk.gate.regression_level": "high",
+        "dpk.gate.strength": 1.0,
+        "dpk.gate.fingerprint_match": false,
+        "dpk.gate.policy.max_regression_level": "none",
+        "dpk.gate.policy.allow_divergent_steps": false,
+        "dpk.golden.fingerprint": "972d989e2f3371dc0ecc2fc480056a5a05fb6d48",
+        "dpk.candidate.fingerprint": "343d10a8c111860b6e141cb881eaacd7dc820a8f",
+        "dpk.gate.steps.removed": [
+          "verify"
+        ],
+        "dpk.gate.steps.divergent": [
+          "verify",
+          "answer"
+        ],
+        "dpk.gate.steps.divergent_count": 2,
+        "dpk.gate.reasoning": "Critical reasoning steps removed: verify"
+      },
+      "label": "fail",
+      "score": 0.0
+    }
+  ]
+}

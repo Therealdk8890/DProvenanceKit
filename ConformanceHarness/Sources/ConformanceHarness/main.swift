@@ -13,6 +13,7 @@ import Foundation
 import CryptoKit
 import SQLite3
 import DProvenanceKit
+import DProvenanceOTel
 
 // Resolve the vendored vectors relative to this source file (works regardless of cwd).
 let VECTORS = URL(fileURLWithPath: #filePath)
@@ -457,6 +458,74 @@ func checkStructuralAlignmentContract() {
     }
 }
 
+// MARK: - 7. OpenTelemetry gate-verdict attributes (OTEL_GENAI_MAPPING_v1 §3)
+
+/// Canonical JSON bytes: compares values the way a backend parser sees them
+/// (Bool vs number vs string), independent of key order.
+func canonicalJSON(_ value: Any) throws -> Data {
+    let data = try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys])
+    let reparsed = try JSONSerialization.jsonObject(with: data)
+    return try JSONSerialization.data(withJSONObject: reparsed, options: [.sortedKeys])
+}
+
+func plainAttributeValue(_ value: OTLPAnyValue) -> Any {
+    switch value {
+    case .string(let s): return s
+    case .bool(let b): return b
+    case .int(let i): return NSNumber(value: i)
+    case .double(let d): return d
+    case .array(let values): return values.map(plainAttributeValue)
+    }
+}
+
+func plainAttributes(_ attributes: [OTLPKeyValue]) -> [String: Any] {
+    var map: [String: Any] = [:]
+    for kv in attributes { map[kv.key] = plainAttributeValue(kv.value) }
+    return map
+}
+
+func checkOTelVerdictAttributes() {
+    print("\n[7] otel_verdict_attributes")
+    let root = loadVector("otel_verdict_attributes.json")
+    let excluded = Set(root["excluded_keys"] as! [String])
+    for (i, raw) in (root["cases"] as! [[String: Any]]).enumerated() {
+        let label = "case \(i): \(raw["description"] as? String ?? "")"
+        do {
+            let verdict: DPKGateVerdict
+            if let gate = raw["gate_json"] as? [String: Any] {
+                verdict = try DPKGateVerdict(gateJSON: gate)
+            } else {
+                verdict = try DPKGateVerdict(verdictObject: raw["verdict"] as! [String: Any])
+            }
+            var attributes = verdict.attributes()
+            let identity = attributes.filter { excluded.contains($0.key) }.count == excluded.count
+            attributes.removeAll { excluded.contains($0.key) }
+            var ok = identity && Set(attributes.map(\.key)).count == attributes.count
+            let gotAttributes = try canonicalJSON(plainAttributes(attributes))
+            let wantAttributes = try canonicalJSON(raw["attributes"]!)
+            ok = ok && gotAttributes == wantAttributes
+            if let otlp = raw["otlp_attributes"] as? [[String: Any]] {
+                let encoded = try JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(attributes.sorted { $0.key < $1.key }))
+                let expected = otlp.sorted { ($0["key"] as! String) < ($1["key"] as! String) }
+                let gotOTLP = try canonicalJSON(encoded)
+                let wantOTLP = try canonicalJSON(expected)
+                ok = ok && gotOTLP == wantOTLP
+            }
+            if let evaluation = raw["evaluation_result"] {
+                let gotEvaluation = try canonicalJSON(plainAttributes(verdict.evaluationResultAttributes()))
+                let wantEvaluation = try canonicalJSON(evaluation)
+                ok = ok && gotEvaluation == wantEvaluation
+            }
+            ok = ok && verdict.label == raw["label"] as? String
+                && verdict.score == (raw["score"] as! NSNumber).doubleValue
+            check(label, ok)
+        } catch {
+            check(label, false, "error \(error)")
+        }
+    }
+}
+
 // MARK: - Run all
 
 print("Trace Specification v1 — Swift conformance")
@@ -467,6 +536,7 @@ checkQuerySemantics()
 checkProfileHash()
 checkAlignmentVerdict()
 checkStructuralAlignmentContract()
+checkOTelVerdictAttributes()
 
 print("\n" + String(repeating: "=", count: 60))
 if failures.isEmpty {

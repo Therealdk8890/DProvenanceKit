@@ -208,6 +208,38 @@ jobs:
       - name: Build CLI
         run: swift build --product dpk
 
+  xcode-27-sdk:
+    # Every other macOS job selects Xcode 26.x, whose FoundationModels is < 2.0,
+    # so the `#if canImport(FoundationModels, _version: 2.0)` branches were never
+    # compiled in CI. One of them named Transcript.Segment.custom, a case Apple
+    # removed before the OS 27 SDK shipped, and Xcode 27 consumers (CaseClarity's
+    # Xcode Cloud builds) failed to compile. This job builds the library targets
+    # apps link against with the Xcode 27 image so that side is exercised.
+    name: Xcode 27 SDK (library targets)
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Print toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun --sdk macosx --show-sdk-version
+
+      - name: Build core library
+        run: swift build --target DProvenanceKit
+
+      - name: Build Foundation Models module (FoundationModels 2.0 branches)
+        run: swift build --target DProvenanceFoundationModels
+
+      - name: Build UI and OTel bridges
+        run: |
+          swift build --target DProvenanceUI
+          swift build --target DProvenanceFoundationModelsOTel
+
   thread-sanitizer:
     name: Thread sanitizer (concurrency tests)
     runs-on: macos-26

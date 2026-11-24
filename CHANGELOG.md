@@ -6,6 +6,28 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] - Unreleased
+
+### Fixed
+- DProvenanceFoundationModels builds against the shipping OS 27 SDK (Xcode 27). The
+  transcript bridge matched `Transcript.Segment.custom`, a case from an early 27.0 beta
+  that Apple removed before release, so every Xcode 27 consumer build failed with
+  `Type 'Transcript.Segment' has no member 'custom'` (seen in CaseClarity's Xcode Cloud
+  builds since 0.9.0). Attachment segments are still skipped and counted. CI now builds
+  the Foundation Models targets on the `xcode-27` runner image, so the
+  `canImport(FoundationModels, _version: 2.0)` branches are compiled somewhere.
+
+### Added
+- `DPKGateVerdict` (DProvenanceOTel): a gate verdict as OpenTelemetry attributes. It is the
+  Swift twin of Python `dprovenancekit.exporters.GateVerdict`, emitting `dpk.gate.*`
+  attributes and the standard `gen_ai.evaluation.result` event
+  (`evaluationResultEvent(timeUnixNano:)`). Build it from `dpk gate --json` output
+  (`init(gateJSON:)`) or from the shared JSON form. The contract is pinned by the shared
+  `otel_verdict_attributes.json` vector, which the conformance harness (category 7) and
+  `DPKGateVerdictTests` reproduce.
+- `OTLPAnyValue.array` and `OTLPKeyValue.stringArray(_:_:)`: OTLP `arrayValue`
+  attributes. Empty `arrayValue` objects decode as empty arrays.
+
 ### Security
 - Proof packs: a pack whose signed trace records the artifact digest beside a different
   `role` now fails with the new `ProofPackVerificationFailure.artifactRoleMismatch(index:)`
@@ -35,6 +57,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   rewrite or reorder what the terminal shows.
 
 ### Fixed
+- README "Gate your own agent in an afternoon": the walkthrough said to delete the
+  `verify_account_status(...)` call in `agent_stub.py`, which leaves `is_active` undefined and
+  crashes the agent with `NameError` before the gate runs. It now says to change the line to
+  `is_active = True`.
 - `OTLPHTTPExporter` preserves an endpoint's query string instead of appending
   `/v1/traces` after it.
 - Corrected the `externalTimestamp` documentation: the token's imprint covers the
@@ -67,6 +93,9 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `--out` does per mode.
 
 ### Compatibility
+- New enum case `OTLPAnyValue.array` affects exhaustive `switch` statements over
+  `OTLPAnyValue` without a `default`. Existing wire output is unchanged: no current
+  attribute switches to arrays (`dpk.derived_from` stays a comma-joined string).
 - New enum cases (`CloudTraceStoreError.insecureEndpoint`,
   `OTelExportError.insecureEndpoint`) affect exhaustive `switch` statements without a
   `default`. All new parameters and properties are defaulted, so existing call sites
@@ -88,6 +117,10 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   key IDs, so golden vectors cannot turn the secret scan red.
 - WebVisualizer dev dependencies updated (`npm audit fix`): vite 8.3.8 and its
   transitive nanoid/source-map-js; `npm audit` reports 0 vulnerabilities.
+- Vendored conformance vectors re-synced from DProvenanceKitPython `main` (f71ca8a):
+  `event_chain_v1_candidate.json` and `otel_verdict_attributes.json` added to
+  `ConformanceHarness/vectors/`, so the vector-sync check passes again. Byte-identical
+  copies; the harness loads vectors by name, so no Swift behavior changes.
 
 ## [0.10.0] - 2026-11-15
 
@@ -643,7 +676,8 @@ Published on GitHub as part of the coordinated Swift/Python 0.10.0 release.
 - Initial tagged release: core Run → Record → Query → Diff loop, `TraceAlignmentEngine`,
   benchmark corpus, in-memory and SQLite stores.
 
-[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.2...0.10.0
 [0.9.2]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.9.0...0.9.2
 [0.9.0]: https://github.com/Therealdk8890/DProvenanceKit/compare/0.8.1...0.9.0

@@ -23,6 +23,22 @@ swift run DProvenanceKitCLI evaluate --gate            # non-zero exit on any fa
 swift run DProvenanceKitCLI evaluate --gate --min-f1=0.95   # also require an F1 floor
 ```
 
+## No Mac? You can still contribute
+
+The core Swift build needs Xcode 26, but a lot of useful work does not:
+
+```bash
+python -m pip install dprovenancekit
+sh Examples/PythonRegressionGate/run_demo.sh   # the Python quickstart, end to end
+```
+
+- Docs: anything confusing in the README, quickstarts, or `docs/` is a valid issue or PR.
+- Examples: a small runnable example for another agent framework or CI system.
+- Python SDK work lives in [DProvenanceKitPython](https://github.com/Therealdk8890/DProvenanceKitPython).
+
+Issues labeled `good first issue` are a good starting point when they exist. If you are not
+sure something is wanted, open an issue first.
+
 ## Ground rules
 
 - **Preserve the invariants.** Diffing and querying are defined over stable
@@ -87,3 +103,5 @@ workbench is out of scope even if it is well built.
   CI runs each of these.
 - Note user-facing changes in [CHANGELOG.md](CHANGELOG.md) under `Unreleased`.
 - Security issues: please follow [SECURITY.md](SECURITY.md) instead of opening a public PR.
+- Sign off every commit (`git commit -s`). The DCO check on pull requests requires a
+  `Signed-off-by:` line whose email matches the commit author.
