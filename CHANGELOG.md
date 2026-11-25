@@ -6,7 +6,7 @@ follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.11.0] - Unreleased
+## [0.11.0] - 2026-11-22
 
 ### Fixed
 - DProvenanceFoundationModels builds against the shipping OS 27 SDK (Xcode 27). The

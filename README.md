@@ -87,8 +87,7 @@ This compares a baseline weather-assistant transcript that calls a live-data too
 
 ## Add DPK to a Swift package
 
-The dependency below targets **0.11.0 once it is tagged**. Until then, **0.10.0 remains the
-latest published package**; use `from: "0.10.0"` for a released dependency.
+The latest release is **0.11.0** (Nov 22, 2026):
 
 ```swift
 dependencies: [
